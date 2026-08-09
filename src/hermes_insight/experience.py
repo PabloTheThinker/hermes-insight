@@ -153,6 +153,17 @@ AGENT_STARTER_PATTERNS: List[Dict[str, Any]] = [
         "features": ["interrupt", "stream", "delivery", "gateway", "partial"],
     },
     {
+        "title": "skill routing not skill dump",
+        "body": (
+            "When skill count is high, route by task class and model cost — do not load "
+            "every skill. Distill the job, pick one skill, patch it when wrong."
+        ),
+        "kind": "rule",
+        "domain": "skill",
+        "tags": ["skill", "routing", "sprawl", "model", "selection"],
+        "features": ["skill", "routing", "sprawl", "selection", "model"],
+    },
+    {
         "title": "recurring failure is a pattern",
         "body": (
             "The second time the same class of failure appears, catalogue it and "
@@ -166,11 +177,40 @@ AGENT_STARTER_PATTERNS: List[Dict[str, Any]] = [
 ]
 
 
+def densify_structural_links(lat: "HermesInsight", *, min_score: float = 0.12, limit_per: int = 10) -> Dict[str, Any]:
+    """Ensure rules/starters/skills are linked into the graph (fixes empty hops)."""
+    from hermes_insight.cross_domain import auto_link
+
+    structural = [
+        p
+        for p in lat.store.all_patterns(limit=5000)
+        if p.kind.value in {"rule", "skill", "synthesis", "prototype"}
+        and (
+            "starter" in (p.tags or [])
+            or p.kind.value in {"rule", "skill", "synthesis"}
+            or p.confidence >= 0.7
+        )
+    ]
+    # Prefer small high-value set
+    structural = structural[:120]
+    linked = 0
+    for p in structural:
+        before = len(lat.store.links_for(p.id, limit=50))
+        auto_link(lat.store, p, candidates=structural, min_score=min_score, limit=limit_per)
+        after = len(lat.store.links_for(p.id, limit=50))
+        if after > before:
+            linked += 1
+    return {"structural_nodes": len(structural), "nodes_gained_links": linked}
+
+
 def seed_agent_starters(lat: "HermesInsight", *, force: bool = False) -> Dict[str, Any]:
     """Install starter patterns if DB is empty (or force)."""
     st = lat.stats()
     if st.get("patterns", 0) >= 8 and not force:
-        return {"seeded": 0, "skipped": True, "reason": "already populated", "patterns": st["patterns"]}
+        # still densify if starters exist but are orphaned
+        dens = densify_structural_links(lat)
+        dens.update({"seeded": 0, "skipped": True, "reason": "already populated", "patterns": st["patterns"]})
+        return dens
     ids: List[str] = []
     for row in AGENT_STARTER_PATTERNS:
         pat = lat.ingest(
@@ -182,11 +222,12 @@ def seed_agent_starters(lat: "HermesInsight", *, force: bool = False) -> Dict[st
             features=row.get("features"),
             confidence=0.75,
             source="bootstrap",
-            link=True,
+            link=False,  # densify as a batch after all seeds land
         )
         ids.append(pat.id)
-    lat.store.set_meta("bootstrap_version", "0.6.0")
-    return {"seeded": len(ids), "pattern_ids": ids, "skipped": False}
+    dens = densify_structural_links(lat, min_score=0.10, limit_per=12)
+    lat.store.set_meta("bootstrap_version", "0.7.1")
+    return {"seeded": len(ids), "pattern_ids": ids, "skipped": False, **dens}
 
 
 # ---------------------------------------------------------------------------
@@ -197,7 +238,7 @@ def log_experience(
     lat: "HermesInsight",
     title: str,
     body: str,
-    *,\
+    *,
     kind: str = "event",
     task_id: Optional[str] = None,
     outcome: Optional[str] = None,
@@ -393,7 +434,7 @@ def _open_task_impl(
 def close_task(
     lat: "HermesInsight",
     task_id: str,
-    *,\
+    *,
     outcome: str = "done",
     summary: str = "",
     reinforce_connected: bool = True,
@@ -446,7 +487,7 @@ def close_task(
 def recall(
     lat: "HermesInsight",
     query: str,
-    *,\
+    *,
     limit: int = 8,
     include_experiences: bool = True,
     write_meta: bool = True,
@@ -562,7 +603,7 @@ def connect(
     lat: "HermesInsight",
     left: str,
     right: Optional[str] = None,
-    *,\
+    *,
     kind: str = "similar",
     note: str = "",
     weight: float = 0.6,
@@ -625,7 +666,7 @@ def connect(
 def ingest_messages(
     lat: "HermesInsight",
     messages: Sequence[Dict[str, Any]],
-    *,\
+    *,
     task_id: Optional[str] = None,
     title: str = "session slice",
     max_chars: int = 6000,

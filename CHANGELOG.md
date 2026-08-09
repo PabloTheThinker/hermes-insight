@@ -1,3 +1,9 @@
+## 0.7.1 — 2026-08-09
+
+- Quality pass from live lattice audit: fix `someth` lever stem, dedupe `route.ts` piles, densify structural links (hops work), thin-query honesty, skill-routing starter
+- `usable` flag on perceive; auto densify on bootstrap
+- 34 unit tests; production E2E still green
+
 # Changelog
 
 ## 0.7.0 — 2026-08-09

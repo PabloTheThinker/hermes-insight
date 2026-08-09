@@ -97,6 +97,12 @@ _STOP = {
     "use",
     "used",
     "using",
+    "something",
+    "anything",
+    "everything",
+    "nothing",
+    "wrong",
+    "broken",
 }
 
 
@@ -105,20 +111,44 @@ def stem_token(tok: str) -> str:
     t = tok.lower()
     if len(t) <= 3:
         return t
-    for suf in ("ingly", "edly", "ally", "edly"):
+    # Never butcher high-frequency full words into garbage stems
+    _NO_STEM = {
+        "something",
+        "anything",
+        "everything",
+        "nothing",
+        "someone",
+        "anyone",
+        "everyone",
+        "somewhere",
+        "however",
+        "during",
+        "without",
+        "within",
+        "single",
+        "simple",
+        "string",
+        "running",
+        "warning",
+    }
+    if t in _NO_STEM:
+        return t
+    for suf in ("ingly", "edly", "ally"):
         if t.endswith(suf) and len(t) - len(suf) >= 4:
             return t[: -len(suf)]
     if t.endswith("ies") and len(t) > 5:
         return t[:-3] + "y"
     if t.endswith("ing") and len(t) > 6:
         base = t[:-3]
+        # avoid something → someth, string → str
+        if len(base) < 5:
+            return t
         if len(base) >= 4 and base[-1] == base[-2]:
             base = base[:-1]
         return base
     if t.endswith("ers") and len(t) > 5:
         return t[:-1]  # breakers -> breaker
     if t.endswith("es") and len(t) > 5 and not t.endswith(("sses", "uses", "ses")):
-        # failures -> failure; boxes keep careful
         if t.endswith(("ses", "zes", "xes", "ches", "shes")):
             return t[:-2]
         return t[:-1]

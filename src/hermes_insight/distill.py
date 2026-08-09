@@ -23,6 +23,15 @@ _NOISE_HINTS = {
     "need", "required", "using", "used", "use", "make", "get", "set", "add",
     "long", "lived", "process", "between", "identity", "home", "directory",
     "enabl", "enable", "enabled", "service", "unit", "level",
+    "something", "anything", "everything", "nothing", "someth", "anyth",
+    "wrong", "broken", "error", "bug", "fail", "failed", "weird", "strange",
+    "happen", "going", "work", "works", "working",
+}
+
+# Incomplete / mangled stems that must never be the lever
+_BAD_LEVERS = {
+    "someth", "anyth", "everyth", "noth", "unknow", "variabl", "structur",
+    "gener", "system", "thing", "stuff", "issue", "problem", "wrong", "broken",
 }
 
 # Prefer these if present — high-leverage ops/structure vocabulary
@@ -106,9 +115,18 @@ def distill(
                 scored.append((2.5 + boost.get(prior, 0.0), prior))
 
     scored.sort(reverse=True)
-    ranked = [f for _, f in scored]
-    actual = ranked[0] if ranked else (tokens[0] if tokens else "unknown")
-    supporting = ranked[1 : max_supporting + 1]
+    ranked = [f for _, f in scored if f not in _BAD_LEVERS and len(f) >= 3]
+    # Prefer lever priors when top candidates are weak scenic noise
+    prior_hits = [f for f in ranked if f in _LEVER_PRIORS]
+    if prior_hits and (not ranked or ranked[0] not in _LEVER_PRIORS):
+        # promote first prior if scenic top is weak
+        if not ranked or ranked[0] in _NOISE_HINTS or ranked[0] in _BAD_LEVERS:
+            ranked = prior_hits + [f for f in ranked if f not in prior_hits]
+
+    actual = ranked[0] if ranked else "insufficient_signal"
+    if actual in _BAD_LEVERS or actual in _NOISE_HINTS:
+        actual = prior_hits[0] if prior_hits else "insufficient_signal"
+    supporting = [f for f in ranked[1 : max_supporting + 1] if f != actual]
 
     discarded: List[str] = []
     for t in tokens:
@@ -196,13 +214,19 @@ def _confidence(
     supporting: Sequence[str],
     matches: Optional[Sequence[MatchResult]],
 ) -> float:
-    c = 0.35
-    if actual and actual != "unknown":
-        c += 0.15
+    if actual in {"unknown", "insufficient_signal", ""}:
+        return 0.12
+    c = 0.30
+    if actual and actual not in _NOISE_HINTS and actual not in _BAD_LEVERS:
+        c += 0.12
     if actual in _LEVER_PRIORS:
-        c += 0.15
+        c += 0.18
     if supporting:
-        c += min(0.15, 0.03 * len(supporting))
+        c += min(0.12, 0.03 * len(supporting))
     if matches:
-        c += 0.25 * matches[0].score
+        top = float(matches[0].score)
+        c += 0.35 * top
+        # penalize overconfidence when top match is weak
+        if top < 0.2:
+            c *= 0.75
     return float(max(0.05, min(0.95, c)))

@@ -282,7 +282,42 @@ def match_patterns(
         if mr.score >= min_score:
             results.append(mr)
     results.sort(key=lambda m: (m.score, m.pattern.strength, m.pattern.confidence), reverse=True)
-    return results[:limit]
+
+    # Dedupe near-identical nodes (many route.ts / same title fabric dumps)
+    deduped: List[MatchResult] = []
+    seen_hash: Set[str] = set()
+    seen_title: Set[str] = set()
+    kind_counts: Dict[str, int] = {}
+    for mr in results:
+        h = mr.pattern.content_hash or ""
+        title_key = re.sub(r"\s+", " ", mr.pattern.title.lower().strip())
+        # collapse skill:foo duplicates and bare filenames
+        base_title = title_key.split("/")[-1]
+        if h and h in seen_hash:
+            continue
+        if base_title in seen_title and mr.pattern.kind not in {
+            PatternKind.RULE,
+            PatternKind.EVENT,
+            PatternKind.EPISODE,
+            PatternKind.TASK,
+        }:
+            # allow second rule-like; skip extra file dumps with same name
+            if kind_counts.get(base_title, 0) >= 1:
+                continue
+        k = mr.pattern.kind.value
+        # diversity: cap pure prototypes after we already have strong rules
+        if k == "prototype" and kind_counts.get("rule", 0) >= 2 and kind_counts.get("prototype", 0) >= 2:
+            if mr.score < 0.45:
+                continue
+        if h:
+            seen_hash.add(h)
+        seen_title.add(base_title)
+        kind_counts[base_title] = kind_counts.get(base_title, 0) + 1
+        kind_counts[k] = kind_counts.get(k, 0) + 1
+        deduped.append(mr)
+        if len(deduped) >= limit:
+            break
+    return deduped
 
 
 def best_match(

@@ -15,7 +15,7 @@ def lat(tmp_path: Path) -> HermesInsight:
 
 
 def test_version():
-    assert __version__ == "0.7.0"
+    assert __version__ == "0.7.1"
 
 
 def test_perceive_prefers_structural_rule(lat: HermesInsight):
@@ -81,3 +81,39 @@ def test_structural_rule_outranks_filename(lat: HermesInsight):
     title = (top.get("pattern") or {}).get("title") or top.get("title") or ""
     score = float(top.get("score") or 0)
     assert "retry" in title.lower() or score > 0.1
+
+
+def test_vague_query_not_garbage_lever(lat: HermesInsight):
+    lat.bootstrap()
+    out = lat.perceive("something is wrong with the system")
+    assert out["lever"] != "someth"
+    assert out["lever"] in {"insufficient_signal", "system"} or out.get("thin_query")
+    # usable should be false on pure vague
+    if out["lever"] == "insufficient_signal":
+        assert out.get("usable") is False
+
+
+def test_dedupe_same_title_files(lat: HermesInsight):
+    for i in range(5):
+        lat.ingest(
+            "route.ts",
+            f"export function handler{i}() {{ return auth token {i} }}",
+            domain="code",
+            kind="prototype",
+            tags=["fabric", "file"],
+            confidence=0.5,
+        )
+    lat.ingest(
+        "credential single-consumer",
+        "Only one consumer may use a bot token.",
+        domain="agent",
+        kind="rule",
+        tags=["starter", "token", "credential"],
+        features=["credential", "token", "consumer", "bot"],
+        confidence=0.9,
+    )
+    hits = lat.match("bot token dual consumer conflict", limit=8)
+    titles = [
+        (h.get("pattern") or {}).get("title") or h.get("title") for h in hits
+    ]
+    assert titles.count("route.ts") <= 1
