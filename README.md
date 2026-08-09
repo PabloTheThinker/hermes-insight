@@ -1,6 +1,6 @@
 # Hermes Insight
 
-**Superior pattern-processing harness for AI agents.**
+**Pattern harness for the AI agent / model field** — agents, models, tools, skills, multi-agent compartments, fabric, forge.
 
 Neurodivergent-inspired *connecting-the-dots* cognition as software: encode structures, match them with multiple lenses, hop laterally across domains, distill the actual variable, extrapolate trajectories, and evolve a living catalogue.
 

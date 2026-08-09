@@ -1,7 +1,7 @@
 ---
 name: hermes-insight
 description: "Use when an agent needs superior pattern recognition — distill levers, match structures, cross-domain analogy, trajectories, catalogue novelty, multi-agent lattices, code ingest. CLI + native insight_* tools."
-version: "0.4.0"
+version: "0.5.0"
 author: Pablo Navarro
 license: MIT
 metadata:
@@ -11,6 +11,10 @@ metadata:
 ---
 
 # Hermes Insight (Hermes skill)
+
+**Field:** AI agents and models (not generic IT-only language).
+Native nouns: agent, model, tool, skill, plugin, profile, context, memory, multi-agent, inference, prompt.
+
 
 Superior pattern-processing harness for agents. Neurodivergent-inspired connecting-the-dots: **encode → match → link → distill → extrapolate → evolve**.
 

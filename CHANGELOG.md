@@ -1,3 +1,10 @@
+## 0.5.0 — 2026-08-09
+
+- Agent/model field ontology (domains, kinds, links, synonyms)
+- Fabric indexes skills, plugins, profiles, tools, model routes
+- Briefs + forge language refocused on AI agents and multi-agent structure
+- docs/AGENT_FIELD.md
+
 # Changelog
 
 ## 0.3.0 — 2026-08-09

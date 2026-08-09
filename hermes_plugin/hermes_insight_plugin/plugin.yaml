@@ -1,8 +1,8 @@
 name: hermes-insight
-version: "0.4.0"
+version: "0.5.0"
 description: >
-  Pattern-processing harness + server fabric + Pattern Forge (map/predict/transfer/invent/act).
-  Independent companion (not official Nous product).
+  AI agent/model field pattern harness — agents, models, tools, skills, multi-agent
+  compartments, fabric index, and Pattern Forge. Independent companion (not official Nous).
 author: "Pablo Navarro"
 kind: standalone
 provides_tools:

@@ -1,31 +1,15 @@
-"""Optional prompt scaffolds when an LLM co-pilots the lattice.
-
-The core harness is deterministic and offline. These strings help agents
-(or host apps) use an LLM *with* the lattice without replacing it.
-"""
+"""Optional prompt scaffolds when an LLM co-pilots the lattice."""
 
 from __future__ import annotations
 
-SYSTEM_PATTERN_OFFICER = """You are operating with Hermes Insight — a superior pattern-processing harness.
-
-Cognitive stance (neurodivergent-inspired, not clinical):
-- Prefer structure over gist. Name the actual variable.
-- Match with three lenses: template (exact), prototype (category center), features (parts).
-- Make lateral, cross-domain hops when structure rhymes.
-- Extrapolate trajectories early; label confidence and risks.
-- Catalogue novelty instead of force-fitting.
-- Separate observation from inference.
-- Return finished briefs, not raw dumps.
-
-When tools/CLI are available, prefer:
-  hermes-insight cycle "..." 
-  hermes-insight ingest "title" "body" --domain code --tag x
-  hermes-insight distill "..."
-  hermes-insight feedback <id>   # after a pattern proves useful
-over pure speculation.
+try:
+    from hermes_insight.ontology import SYSTEM_AGENT_OFFICER as SYSTEM_PATTERN_OFFICER
+except Exception:  # pragma: no cover
+    SYSTEM_PATTERN_OFFICER = """You operate Hermes Insight in the AI agent / model field.
+Prefer agent nouns: agent, model, tool, skill, context, memory, multi-agent.
 """
 
-CYCLE_USER_TEMPLATE = """Run a pattern cycle on the following situation.
+CYCLE_USER_TEMPLATE = """Run an agent-field pattern cycle.
 
 Situation:
 {situation}
@@ -33,15 +17,17 @@ Situation:
 Prior observations (optional):
 {observations}
 
-Produce:
-1) Actual variable (distillation)
-2) Best matching known patterns (if any)
-3) Cross-domain analogies worth exploring
-4) Trajectory + next expected + risks
-5) What should be catalogued now
+Produce in agent/model language:
+1) Controlling variable (distillation) — e.g. credential, model route, tool ownership, context
+2) Best matching agents/skills/tools/models already catalogued
+3) Transfers worth making across agent products
+4) Trajectory of the fleet + next expected + risks
+5) What to catalogue (skill, tool, model route, policy)
 """
 
-FEATURE_ENRICH_TEMPLATE = """Extract structural features from this text for a pattern catalogue.
+FEATURE_ENRICH_TEMPLATE = """Extract agent-field structural features from this text.
+Prefer tokens like agent, model, tool, skill, plugin, profile, context, memory,
+delegation, inference, embedding, session, harness, prompt, eval, toolset.
 Return a JSON list of 8-24 short feature tokens (snake_case where multiword).
 No prose.
 
@@ -49,12 +35,13 @@ Text:
 {text}
 """
 
-SYNTHESIS_TEMPLATE = """These pattern nodes appear related. Propose ONE higher-order synthesis:
-- title
+SYNTHESIS_TEMPLATE = """These agent-field pattern nodes appear related. Propose ONE higher-order synthesis:
+- title (agent/model capability language)
 - principle (one paragraph)
 - shared features
-- domains spanned
+- domains spanned (agent|model|tool|skill|multi_agent|…)
 - what would falsify this synthesis
+- first build for an AI agent product
 
 Nodes:
 {nodes}

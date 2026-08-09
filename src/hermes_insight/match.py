@@ -11,11 +11,12 @@ from hermes_insight.features import jaccard, normalize_text, overlap_list, stem_
 from hermes_insight.models import MatchResult, Pattern, PatternKind
 
 # Domain synonym expansion — structural rhymes agents should catch
+# (includes classic ops + AI agent/model field)
 _SYNONYMS: Dict[str, Set[str]] = {
-    "credential": {"token", "secret", "key", "auth", "password", "bot"},
-    "token": {"credential", "secret", "bot", "auth"},
+    "credential": {"token", "secret", "key", "auth", "password", "bot", "api-key"},
+    "token": {"credential", "secret", "bot", "auth", "api-key"},
     "isolation": {"separate", "compartment", "sandbox", "profile", "tenant"},
-    "profile": {"tenant", "home", "isolation", "identity", "agent"},
+    "profile": {"tenant", "home", "isolation", "identity", "agent", "persona"},
     "linger": {"systemd", "lingering", "session", "logout", "ssh"},
     "longpoll": {"polling", "getupdates", "webhook", "consumer"},
     "consumer": {"worker", "listener", "subscriber", "poll"},
@@ -23,8 +24,35 @@ _SYNONYMS: Dict[str, Set[str]] = {
     "retry": {"backoff", "jitter", "transient", "timeout"},
     "timeout": {"deadline", "latency", "slow", "hang"},
     "circuit": {"breaker", "bulkhead", "failfast"},
-    "cache": {"ttl", "stampede", "singleflight", "memo"},
+    "cache": {"ttl", "stampede", "singleflight", "memo", "prompt-cache"},
+    # AI agent / model field
+    "agent": {"assistant", "worker", "subagent", "bot", "actor", "employee", "seat"},
+    "model": {"llm", "foundation-model", "checkpoint", "completion", "chat-model", "weights"},
+    "tool": {"function", "action", "capability", "api-tool", "tool-call"},
+    "skill": {"playbook", "procedure", "workflow", "runbook", "sop"},
+    "plugin": {"extension", "addon", "module"},
+    "context": {"window", "history", "working-memory", "prompt-cache"},
+    "memory": {"recall", "engram", "fact-store", "durable-state"},
+    "delegation": {"hand-off", "spawn", "delegate", "fan-out", "subagent"},
+    "inference": {"generation", "decode", "sampling", "forward-pass"},
+    "embedding": {"vector", "retrieval", "similarity"},
+    "session": {"conversation", "thread", "dialogue"},
+    "harness": {"runtime", "loop", "orchestrator", "framework"},
+    "multi_agent": {"fleet", "swarm", "crew", "team", "board", "kanban"},
+    "prompt": {"system-prompt", "instruction", "soul", "policy-text"},
+    "eval": {"benchmark", "score", "grade", "rubric"},
+    "toolset": {"toolkit", "tool-bundle"},
+    "compartment": {"isolation", "profile", "tenant", "sandbox"},
 }
+
+# Merge ontology synonyms if available
+try:
+    from hermes_insight.ontology import AGENT_SYNONYMS
+
+    for _k, _vs in AGENT_SYNONYMS.items():
+        _SYNONYMS.setdefault(_k, set()).update(_vs)
+except Exception:  # pragma: no cover
+    pass
 
 
 def expand_query_features(features: Sequence[str]) -> List[str]:

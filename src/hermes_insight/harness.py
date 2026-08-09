@@ -445,7 +445,7 @@ class HermesInsight:
             "patterns": c["patterns"],
             "links": c["links"],
             "last_brief_line": self.store.get_meta("last_brief_line", ""),
-            "version": "0.4.0",
+            "version": "0.5.0",
         }
 
     def export_patterns(self, *, limit: int = 1000) -> List[Dict[str, Any]]:

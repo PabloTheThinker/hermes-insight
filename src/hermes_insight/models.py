@@ -19,23 +19,37 @@ import uuid
 
 
 class PatternKind(str, Enum):
-    """What kind of structure this node encodes."""
+    """What kind of structure this node encodes (agent-field aware)."""
 
     TEMPLATE = "template"  # near-exact stored exemplar
     PROTOTYPE = "prototype"  # averaged / idealized category center
     FEATURE = "feature"  # atomic detectable part
-    SEQUENCE = "sequence"  # ordered steps / timeline
+    SEQUENCE = "sequence"  # ordered steps / timeline / agent loop
     RELATION = "relation"  # link-shaped claim (A relates-to B)
-    RULE = "rule"  # if/then regularity
+    RULE = "rule"  # if/then policy or routing rule
     TRAJECTORY = "trajectory"  # direction over time
     ANOMALY = "anomaly"  # deliberate novelty marker
     SYNTHESIS = "synthesis"  # agent-generated composite idea
+    AGENT = "agent"  # an agent identity / role node
+    MODEL = "model"  # LLM or specialist model node
+    TOOL = "tool"  # callable tool capability
+    SKILL = "skill"  # procedural skill package
+    PROMPT = "prompt"  # prompt/policy surface
 
 
 class Domain(str, Enum):
-    """Soft domain labels — cross-domain linking is a first-class goal."""
+    """Soft domain labels — agent/model field first-class."""
 
     GENERAL = "general"
+    AGENT = "agent"
+    MODEL = "model"
+    TOOL = "tool"
+    SKILL = "skill"
+    CONTEXT = "context"
+    MEMORY = "memory"
+    INFERENCE = "inference"
+    MULTI_AGENT = "multi_agent"
+    PROMPT = "prompt"
     CODE = "code"
     SYSTEM = "system"
     SOCIAL = "social"
@@ -58,6 +72,12 @@ class LinkKind(str, Enum):
     INSTANCE_OF = "instance_of"
     ENABLES = "enables"
     RHYMES = "rhymes"  # weak associative / lateral hop
+    # Agent-field links
+    DELEGATES_TO = "delegates_to"
+    USES_MODEL = "uses_model"
+    HAS_SKILL = "has_skill"
+    CALLS = "calls"
+    SHARES_CONTEXT = "shares_context"
 
 
 class ProcessDim(str, Enum):

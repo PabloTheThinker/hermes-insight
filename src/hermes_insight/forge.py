@@ -74,15 +74,20 @@ def _by_fabric(patterns: Sequence[Pattern]) -> Dict[str, List[Pattern]]:
 
 
 def build_orientation_map(insight: Any) -> str:
-    """Product 1 — Orient: the field as a usable map."""
+    """Product 1 — Orient: the agent field as a usable map."""
+    from hermes_insight.ontology import FORGE_VOICE
+
     patterns = insight.store.all_patterns(limit=5000)
     by = _by_fabric(patterns)
     deg = _degree_map(insight)
+    voice = FORGE_VOICE
 
     lines = [
-        "# Pattern Map — orientation product",
+        f"# {voice['map_title']}",
         "",
-        f"_Forged {_now_iso()} from the live lattice. How people use maps: know the terrain before moving._",
+        f"_{voice['map_blurb']}_",
+        "",
+        f"_Forged {_now_iso()}. Agent-field map: agents · models · tools · skills · endpoints._",
         "",
         "## Terrain counts",
         "",
@@ -98,11 +103,27 @@ def build_orientation_map(insight: Any) -> str:
         fab = (p.metadata or {}).get("fabric", "")
         lines.append(f"- **{p.title}** · degree={d} · {fab or p.domain.value}/{p.kind.value}")
 
-    lines += ["", "## Connection plane (listens)", ""]
+    lines += ["", "## Runtime endpoints (agent-stack listens)", ""]
     for p in by.get("listen") or []:
         lines.append(f"- **{p.title}** — {p.body[:160]}")
 
-    lines += ["", "## Project plane (top by degree among projects)", ""]
+    lines += ["", "## Agent identities (profiles)", ""]
+    for p in (by.get("profile") or [])[:20]:
+        lines.append(f"- **{p.title}** · {p.domain.value}")
+
+    lines += ["", "## Models", ""]
+    for p in (by.get("model") or [])[:15]:
+        lines.append(f"- **{p.title}**")
+
+    lines += ["", "## Skills (sample)", ""]
+    for p in (by.get("skill") or [])[:25]:
+        lines.append(f"- **{p.title}**")
+
+    lines += ["", "## Plugins / tool providers", ""]
+    for p in (by.get("plugin") or [])[:20]:
+        lines.append(f"- **{p.title}**")
+
+    lines += ["", "## Code surfaces agents work in (top projects)", ""]
     proj = by.get("project") or []
     proj_ranked = sorted(proj, key=lambda p: deg.get(p.id, 0), reverse=True)[:20]
     for p in proj_ranked:
@@ -111,42 +132,49 @@ def build_orientation_map(insight: Any) -> str:
 
     hermes = by.get("hermes") or []
     if hermes:
-        lines += ["", "## Hermes runtime", "", hermes[0].body[:1200]]
+        lines += ["", "## Agent harness runtime", "", hermes[0].body[:1200]]
 
     lines += [
         "",
-        "## How to use this map",
+        "## How to use this map (agent ops)",
         "",
-        "1. Start at **hubs** — changes there ripple farthest.",
-        "2. Pair each **listen:** node with the project that owns that process.",
-        "3. Treat isolated projects (deg≈0 after re-link) as either new or forgotten.",
-        "4. Re-forge after `index-server` so the map tracks reality.",
+        "1. Start at **hubs** — agent/product surfaces where changes ripple.",
+        "2. Pair each **listen:** with the agent or plugin that owns it.",
+        "3. Trace **agent → model (USES_MODEL)** and **harness → skill (HAS_SKILL)**.",
+        "4. Keep client agent compartments off the house agent graph.",
+        "5. Re-forge after indexing so the fleet map tracks reality.",
         "",
     ]
     return "\n".join(lines)
 
 
 def build_prediction_board(insight: Any) -> str:
-    """Product 2 — Predict: trajectories from multi-signal clusters."""
+    """Product 2 — Predict: trajectories in the agent fleet / model routes."""
+    from hermes_insight.ontology import FORGE_VOICE
+
     patterns = insight.store.all_patterns(limit=5000)
     by = _by_fabric(patterns)
     listens = by.get("listen") or []
     projects = by.get("project") or []
+    voice = FORGE_VOICE
 
     observations = []
     for p in listens:
-        observations.append(f"listen:{p.title}: {p.body[:120]}")
-    for p in projects[:12]:
-        observations.append(f"project-hub:{p.title}")
+        observations.append(f"endpoint:{p.title}: {p.body[:120]}")
+    for p in (by.get("skill") or [])[:15]:
+        observations.append(f"skill-present:{p.title}")
+    for p in (by.get("model") or [])[:8]:
+        observations.append(f"model-route:{p.title}")
+    for p in (by.get("profile") or [])[:8]:
+        observations.append(f"agent-identity:{p.title}")
 
-    # seed with high-degree project names as "activity density"
     deg = _degree_map(insight)
     busy = sorted(projects, key=lambda p: deg.get(p.id, 0), reverse=True)[:8]
     for p in busy:
-        observations.append(f"dense-links around {p.title} (deg={deg.get(p.id, 0)})")
+        observations.append(f"dense agent-code surface {p.title} (deg={deg.get(p.id, 0)})")
 
     traj = extrapolate(
-        observations[:20] or ["sparse lattice"],
+        observations[:20] or ["sparse agent field"],
         matches=match_patterns(
             " ".join(observations[:10]),
             expand_query_features(extract_features(" ".join(observations[:10]))),
@@ -154,13 +182,12 @@ def build_prediction_board(insight: Any) -> str:
             limit=8,
             idf=build_idf(patterns),
         ),
-        title="forge-prediction",
+        title="forge-agent-prediction",
     )
 
-    # Distill controlling risk
     blob = "\n".join(observations[:15])
     d = distill(
-        blob + "\n" + " ".join(p.title for p in listens),
+        blob + "\n agent model tool skill context memory multi_agent",
         matches=match_patterns(
             blob,
             expand_query_features(extract_features(blob)),
@@ -171,11 +198,11 @@ def build_prediction_board(insight: Any) -> str:
     )
 
     lines = [
-        "# Prediction board — trajectory product",
+        f"# {voice['predict_title']}",
         "",
-        "_Forged for foresight. People use patterns to see where a system is heading before it names itself._",
+        f"_{voice['predict_blurb']}_",
         "",
-        f"## Controlling variable",
+        "## Controlling variable",
         f"- **Lever:** `{d.actual_variable}`",
         f"- **Confidence:** {d.confidence:.2f}",
         f"- **Principle:** {d.principle}",
@@ -195,18 +222,20 @@ def build_prediction_board(insight: Any) -> str:
 
     lines += [
         "",
-        "## Watchlist (concrete)",
+        "## Agent-field watchlist",
         "",
-        "1. **Single-consumer surfaces** — any bot/credential long-poll shared across workers.",
-        "2. **Listen sprawl** — new `listen:*` nodes without a matching project owner.",
-        "3. **Hub thrash** — top-degree projects changing file mass without a named purpose.",
-        "4. **Mesh-exposed binds** — process bind_class=mesh or all_interfaces without a known product face.",
-        "5. **Orphan density** — many files, few links → incomplete fabric (re-index or re-link).",
+        "1. **Credential / single-consumer** — two agents sharing one bot token or OAuth.",
+        "2. **Model route drift** — default model changes without eval gate.",
+        "3. **Skill sprawl** — many skills, few HAS_SKILL links to real agents.",
+        "4. **Unowned endpoints** — listen nodes with no agent/plugin owner.",
+        "5. **Context overflow** — rising session length without compression policy.",
+        "6. **Cross-compartment leak risk** — client agent data patterns near house agents.",
         "",
         "## Decision prompts",
         "",
-        "- If lever stays `connection`/`credential`: prioritize isolation playbooks over new features.",
-        "- If lever shifts to a product hub: that hub is where invention ROI is highest this week.",
+        "- If lever is `credential`/`agent`/`compartment`: isolation before new tools.",
+        "- If lever is `model`/`inference`: freeze route + add eval before prompt churn.",
+        "- If lever is `tool`/`skill`: consolidate capability graph before new agents.",
         "",
     ]
     return "\n".join(lines)
@@ -287,19 +316,20 @@ def build_transfer_pack(insight: Any) -> str:
 
 
 def build_invention_seeds(insight: Any) -> str:
-    """Product 4 — Invent: new ideas from cluster intersections."""
+    """Product 4 — Invent: new AI agent capabilities from cluster intersections."""
+    from hermes_insight.ontology import FORGE_VOICE
+
     patterns = insight.store.all_patterns(limit=5000)
     by = _by_fabric(patterns)
     deg = _degree_map(insight)
     projects = sorted(by.get("project") or [], key=lambda p: deg.get(p.id, 0), reverse=True)
     listens = by.get("listen") or []
     hermes = by.get("hermes") or []
+    voice = FORGE_VOICE
 
-    # Invention recipes = intersection of two high-signal sets
     seeds = []
 
-    # 1. Hermes + densest commercial project
-    commercial_hints = ("vektra", "pay", "zp3", "roof", "salon", "desk", "commerce", "hire")
+    commercial_hints = ("vektra", "pay", "zp3", "roof", "salon", "desk", "commerce", "hire", "employee")
     commercial = [
         p
         for p in projects
@@ -308,18 +338,17 @@ def build_invention_seeds(insight: Any) -> str:
     if hermes and commercial:
         seeds.append(
             {
-                "title": "Insight-backed managed-employee brief factory",
+                "title": "Managed AI employee with private Insight compartment",
                 "parents": [hermes[0].title, commercial[0].title],
                 "idea": (
-                    "Each managed seat gets a private Insight compartment; nightly forge emits "
-                    "a one-page orientation map + prediction board for that client's systems. "
-                    "Sell the brief, not the raw lattice."
+                    "Each managed AI employee seat is a Hermes profile + model route + skill pack; "
+                    "nightly forge emits an owner-facing agent brief (field map + trajectory). "
+                    "Product is the agent + the brief, not raw logs."
                 ),
-                "first_build": "Wire cron: index-path(client tree) → forge → deliver Friday value ledger attachment.",
+                "first_build": "Profile factory → index-path(client) → forge → Friday value ledger attachment.",
             }
         )
 
-    # 2. Unowned listens
     unowned = []
     for lp in listens:
         proc = str((lp.metadata or {}).get("process") or "")
@@ -328,78 +357,93 @@ def build_invention_seeds(insight: Any) -> str:
     if unowned:
         seeds.append(
             {
-                "title": "Listen ownership resolver",
+                "title": "Agent endpoint ownership graph",
                 "parents": [p.title for p in unowned[:3]],
                 "idea": (
-                    "A small service that maps ports→systemd units→git repos and writes "
-                    "`listen:*` ownership links automatically. Turns 'unknown listeners' into accountable surfaces."
+                    "Map listen endpoints → agent profiles / plugins / tools automatically. "
+                    "Every runtime port becomes an owned node in the multi-agent graph."
                 ),
-                "first_build": "Script: parse unit files + ss process, write part_of links in Insight.",
+                "first_build": "Extend fabric index_connections to link listen:* → agent:* / plugin:*.",
             }
         )
 
-    # 3. Multi-hub mesh
+    if (by.get("skill") or []) and (by.get("model") or []):
+        seeds.append(
+            {
+                "title": "Skill↔model routing matrix",
+                "parents": [
+                    (by.get("skill") or [None])[0].title if by.get("skill") else "skills",
+                    (by.get("model") or [None])[0].title if by.get("model") else "models",
+                ],
+                "idea": (
+                    "Not every skill should hit the default model. Forge a routing table: "
+                    "heavy coding skills → coding model; cheap classify skills → small/fast model."
+                ),
+                "first_build": "Emit markdown matrix from skill tags × model routes; wire config overrides.",
+            }
+        )
+
     if len(projects) >= 3:
         top3 = projects[:3]
         seeds.append(
             {
-                "title": f"Triangle ops desk: {', '.join(t.title.replace('project:','') for t in top3)}",
+                "title": f"Multi-agent triangle: {', '.join(t.title.replace('project:','') for t in top3)}",
                 "parents": [t.title for t in top3],
                 "idea": (
-                    "Three densest projects form a 'triangle' — shared patterns become a house standard library; "
-                    "divergent patterns become explicit product boundaries. Reduces thrash from treating all repos as one mind."
+                    "Three densest code surfaces become explicit agent workspaces with shared skill core "
+                    "and divergent product skills — stop one god-agent thrashing all repos."
                 ),
-                "first_build": "Forge transfer-pack weekly; promote shared features into a skills/standards folder.",
+                "first_build": "Define three profiles + shared skill namespace + per-product skill packs.",
             }
         )
 
-    # 4. Insight as conductor sensory organ
     seeds.append(
         {
-            "title": "Conductor sensory organ (Insight pulse)",
-            "parents": ["fabric:host-summary", "listen:hermes", "fabric:process-snapshot"],
+            "title": "Conductor agent sensory organ (Insight pulse)",
+            "parents": ["fabric:hermes-runtime", "listen:hermes", "agent:default"],
             "idea": (
-                "Heartbeat loads forge prediction board; only pages Pablo when lever confidence high "
-                "and direction is degrading/diverging. Silence is success — classic intel-maid posture."
+                "Main conductor agent heartbeats forge prediction board; pages human only on "
+                "high-confidence degrading multi-agent trajectory. Green = silence."
             ),
-            "first_build": "hermes-insight forge --out … && gate on trajectory.direction.",
+            "first_build": "Cron: index-connections + forge --only predict → gate on direction.",
         }
     )
 
-    # 5. Analogy invention from transfer pairs
     if len(projects) >= 2:
         a, b = projects[0], projects[1]
         seeds.append(
             {
-                "title": f"Shared kernel between {a.title.replace('project:','')} and {b.title.replace('project:','')}",
+                "title": f"Shared agent kernel: {a.title.replace('project:','')} × {b.title.replace('project:','')}",
                 "parents": [a.title, b.title],
                 "idea": (
-                    "Extract the top shared features into a tiny internal package both sides import — "
-                    "stop rewriting the same structural solution in two monorepos."
+                    "Extract shared tools/skills into one internal agent package both products load — "
+                    "one evaluation harness, two product skins."
                 ),
-                "first_build": "List shared features via forge transfer-pack; open one PR that deletes duplication.",
+                "first_build": "Transfer-pack shared features → one skill pack dependency.",
             }
         )
 
     lines = [
-        "# Invention seeds — generation product",
+        f"# {voice['invent_title']}",
         "",
-        "_Imagination is pattern recombination. Each seed names parents (what it was forged from) and a first build._",
+        f"_{voice['invent_blurb']}_",
+        "",
+        "_Imagination in the agent field = recombining agents, models, tools, and skills._",
         "",
     ]
     for i, s in enumerate(seeds, 1):
         lines += [
             f"## {i}. {s['title']}",
-            f"- **Parents:** {', '.join(s['parents'])}",
+            f"- **Parents:** {', '.join(str(x) for x in s['parents'])}",
             f"- **Idea:** {s['idea']}",
             f"- **First build:** {s['first_build']}",
             "",
         ]
     lines += [
-        "## Selection rule",
+        "## Selection rule (agent products)",
         "",
-        "Ship the seed that simultaneously: (1) reduces drag this week, (2) touches a revenue or trust surface, "
-        "(3) reuses an existing hub instead of spawning a new orphan project.",
+        "Ship the seed that: (1) improves an agent seat or model route this week, "
+        "(2) touches revenue or trust, (3) reuses an existing hub agent instead of spawning an orphan profile.",
         "",
     ]
     return "\n".join(lines)

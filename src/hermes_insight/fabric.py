@@ -376,23 +376,233 @@ def hermes_profile_meta(hermes_home: Optional[Path] = None) -> Dict[str, Any]:
     if profiles_dir.is_dir():
         profiles = sorted([p.name for p in profiles_dir.iterdir() if p.is_dir()])[:40]
     skills = 0
+    skill_names: List[str] = []
     sk = hh / "skills"
     if sk.is_dir():
-        skills = sum(1 for _ in sk.rglob("SKILL.md"))
+        for sp in sk.rglob("SKILL.md"):
+            skills += 1
+            skill_names.append(sp.parent.name)
+            if len(skill_names) >= 80:
+                break
     plugins = []
     pd = hh / "plugins"
     if pd.is_dir():
         plugins = sorted([p.name for p in pd.iterdir() if p.is_dir()])[:40]
+    model_hint = ""
+    cfg_path = hh / "config.yaml"
+    if cfg_path.is_file():
+        raw = _read_text_limited(cfg_path, 40_000)
+        # never keep keys — only model/provider shape
+        m = re.search(r"(?m)^\s*default:\s*[\"']?([A-Za-z0-9_./:-]+)", raw)
+        if m:
+            model_hint = m.group(1)
+        # strip anything that looks like secrets already via scrub
     return scrub_metadata(
         {
             "hermes_home": scrub_text(str(hh)),
             "profiles": profiles,
+            "profile_count": len(profiles),
             "skill_count": skills,
+            "skill_sample": skill_names[:40],
             "plugins": plugins,
-            "has_config": (hh / "config.yaml").exists(),
-            "has_gateway_logs": (hh / "logs").exists(),
+            "plugin_count": len(plugins),
+            "default_model_hint": model_hint,
+            "has_config": cfg_path.exists(),
+            "has_logs": (hh / "logs").exists(),
+            "field": "ai_agent_harness",
         }
     )
+
+
+def index_agent_field_nodes(insight: Any, hermes_home: Optional[Path] = None, *, link: bool = True) -> Dict[str, int]:
+    """Index skills, plugins, profiles, and model route as first-class agent-field nodes."""
+    from hermes_insight.models import Domain, Link, LinkKind, PatternKind
+
+    hh = hermes_home or Path(os.environ.get("HERMES_HOME", Path.home() / ".hermes"))
+    hh = hh.expanduser()
+    counts = {"skill": 0, "plugin": 0, "profile": 0, "model": 0}
+    if not hh.exists():
+        return counts
+
+    runtime_id = None
+    # find existing hermes runtime node
+    for p in insight.store.list_patterns(limit=200):
+        if p.title == "fabric:hermes-runtime" or (p.metadata or {}).get("fabric") == "hermes":
+            runtime_id = p.id
+            break
+
+    # skills
+    sk_root = hh / "skills"
+    if sk_root.is_dir():
+        for skill_md in list(sk_root.rglob("SKILL.md"))[:100]:
+            name = skill_md.parent.name
+            text = scrub_text(_read_text_limited(skill_md, 4000))
+            # frontmatter name/description light parse
+            desc = ""
+            m = re.search(r"(?m)^description:\s*[\"']?(.+)$", text)
+            if m:
+                desc = m.group(1).strip().strip('\"\'')[:240]
+            body = f"Agent skill `{name}`\n{desc}\n\n{text[:1200]}"
+            pat = insight.ingest(
+                title=f"skill:{name}",
+                body=body,
+                domain=Domain.SKILL,
+                kind=PatternKind.SKILL,
+                tags=["fabric", "skill", "agent-field", name[:32]],
+                features=extract_features(body, max_features=36) + ["skill", "agent", name],
+                confidence=0.7,
+                source="fabric-skill",
+                metadata={"fabric": "skill", "skill_name": name},
+                link=False,
+            )
+            counts["skill"] += 1
+            if link and runtime_id:
+                try:
+                    insight.store.upsert_link(
+                        Link.create(runtime_id, pat.id, LinkKind.HAS_SKILL, weight=0.65, note="harness has skill")
+                    )
+                except Exception:
+                    pass
+
+    # plugins
+    pd = hh / "plugins"
+    if pd.is_dir():
+        for plug in sorted([p for p in pd.iterdir() if p.is_dir()])[:60]:
+            yml = plug / "plugin.yaml"
+            body_bits = [f"Agent harness plugin `{plug.name}`"]
+            tools = []
+            if yml.is_file():
+                yt = scrub_text(_read_text_limited(yml, 8000))
+                body_bits.append(yt[:1500])
+                tools = re.findall(r"^\s*-\s+([a-z0-9_]+)\s*$", yt, flags=re.M)
+            body = "\n".join(body_bits)
+            pat = insight.ingest(
+                title=f"plugin:{plug.name}",
+                body=body,
+                domain=Domain.TOOL,
+                kind=PatternKind.TOOL,
+                tags=["fabric", "plugin", "agent-field", plug.name[:32]],
+                features=extract_features(body, max_features=36) + ["plugin", "tool", plug.name] + tools[:20],
+                confidence=0.75,
+                source="fabric-plugin",
+                metadata={"fabric": "plugin", "plugin_name": plug.name, "tools": tools[:40]},
+                link=False,
+            )
+            counts["plugin"] += 1
+            if link and runtime_id:
+                try:
+                    insight.store.upsert_link(
+                        Link.create(runtime_id, pat.id, LinkKind.ENABLES, weight=0.7, note="plugin enables tools")
+                    )
+                except Exception:
+                    pass
+            for tname in tools[:30]:
+                tpat = insight.ingest(
+                    title=f"tool:{tname}",
+                    body=f"Tool `{tname}` provided by plugin `{plug.name}` in the agent harness.",
+                    domain=Domain.TOOL,
+                    kind=PatternKind.TOOL,
+                    tags=["fabric", "tool", "agent-field", tname[:32]],
+                    features=["tool", tname, "plugin", plug.name, "agent"],
+                    confidence=0.65,
+                    source="fabric-tool",
+                    metadata={"fabric": "tool", "tool_name": tname, "plugin": plug.name},
+                    link=False,
+                )
+                counts["model"] += 0  # keep keys stable
+                if link:
+                    try:
+                        insight.store.upsert_link(
+                            Link.create(pat.id, tpat.id, LinkKind.PART_OF, weight=0.8, note="tool in plugin")
+                        )
+                    except Exception:
+                        pass
+
+    # profiles = agents
+    profiles_dir = hh / "profiles"
+    profile_names = []
+    if profiles_dir.is_dir():
+        profile_names = [p.name for p in profiles_dir.iterdir() if p.is_dir()]
+    # default profile
+    profile_names = list(dict.fromkeys(["default", *profile_names]))[:40]
+    for pname in profile_names:
+        if pname == "default":
+            home = hh
+        else:
+            home = profiles_dir / pname
+            if not home.exists():
+                continue
+        body = (
+            f"AI agent profile `{pname}`\n"
+            f"home present; skills/plugins may be profile-scoped.\n"
+            f"Treat as multi-agent compartment."
+        )
+        pat = insight.ingest(
+            title=f"agent:{pname}",
+            body=body,
+            domain=Domain.AGENT,
+            kind=PatternKind.AGENT,
+            tags=["fabric", "agent", "profile", "multi_agent", pname[:32]],
+            features=["agent", "profile", "compartment", "multi_agent", pname],
+            confidence=0.7,
+            source="fabric-profile",
+            metadata={"fabric": "profile", "agent_id": pname, "profile": pname},
+            link=False,
+        )
+        counts["profile"] += 1
+        if link and runtime_id:
+            try:
+                insight.store.upsert_link(
+                    Link.create(
+                        runtime_id,
+                        pat.id,
+                        LinkKind.INSTANCE_OF,
+                        weight=0.55,
+                        note="profile on harness",
+                    )
+                )
+            except Exception:
+                pass
+
+    # model route node
+    hm = hermes_profile_meta(hh)
+    if hm.get("default_model_hint"):
+        mid = str(hm["default_model_hint"])
+        mpat = insight.ingest(
+            title=f"model:{mid}",
+            body=(
+                f"Default model route `{mid}` for the agent harness. "
+                f"Agents USES_MODEL this unless overridden per session."
+            ),
+            domain=Domain.MODEL,
+            kind=PatternKind.MODEL,
+            tags=["fabric", "model", "inference", "agent-field"],
+            features=["model", "inference", "llm", "routing", mid.replace("/", "_")],
+            confidence=0.7,
+            source="fabric-model",
+            metadata={"fabric": "model", "model_id": mid},
+            link=False,
+        )
+        counts["model"] += 1
+        if link and runtime_id:
+            try:
+                insight.store.upsert_link(
+                    Link.create(runtime_id, mpat.id, LinkKind.USES_MODEL, weight=0.75, note="default route")
+                )
+            except Exception:
+                pass
+        # every agent profile uses model by default
+        if link:
+            for p in insight.store.list_patterns(limit=500):
+                if (p.metadata or {}).get("fabric") == "profile":
+                    try:
+                        insight.store.upsert_link(
+                            Link.create(p.id, mpat.id, LinkKind.USES_MODEL, weight=0.5, note="profile default model")
+                        )
+                    except Exception:
+                        pass
+
+    return counts
 
 
 class FabricIndexer:
@@ -435,10 +645,11 @@ class FabricIndexer:
                 pat = self.insight.ingest(
                     title="fabric:hermes-runtime",
                     body=json.dumps(hm, indent=2)[:3000],
-                    domain=Domain.SYSTEM,
+                    domain=Domain.AGENT,
                     kind=PatternKind.PROTOTYPE,
-                    tags=["fabric", "hermes", "runtime", "metadata"],
-                    features=extract_features(json.dumps(hm), max_features=40),
+                    tags=["fabric", "hermes", "runtime", "metadata", "agent", "harness"],
+                    features=extract_features(json.dumps(hm), max_features=40)
+                    + ["agent", "harness", "model", "skill", "plugin"],
                     confidence=0.7,
                     source="fabric-indexer",
                     metadata={"fabric": "hermes", **hm},
@@ -446,6 +657,13 @@ class FabricIndexer:
                 )
                 report.patterns_created += 1
                 project_pattern_ids["hermes-runtime"] = pat.id
+            # first-class agent-field nodes
+            try:
+                ac = index_agent_field_nodes(self.insight, link=link)
+                report.patterns_created += sum(ac.values())
+                report.stats_extra = ac  # type: ignore[attr-defined]
+            except Exception as exc:
+                report.errors.append(f"agent-field:{exc}")
 
         # Projects
         all_projects: List[Path] = []

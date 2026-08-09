@@ -15,9 +15,11 @@ def format_brief(report: CycleReport, *, style: str = "agent") -> str:
 
 def render_markdown(report: CycleReport) -> str:
     lines = [
-        "# Hermes Insight brief",
+        "# Hermes Insight · agent-field brief",
         "",
         f"**Query:** {report.query.strip() or '(none)'}",
+        "",
+        "_Field nouns: agent · model · tool · skill · context · memory · multi-agent_",
         "",
     ]
     if report.dims_used:
@@ -27,7 +29,7 @@ def render_markdown(report: CycleReport) -> str:
     if report.distillation:
         d = report.distillation
         lines += [
-            "## Distillation (actual variable)",
+            "## Distillation (controlling variable in the agent field)",
             f"- **Lever:** `{d.actual_variable}`",
             f"- **Confidence:** {d.confidence:.2f}",
             f"- **Principle:** {d.principle}",
@@ -38,7 +40,7 @@ def render_markdown(report: CycleReport) -> str:
         lines.append("")
 
     if report.matches:
-        lines.append("## Recognized patterns")
+        lines.append("## Recognized agent-field patterns")
         for m in report.matches[:7]:
             lines.append(
                 f"- **{m.pattern.title}** (`{m.pattern.id}`) · "
@@ -50,7 +52,7 @@ def render_markdown(report: CycleReport) -> str:
         lines.append("")
 
     if report.links:
-        lines.append("## Links / lateral hops")
+        lines.append("## Links / multi-agent hops")
         for lk in report.links[:10]:
             lines.append(
                 f"- {lk.get('kind')} · {lk.get('source_id')} → {lk.get('target_id')} "
@@ -61,7 +63,7 @@ def render_markdown(report: CycleReport) -> str:
     if report.trajectory:
         t = report.trajectory
         lines += [
-            "## Trajectory",
+            "## Trajectory (fleet / model route)",
             f"- **Direction:** {t.direction} (conf {t.confidence:.2f})",
             f"- **Next expected:** {t.next_expected}",
         ]
@@ -74,7 +76,7 @@ def render_markdown(report: CycleReport) -> str:
         lines.append("")
 
     if report.anomalies:
-        lines.append("## Novelty / anomalies")
+        lines.append("## Novelty / uncatalogued agent structure")
         for a in report.anomalies:
             lines.append(
                 f"- status={a.get('status')} novelty={a.get('novelty')} — {a.get('reason')}"
@@ -95,7 +97,14 @@ def render_markdown(report: CycleReport) -> str:
             lines.append(f"- {o}")
         lines.append("")
 
-    lines.append("_Hermes Insight — encode · match · link · distill · extrapolate · evolve_")
+    try:
+        from hermes_insight.ontology import BRIEF_FOOTER
+
+        lines.append(BRIEF_FOOTER)
+    except Exception:
+        lines.append(
+            "_Hermes Insight — agent-field pattern harness · encode · match · link · distill · forge_"
+        )
     return "\n".join(lines).strip() + "\n"
 
 

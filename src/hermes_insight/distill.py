@@ -13,10 +13,10 @@ from hermes_insight.features import extract_features, stem_token, tokenize
 from hermes_insight.match import expand_query_features
 from hermes_insight.models import Distillation, MatchResult, Pattern
 
-# Ultra-common tokens that rarely are THE lever in multi-module corpora
+# Ultra-common tokens that rarely are THE lever — keep agent/model terms OUT of noise
 _NOISE_HINTS = {
     "maybe", "somehow", "just", "really", "very", "thing", "stuff", "issue",
-    "problem", "situation", "basically", "actually", "agent", "user", "system",
+    "problem", "situation", "basically", "actually", "user", "system",
     "code", "file", "data", "value", "type", "name", "text", "info", "item",
     "object", "class", "function", "method", "module", "import", "return",
     "true", "false", "none", "self", "this", "that", "with", "from", "into",
@@ -31,6 +31,10 @@ _LEVER_PRIORS = {
     "conflict", "profile", "retry", "timeout", "circuit", "cache", "stampede",
     "backoff", "jitter", "webhook", "tenant", "compartment", "auth", "secret",
     "singleflight", "race", "deadlock", "throttle", "quota", "session",
+    # AI agent / model field
+    "agent", "model", "tool", "skill", "plugin", "context", "memory",
+    "delegation", "inference", "embedding", "harness", "prompt", "toolset",
+    "multi_agent", "eval", "subagent", "persona", "routing",
 }
 
 
@@ -133,23 +137,43 @@ def _principle(actual: str, supporting: Sequence[str], text: str) -> str:
     lower = text.lower()
     if actual in {"credential", "token", "secret", "auth"}:
         return (
-            f"Access identity is gated by `{actual}`; enforce single-consumer and isolation "
-            f"before tuning peripherals ({sup})."
+            f"Agent identity/access is gated by `{actual}`; enforce single-consumer and "
+            f"compartment isolation before tuning peripherals ({sup})."
         )
-    if actual in {"isolation", "profile", "tenant", "compartment"}:
+    if actual in {"agent", "profile", "compartment", "multi_agent"}:
+        return (
+            f"Fleet structure turns on `{actual}`; fix identity boundaries and delegation "
+            f"paths before feature work ({sup})."
+        )
+    if actual in {"model", "inference", "routing", "embedding"}:
+        return (
+            f"Model route / inference is gated by `{actual}`; stabilize provider·model·eval "
+            f"before prompt thrash ({sup})."
+        )
+    if actual in {"tool", "toolset", "skill", "plugin"}:
+        return (
+            f"Capability surface is controlled by `{actual}`; own the tool/skill graph "
+            f"before adding more agents ({sup})."
+        )
+    if actual in {"context", "memory", "prompt", "session"}:
+        return (
+            f"State/context health hinges on `{actual}`; compress, compartment, or rewrite "
+            f"policy before scaling turns ({sup})."
+        )
+    if actual in {"isolation", "tenant"}:
         return (
             f"Boundary failure centers on `{actual}`; separate homes/credentials/scopes "
             f"before feature work ({sup})."
         )
     if actual in {"linger", "session", "logout"}:
         return (
-            f"Process lifetime depends on `{actual}`; detach services from interactive shells "
+            f"Process lifetime depends on `{actual}`; detach agent runtimes from interactive shells "
             f"({sup})."
         )
-    if actual in {"consumer", "longpoll", "conflict", "race"}:
+    if actual in {"consumer", "longpoll", "conflict", "race", "delegation"}:
         return (
-            f"Contention clusters on `{actual}`; ensure exactly-one active consumer "
-            f"and eliminate duplicate pollers ({sup})."
+            f"Contention clusters on `{actual}`; ensure exactly-one active consumer or clear "
+            f"delegation ownership ({sup})."
         )
     if any(k in lower for k in ("fail", "error", "bug", "break", "outage", "conflict")):
         return (
