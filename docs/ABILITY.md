@@ -2,6 +2,8 @@
 
 How Hermes Insight becomes a **real ability** for any Hermes agent — not a pile of optional tools.
 
+> **Deep manual for agents:** [AGENT-GUIDE.md](AGENT-GUIDE.md) — full ontology, pipeline, doctrine, install, examples.
+
 ## One call
 
 ```text

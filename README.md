@@ -67,9 +67,11 @@ HERMES_HOME=~/.hermes/profiles/myagent ./scripts/install_for_hermes.sh --agent m
 | `insight_forge` | Maps / playbooks / invention seeds |
 | `insight_hygiene` | Decay fabric noise + densify links |
 
-Doctrine: [docs/ABILITY.md](docs/ABILITY.md) · [docs/EXPERIENCE.md](docs/EXPERIENCE.md)
+Doctrine: [docs/AGENT-GUIDE.md](docs/AGENT-GUIDE.md) (deep) · [docs/ABILITY.md](docs/ABILITY.md) · [docs/EXPERIENCE.md](docs/EXPERIENCE.md)
 
 **Loop:** `perceive` → act on hint → `experience` / task close → next recall is smarter.
+
+**New agents:** start with the [Agent Guide](docs/AGENT-GUIDE.md) — ontology, pipeline, doctrine, install, examples.
 
 ---
 

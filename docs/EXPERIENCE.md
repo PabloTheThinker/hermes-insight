@@ -1,6 +1,8 @@
-# Experience layer (v0.6)
+# Experience layer (v0.6+)
 
 How any Hermes agent turns **tasks and events** into durable pattern memory — and recalls it faster next time.
+
+> Full agent manual (including experience in context): [AGENT-GUIDE.md](AGENT-GUIDE.md).
 
 ## Why
 
