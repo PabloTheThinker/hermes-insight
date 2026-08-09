@@ -8,7 +8,7 @@ Install (user plugin):
   #   enabled: [..., hermes-insight]
   #   entries:
   #     hermes-insight:
-  #       agent_id: ilo   # optional multi-agent compartment
+  #       agent_id: myagent   # optional multi-agent compartment
 
 Requires: pip install hermes-insight  (or editable path)
 """

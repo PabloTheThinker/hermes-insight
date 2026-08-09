@@ -27,7 +27,6 @@ _DEFAULT_HOME_ROOTS = (
     "projects",
     "hermes-agent",
     ".hermes",
-    ".ilo",
 )
 
 _MANIFEST_NAMES = {
