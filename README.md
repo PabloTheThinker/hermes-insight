@@ -21,8 +21,6 @@ python3 scripts/production_e2e.py   # 30+ gates: index, cycles, forge, scrub, pl
 
 Last summary: `docs/E2E-PRODUCTION-LAST.json`
 
-## Quick start
-
 ## Why this exists
 
 Pattern recognition is not “one embedding distance.”
