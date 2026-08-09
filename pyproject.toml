@@ -1,0 +1,68 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pattern-lattice"
+version = "0.1.0"
+description = "Superior pattern-processing harness for AI agents — neurodivergent-inspired connecting-the-dots cognition as software."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+  { name = "Pablo Navarro", email = "PabloTheThinker@users.noreply.github.com" },
+]
+keywords = [
+  "pattern-recognition",
+  "ai-agents",
+  "hermes-agent",
+  "cognition",
+  "neurodivergent",
+  "spp",
+  "agent-harness",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-cov>=5.0"]
+
+[project.scripts]
+pattern-lattice = "pattern_lattice.cli:main"
+plattice = "pattern_lattice.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/PabloTheThinker/pattern-lattice"
+Documentation = "https://github.com/PabloTheThinker/pattern-lattice#readme"
+Repository = "https://github.com/PabloTheThinker/pattern-lattice"
+Issues = "https://github.com/PabloTheThinker/pattern-lattice/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pattern_lattice"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "src/pattern_lattice",
+  "tests",
+  "docs",
+  "examples",
+  "skills",
+  "hermes_plugin",
+  "scripts",
+  "README.md",
+  "LICENSE",
+  "pyproject.toml",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
