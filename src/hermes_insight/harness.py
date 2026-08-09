@@ -3,12 +3,14 @@
 Cycle (aligned to superior pattern processing + ND connecting-the-dots):
 
 1. Perception   — feature decompose observations
-2. Recognition  — template / prototype / feature match
+2. Recognition  — template / prototype / feature match (IDF hybrid)
 3. Seeking      — FTS + lateral candidate hunt
 4. Maintenance  — upsert catalogue, anomaly file
 5. Processing   — distill actual variable (deep focus)
 6. Generation   — trajectory + synthesis + optional new nodes
 7. Transfer     — brief for the agent/human
+
+Multi-agent: pass agent_id for compartmentalized lattices.
 """
 
 from __future__ import annotations
@@ -19,42 +21,63 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 
 from hermes_insight.anomaly import detect_anomalies, file_anomaly
 from hermes_insight.brief import compact_one_liner, format_brief
+from hermes_insight.code_extract import file_to_pattern_fields
 from hermes_insight.cross_domain import analogy_map, auto_link
 from hermes_insight.distill import distill
 from hermes_insight.evolve import evolve_once, reinforce
 from hermes_insight.extrapolate import extrapolate
 from hermes_insight.features import extract_features
-from hermes_insight.match import match_patterns
+from hermes_insight.match import build_idf, expand_query_features, match_patterns
 from hermes_insight.models import (
     CycleReport,
     Domain,
     Evidence,
-    LinkKind,
     Pattern,
     PatternKind,
     ProcessDim,
 )
+from hermes_insight.multi_agent import (
+    AgentScope,
+    MultiAgentRegistry,
+    resolve_agent_db,
+    sanitize_agent_id,
+)
 from hermes_insight.store import PatternStore
-
 
 PathLike = Union[str, Path]
 
 
-def default_db_path() -> Path:
-    env = os.environ.get("HERMES_INSIGHT_DB")
-    if env:
-        return Path(env).expanduser()
-    home = Path(os.environ.get("HERMES_INSIGHT_HOME", "~/.hermes-insight")).expanduser()
-    home.mkdir(parents=True, exist_ok=True)
-    return home / "insight.db"
+def default_db_path(*, agent_id: Optional[str] = None) -> Path:
+    return resolve_agent_db(agent_id=agent_id)
 
 
 class HermesInsight:
     """High-level harness. Construct once per agent profile/workspace."""
 
-    def __init__(self, db_path: Optional[PathLike] = None) -> None:
-        self.db_path = Path(db_path) if db_path else default_db_path()
+    def __init__(
+        self,
+        db_path: Optional[PathLike] = None,
+        *,
+        agent_id: Optional[str] = None,
+        agent_tier: str = "worker",
+    ) -> None:
+        self.agent_id = sanitize_agent_id(agent_id) if agent_id else None
+        self.db_path = (
+            Path(db_path).expanduser().resolve()
+            if db_path
+            else resolve_agent_db(agent_id=self.agent_id)
+        )
         self.store = PatternStore(self.db_path)
+        self.agent_tier = agent_tier
+        # registry lives next to multi-agent root when using agent_id
+        home = Path(os.environ.get("HERMES_INSIGHT_HOME", "~/.hermes-insight")).expanduser()
+        if os.environ.get("HERMES_HOME") and not os.environ.get("HERMES_INSIGHT_HOME"):
+            home = Path(os.environ["HERMES_HOME"]) / "memories" / "hermes-insight"
+        self._registry = MultiAgentRegistry(home / "agents.json")
+        if self.agent_id and not self._registry.get(self.agent_id):
+            self._registry.register(
+                AgentScope(agent_id=self.agent_id, tier=agent_tier)
+            )
 
     # ------------------------------------------------------------------
     # Ingest / catalogue
@@ -73,8 +96,15 @@ class HermesInsight:
         source: str = "agent",
         auto_link_min: float = 0.18,
         link: bool = True,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> Pattern:
         feats = list(features) if features else extract_features(f"{title}\n{body}")
+        meta = dict(metadata or {})
+        if self.agent_id:
+            meta.setdefault("agent_id", self.agent_id)
+            tags = list(tags or [])
+            if self.agent_id not in tags:
+                tags = [self.agent_id, *tags]
         pat = Pattern.create(
             title=title,
             body=body,
@@ -84,9 +114,9 @@ class HermesInsight:
             tags=tags,
             confidence=confidence,
             evidence=[Evidence(source=source, kind="observation", confidence=confidence)],
+            metadata=meta,
         )
-        # de-dupe by content hash among recent
-        for existing in self.store.list_patterns(limit=500):
+        for existing in self.store.list_patterns(limit=800):
             if existing.content_hash == pat.content_hash:
                 existing.touch(0.01)
                 self.store.upsert_pattern(existing)
@@ -98,6 +128,73 @@ class HermesInsight:
             auto_link(self.store, pat, min_score=auto_link_min, limit=8)
         return pat
 
+    def ingest_file(
+        self,
+        path: PathLike,
+        *,
+        domain: Domain | str = Domain.CODE,
+        link: bool = True,
+        confidence: float = 0.55,
+    ) -> Optional[Pattern]:
+        p = Path(path).expanduser()
+        fields = file_to_pattern_fields(p)
+        if not fields:
+            return None
+        title, body, features, tags, meta = fields
+        if self.agent_id:
+            tags = [self.agent_id, *tags]
+            meta["agent_id"] = self.agent_id
+        return self.ingest(
+            title=title,
+            body=body,
+            domain=domain,
+            features=features,
+            tags=tags,
+            confidence=confidence,
+            source=p.name,
+            link=link,
+            metadata=meta,
+        )
+
+    def ingest_tree(
+        self,
+        root: PathLike,
+        *,
+        glob: str = "**/*.py",
+        limit: int = 80,
+        domain: Domain | str = Domain.CODE,
+        link: bool = True,
+        min_bytes: int = 80,
+        max_bytes: int = 120_000,
+    ) -> Dict[str, Any]:
+        root_p = Path(root).expanduser().resolve()
+        paths = [
+            p
+            for p in sorted(root_p.glob(glob))
+            if p.is_file()
+            and "__pycache__" not in p.parts
+            and not p.name.startswith("test_")
+            and min_bytes <= p.stat().st_size <= max_bytes
+        ][:limit]
+        ingested = 0
+        skipped = 0
+        ids: List[str] = []
+        for p in paths:
+            pat = self.ingest_file(p, domain=domain, link=link)
+            if pat:
+                ingested += 1
+                ids.append(pat.id)
+            else:
+                skipped += 1
+        return {
+            "root": str(root_p),
+            "candidates": len(paths),
+            "ingested": ingested,
+            "skipped": skipped,
+            "pattern_ids": ids[:50],
+            "stats": self.stats(),
+        }
+
     def get(self, pattern_id: str) -> Optional[Pattern]:
         return self.store.get_pattern(pattern_id)
 
@@ -105,9 +202,10 @@ class HermesInsight:
         fts = self.store.fts_search(query, limit=limit)
         if len(fts) >= limit:
             return fts
-        feats = extract_features(query)
-        pool = self.store.all_patterns(limit=2000)
-        ranked = match_patterns(query, feats, pool, limit=limit)
+        feats = expand_query_features(extract_features(query))
+        pool = self.store.all_patterns(limit=2500)
+        idf = build_idf(pool)
+        ranked = match_patterns(query, feats, pool, limit=limit, idf=idf)
         seen = {p.id for p in fts}
         out = list(fts)
         for m in ranked:
@@ -118,17 +216,32 @@ class HermesInsight:
                 break
         return out
 
-    def match(self, query: str, *, limit: int = 10, min_score: float = 0.08) -> List[Dict[str, Any]]:
-        feats = extract_features(query)
-        # Prefer FTS shortlist then full hybrid on union
-        shortlist = self.store.fts_search(query, limit=40)
+    def match(
+        self,
+        query: str,
+        *,
+        limit: int = 10,
+        min_score: float = 0.04,
+        domain: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        feats = expand_query_features(extract_features(query))
+        shortlist = self.store.fts_search(query, limit=50)
         pool_ids = {p.id for p in shortlist}
         pool = list(shortlist)
-        if len(pool) < 25:
-            for p in self.store.all_patterns(limit=1500):
+        if len(pool) < 40:
+            for p in self.store.all_patterns(limit=2000):
                 if p.id not in pool_ids:
                     pool.append(p)
-        hits = match_patterns(query, feats, pool, limit=limit, min_score=min_score)
+        idf = build_idf(pool)
+        hits = match_patterns(
+            query,
+            feats,
+            pool,
+            limit=limit,
+            min_score=min_score,
+            domain_hint=domain,
+            idf=idf,
+        )
         for h in hits:
             h.pattern.touch(0.015)
             self.store.upsert_pattern(h.pattern)
@@ -153,23 +266,31 @@ class HermesInsight:
         if observations:
             obs.extend(o.strip() for o in observations if o and str(o).strip())
         blob = "\n".join(obs)
-        feats = extract_features(blob)
+        feats = expand_query_features(extract_features(blob))
+        domain_s = domain.value if isinstance(domain, Domain) else str(domain)
         dims = [
             ProcessDim.PERCEPTION.value,
             ProcessDim.SEEKING.value,
             ProcessDim.RECOGNITION.value,
         ]
 
-        shortlist = self.store.fts_search(blob, limit=40)
-        pool = shortlist or self.store.all_patterns(limit=2000)
-        if shortlist and len(shortlist) < 30:
-            extra = self.store.all_patterns(limit=1000)
+        shortlist = self.store.fts_search(blob, limit=50)
+        pool = shortlist or self.store.all_patterns(limit=2500)
+        if shortlist and len(shortlist) < 40:
             seen = {p.id for p in pool}
-            for p in extra:
+            for p in self.store.all_patterns(limit=1500):
                 if p.id not in seen:
                     pool.append(p)
-
-        matches = match_patterns(blob, feats, pool, limit=10, min_score=0.06)
+        idf = build_idf(pool)
+        matches = match_patterns(
+            blob,
+            feats,
+            pool,
+            limit=12,
+            min_score=0.04,
+            domain_hint=domain_s if domain_s != "general" else None,
+            idf=idf,
+        )
         for m in matches:
             m.pattern.touch(0.02)
             self.store.upsert_pattern(m.pattern)
@@ -177,8 +298,8 @@ class HermesInsight:
         dims.append(ProcessDim.PROCESSING.value)
         distillation = distill(blob, matches=matches)
 
-        dims.append(ProcessDim.PERCEPTION.value)  # novelty check
-        anomalies = detect_anomalies(blob, pool, novelty_threshold=0.16)
+        dims.append(ProcessDim.PERCEPTION.value)
+        anomalies = detect_anomalies(blob, pool, novelty_threshold=0.14)
 
         generated: List[Pattern] = []
         if ingest_query and query.strip():
@@ -193,20 +314,25 @@ class HermesInsight:
             )
 
         if file_novel and anomalies and anomalies[0].get("status") in {"novel", "uncatalogued"}:
-            ap = file_anomaly(blob, matches=matches, domain=str(domain.value if isinstance(domain, Domain) else domain))
+            ap = file_anomaly(
+                blob,
+                matches=matches,
+                domain=domain_s,
+            )
+            if self.agent_id:
+                ap.metadata["agent_id"] = self.agent_id
+                ap.tags = list(dict.fromkeys([self.agent_id, *ap.tags]))
             self.store.upsert_pattern(ap)
             auto_link(self.store, ap, min_score=0.12, limit=6)
             generated.append(ap)
             dims.append(ProcessDim.MAINTENANCE.value)
 
-        # Links from top match
         links_out: List[Dict[str, Any]] = []
         if matches:
             top = matches[0].pattern
             for lk in self.store.links_for(top.id, limit=12):
                 links_out.append(lk.to_dict())
-            # ensure fresh lateral proposals
-            new_links = auto_link(self.store, top, min_score=0.2, limit=5)
+            new_links = auto_link(self.store, top, min_score=0.18, limit=6)
             for lk in new_links:
                 d = lk.to_dict()
                 if d not in links_out:
@@ -235,8 +361,12 @@ class HermesInsight:
             dims_used=list(dict.fromkeys(dims)),
         )
         report.brief = format_brief(report, style=brief_style)
-        # store last one-liner in meta for CLI status
-        self.store.set_meta("last_brief_line", compact_one_liner(distillation, matches, traj))
+        if self.agent_id:
+            report.brief = f"_agent: `{self.agent_id}` ({self.agent_tier})_\n\n" + report.brief
+        self.store.set_meta(
+            "last_brief_line",
+            compact_one_liner(distillation, matches, traj),
+        )
         return report
 
     # ------------------------------------------------------------------
@@ -244,19 +374,33 @@ class HermesInsight:
     # ------------------------------------------------------------------
 
     def distill(self, text: str) -> Dict[str, Any]:
-        matches = match_patterns(text, extract_features(text), self.store.all_patterns(limit=1000), limit=8)
+        pool = self.store.all_patterns(limit=1500)
+        matches = match_patterns(
+            text,
+            expand_query_features(extract_features(text)),
+            pool,
+            limit=10,
+            idf=build_idf(pool),
+        )
         return distill(text, matches=matches).to_dict()
 
     def extrapolate(self, observations: Sequence[str]) -> Dict[str, Any]:
         blob = "\n".join(observations)
-        matches = match_patterns(blob, extract_features(blob), self.store.all_patterns(limit=1000), limit=8)
+        pool = self.store.all_patterns(limit=1500)
+        matches = match_patterns(
+            blob,
+            expand_query_features(extract_features(blob)),
+            pool,
+            limit=10,
+            idf=build_idf(pool),
+        )
         return extrapolate(observations, matches=matches).to_dict()
 
     def analogy(self, pattern_id: str, target_domain: str, *, limit: int = 5) -> List[Dict[str, Any]]:
         src = self.store.get_pattern(pattern_id)
         if not src:
             return []
-        return analogy_map(src, target_domain, self.store.all_patterns(limit=2000), limit=limit)
+        return analogy_map(src, target_domain, self.store.all_patterns(limit=2500), limit=limit)
 
     def feedback(self, pattern_ids: Sequence[str], *, helpful: bool = True) -> List[Dict[str, Any]]:
         updated = reinforce(self.store, pattern_ids, helpful=helpful)
@@ -265,13 +409,37 @@ class HermesInsight:
     def evolve(self, *, decay: bool = True) -> Dict[str, Any]:
         return evolve_once(self.store, decay=decay)
 
+    def register_agent(
+        self,
+        agent_id: str,
+        *,
+        tier: str = "worker",
+        display_name: str = "",
+        parent_id: Optional[str] = None,
+        share_tags: Optional[Sequence[str]] = None,
+    ) -> Dict[str, Any]:
+        scope = AgentScope(
+            agent_id=agent_id,
+            display_name=display_name or agent_id,
+            tier=tier,
+            parent_id=parent_id,
+            share_tags=list(share_tags or []),
+        )
+        return self._registry.register(scope).to_dict()
+
+    def list_agents(self) -> List[Dict[str, Any]]:
+        return [a.to_dict() for a in self._registry.list()]
+
     def stats(self) -> Dict[str, Any]:
         c = self.store.count()
         return {
             "db_path": str(self.db_path),
+            "agent_id": self.agent_id,
+            "agent_tier": self.agent_tier,
             "patterns": c["patterns"],
             "links": c["links"],
             "last_brief_line": self.store.get_meta("last_brief_line", ""),
+            "version": "0.2.0",
         }
 
     def export_patterns(self, *, limit: int = 1000) -> List[Dict[str, Any]]:

@@ -35,6 +35,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="SQLite path (default: $HERMES_INSIGHT_DB or ~/.hermes-insight/insight.db)",
     )
+    p.add_argument(
+        "--agent",
+        default=None,
+        help="Multi-agent compartment id (separate lattice DB per agent)",
+    )
     p.add_argument("--json", action="store_true", help="JSON output")
 
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -51,9 +56,18 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--confidence", type=float, default=0.6)
     s.set_defaults(func=cmd_ingest)
 
+    s = sub.add_parser("ingest-tree", help="Ingest a source tree (code-aware)")
+    s.add_argument("root")
+    s.add_argument("--glob", default="**/*.py")
+    s.add_argument("-n", "--limit", type=int, default=80)
+    s.add_argument("--domain", default="code")
+    s.add_argument("--no-link", action="store_true")
+    s.set_defaults(func=cmd_ingest_tree)
+
     s = sub.add_parser("match", help="Match query against the lattice")
     s.add_argument("query")
     s.add_argument("-n", "--limit", type=int, default=10)
+    s.add_argument("--domain", default=None)
     s.set_defaults(func=cmd_match)
 
     s = sub.add_parser("search", help="FTS + hybrid search")
@@ -96,6 +110,16 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("-n", "--limit", type=int, default=1000)
     s.set_defaults(func=cmd_export)
 
+    s = sub.add_parser("register-agent", help="Register a multi-agent compartment")
+    s.add_argument("agent_id")
+    s.add_argument("--tier", default="worker", choices=["conductor", "worker", "client", "public", "lab"])
+    s.add_argument("--display-name", default="")
+    s.add_argument("--parent", default=None)
+    s.set_defaults(func=cmd_register_agent)
+
+    s = sub.add_parser("agents", help="List registered agents")
+    s.set_defaults(func=cmd_agents)
+
     s = sub.add_parser("demo", help="Seed a tiny demo lattice and run a cycle")
     s.set_defaults(func=cmd_demo)
 
@@ -103,7 +127,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _lattice(args: argparse.Namespace) -> HermesInsight:
-    return HermesInsight(db_path=args.db or default_db_path())
+    return HermesInsight(
+        db_path=args.db,
+        agent_id=getattr(args, "agent", None),
+    )
 
 
 def cmd_stats(args: argparse.Namespace) -> int:
@@ -126,9 +153,22 @@ def cmd_ingest(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_ingest_tree(args: argparse.Namespace) -> int:
+    lat = _lattice(args)
+    result = lat.ingest_tree(
+        args.root,
+        glob=args.glob,
+        limit=args.limit,
+        domain=args.domain,
+        link=not args.no_link,
+    )
+    _print(result, as_json=True)
+    return 0
+
+
 def cmd_match(args: argparse.Namespace) -> int:
     lat = _lattice(args)
-    _print(lat.match(args.query, limit=args.limit), as_json=True)
+    _print(lat.match(args.query, limit=args.limit, domain=args.domain), as_json=True)
     return 0
 
 
@@ -188,6 +228,26 @@ def cmd_evolve(args: argparse.Namespace) -> int:
 def cmd_export(args: argparse.Namespace) -> int:
     lat = _lattice(args)
     _print(lat.export_patterns(limit=args.limit), as_json=True)
+    return 0
+
+
+def cmd_register_agent(args: argparse.Namespace) -> int:
+    lat = _lattice(args)
+    _print(
+        lat.register_agent(
+            args.agent_id,
+            tier=args.tier,
+            display_name=args.display_name,
+            parent_id=args.parent,
+        ),
+        as_json=True,
+    )
+    return 0
+
+
+def cmd_agents(args: argparse.Namespace) -> int:
+    lat = _lattice(args)
+    _print(lat.list_agents(), as_json=True)
     return 0
 
 

@@ -1,3 +1,7 @@
+## Status
+
+Plugin + multi-agent + IDF match ship in **0.2.0**.
+
 # Hermes Agent integration
 
 Hermes Insight is **standalone first**. Hermes integration is layered so any

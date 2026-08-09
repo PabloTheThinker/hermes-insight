@@ -1,39 +1,50 @@
-# Hermes Insight — optional Hermes plugin skeleton
+# Hermes Insight plugin
 
-This directory is a **thin adapter** target for Hermes Agent plugin discovery.
-The cognitive engine lives in the `hermes-insight` Python package, not here.
+Native Hermes Agent plugin for the **Hermes Insight** pattern-processing harness.
 
-## Install (when you wire it)
+## Install
 
 ```bash
-pip install hermes-insight   # or editable path
-cp -R hermes_plugin/hermes_insight_plugin "$HERMES_HOME/plugins/hermes_insight"
+pip install hermes-insight   # or: pip install -e /path/to/hermes-insight
+
+mkdir -p "$HERMES_HOME/plugins"
+cp -R hermes_plugin/hermes_insight_plugin "$HERMES_HOME/plugins/hermes-insight"
 ```
 
-Then follow current Hermes docs for plugin enablement (`hermes plugins`, config
-keys, restart/reload). Plugin surfaces change across Hermes versions — keep this
-adapter thin and call `hermes_insight.HermesInsight` only.
-
-## Intended tools
-
-| Tool | Maps to |
-|------|---------|
-| `pattern_cycle` | `HermesInsight.cycle` |
-| `pattern_ingest` | `HermesInsight.ingest` |
-| `pattern_match` | `HermesInsight.match` |
-| `pattern_feedback` | `HermesInsight.feedback` |
-
-## Config (suggested)
+Enable (opt-in list):
 
 ```yaml
-# under $HERMES_HOME/config.yaml — illustrative only
+# $HERMES_HOME/config.yaml
 plugins:
-  hermes_insight:
-    db_path: ${HERMES_HOME}/memories/hermes-insight.db
+  enabled:
+    - hermes-insight
+  entries:
+    hermes-insight:
+      # optional multi-agent compartment
+      agent_id: default
+      # optional override
+      # db_path: ${HERMES_HOME}/memories/hermes-insight/insight.db
 ```
 
-## Status
+Restart the Hermes process / gateway after enabling.
 
-v0.1 ships the **library + skill**. This folder documents the plugin shape so
-Hermes users can complete wiring against their installed Hermes API without a
-core fork.
+## Tools
+
+| Tool | Purpose |
+|------|---------|
+| `insight_cycle` | Full brief (match · distill · trajectory · novelty) |
+| `insight_ingest` | Catalogue title/body or one file |
+| `insight_ingest_tree` | Bulk code-aware tree ingest |
+| `insight_match` | Recognition only |
+| `insight_distill` | Actual variable |
+| `insight_feedback` | Reinforce / weaken |
+| `insight_stats` | Counts + path |
+| `insight_evolve` | Evolution tick |
+
+Slash: `/insight stats` · `/insight cycle <query>` (when command registration is supported).
+
+## Notes
+
+- Independent companion project — **not** an official Nous Research product.
+- Per-profile DB defaults to `$HERMES_HOME/memories/hermes-insight/insight.db`.
+- Multi-agent: set `agent_id` or `--agent` / `HERMES_INSIGHT_AGENT_ID`.

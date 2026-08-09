@@ -125,6 +125,9 @@ observations
 
 ## CLI
 
+Also: `ingest-tree`, `--agent`, `register-agent`, native Hermes plugin tools `insight_*`.
+
+
 | Command | Purpose |
 |--------|---------|
 | `stats` | counts + db path |
