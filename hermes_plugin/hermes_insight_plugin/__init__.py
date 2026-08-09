@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 __plugin_name__ = "hermes-insight"
-__plugin_version__ = "0.3.0"
+__plugin_version__ = "0.4.0"
 
 
 def _cfg() -> dict:
@@ -255,6 +255,22 @@ def handle_insight_fabric_stats(args: dict, **kwargs) -> str:
         return _err(str(exc))
 
 
+def handle_insight_forge(args: dict, **kwargs) -> str:
+    try:
+        only = args.get("products") or args.get("only")
+        if isinstance(only, str):
+            only = [x.strip() for x in only.split(",") if x.strip()]
+        result = _lattice().forge(
+            out_dir=args.get("out_dir"),
+            write_synthesis=bool(args.get("write_synthesis", True)),
+            products=only,
+        )
+        return _ok(result)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("insight_forge failed")
+        return _err(str(exc))
+
+
 # schemas
 _CYCLE_SCHEMA = {
     "name": "insight_cycle",
@@ -412,11 +428,33 @@ _FABRIC_STATS_SCHEMA = {
     "parameters": {"type": "object", "properties": {}},
 }
 
+_FORGE_SCHEMA = {
+    "name": "insight_forge",
+    "description": (
+        "Forge NEW products from lattice patterns and connections: orientation map, "
+        "prediction board, transfer pack, invention seeds, action playbooks, watch edges. "
+        "This is how patterns become useful — not just stored."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "out_dir": {"type": "string"},
+            "products": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Subset: map, predict, transfer, invent, playbooks, watch",
+            },
+            "write_synthesis": {"type": "boolean", "default": True},
+        },
+    },
+}
+
 
 _SYSTEM_BLOCK = """## Hermes Insight
 You have structural pattern-processing tools (`insight_*`).
 Prefer insight_cycle when diagnosing multi-factor systems, architectures, or recurring failures.
 Use insight_index_server / insight_index_path so projects, files, metadata, and connections are visible in the lattice.
+After indexing, run insight_forge to turn connections into maps, predictions, transfers, invention seeds, and playbooks.
 Distill the actual variable; do not force-fit novelty; reinforce patterns that paid rent via insight_feedback.
 Secrets are scrubbed — still never paste raw credentials into tools.
 """
@@ -454,6 +492,7 @@ def register(ctx) -> None:
     _reg(_INDEX_PATH_SCHEMA, handle_insight_index_path)
     _reg(_INDEX_CONN_SCHEMA, handle_insight_index_connections)
     _reg(_FABRIC_STATS_SCHEMA, handle_insight_fabric_stats)
+    _reg(_FORGE_SCHEMA, handle_insight_forge)
 
     # optional prompt injection if host supports it
     if hasattr(ctx, "register_hook"):

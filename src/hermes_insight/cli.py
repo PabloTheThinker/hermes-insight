@@ -154,6 +154,23 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("fabric-stats", help="Counts of fabric-tagged patterns in the lattice")
     s.set_defaults(func=cmd_fabric_stats)
 
+    s = sub.add_parser(
+        "forge",
+        help="Forge new products from patterns: map, predict, transfer, invent, playbooks, watch",
+    )
+    s.add_argument(
+        "--out",
+        default=None,
+        help="Output directory (default: <db-dir>/forged/<timestamp>)",
+    )
+    s.add_argument(
+        "--only",
+        default=None,
+        help="Comma list: map,predict,transfer,invent,playbooks,watch",
+    )
+    s.add_argument("--no-synthesis", action="store_true", help="Do not write synthesis nodes back")
+    s.set_defaults(func=cmd_forge)
+
     return p
 
 
@@ -316,6 +333,23 @@ def cmd_index_connections(args: argparse.Namespace) -> int:
 def cmd_fabric_stats(args: argparse.Namespace) -> int:
     lat = _lattice(args)
     _print(lat.fabric_stats(), as_json=True)
+    return 0
+
+
+def cmd_forge(args: argparse.Namespace) -> int:
+    lat = _lattice(args)
+    only = None
+    if args.only:
+        only = [x.strip() for x in args.only.split(",") if x.strip()]
+    result = lat.forge(
+        out_dir=args.out,
+        write_synthesis=not args.no_synthesis,
+        products=only,
+    )
+    _print(result, as_json=True)
+    # human pointer
+    if not args.json and result.get("run_dir"):
+        print(f"\nForged → {result['run_dir']}", file=sys.stderr)
     return 0
 
 

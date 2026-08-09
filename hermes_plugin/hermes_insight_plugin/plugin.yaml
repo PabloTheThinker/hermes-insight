@@ -1,9 +1,7 @@
 name: hermes-insight
-version: "0.3.0"
+version: "0.4.0"
 description: >
-  Superior pattern-processing harness — multi-lens recognition, distillation,
-  trajectory, multi-agent compartments, code-aware ingest, and full server fabric
-  indexing (projects, files, metadata, connections). Secrets scrubbed.
+  Pattern-processing harness + server fabric + Pattern Forge (map/predict/transfer/invent/act).
   Independent companion (not official Nous product).
 author: "Pablo Navarro"
 kind: standalone
@@ -20,3 +18,4 @@ provides_tools:
   - insight_index_path
   - insight_index_connections
   - insight_fabric_stats
+  - insight_forge

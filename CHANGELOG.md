@@ -16,3 +16,9 @@
 ## 0.1.0 — 2026-08-09
 
 - Initial Hermes Insight release
+
+## 0.4.0 — 2026-08-09
+
+- **Pattern Forge** — forge new products from connections (map/predict/transfer/invent/playbooks/watch)
+- CLI `forge`, plugin `insight_forge`
+- Live forge on host fabric produced invention seeds + playbooks

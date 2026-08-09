@@ -1,7 +1,7 @@
 ---
 name: hermes-insight
 description: "Use when an agent needs superior pattern recognition — distill levers, match structures, cross-domain analogy, trajectories, catalogue novelty, multi-agent lattices, code ingest. CLI + native insight_* tools."
-version: "0.3.0"
+version: "0.4.0"
 author: Pablo Navarro
 license: MIT
 metadata:
@@ -62,6 +62,15 @@ Restart Hermes after enabling. Tools: `insight_cycle`, `insight_ingest`, `insigh
 7. Finished briefs  
 8. Feedback loops — reinforce what paid rent  
 9. Multi-agent — separate DBs/compartments per trust boundary  
+
+## Forge (make something new)
+
+```bash
+hermes-insight forge
+```
+
+Human uses of patterns → map · predict · transfer · invent · playbooks · watch.
+Plugin: `insight_forge`.
 
 ## Server fabric (see everything)
 

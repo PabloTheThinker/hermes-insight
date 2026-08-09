@@ -40,6 +40,15 @@ This project is **inspired by** those ideas. It is **not** a diagnostic tool and
 
 ---
 
+## Pattern Forge
+
+Patterns earn rent when they become products:
+
+```bash
+hermes-insight forge
+# → orientation map, prediction board, transfer pack, invention seeds, playbooks, watch edges
+```
+
 ## Server fabric
 
 Index host structure (scrubbed) so Insight sees projects, software trees, metadata, and connections:

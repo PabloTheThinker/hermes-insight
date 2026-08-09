@@ -59,7 +59,7 @@ def test_ingest_match_cycle(lat: HermesInsight):
     assert "Hermes Insight brief" in report.brief
     st = lat.stats()
     assert st["patterns"] >= 2
-    assert st["version"] == "0.3.0"
+    assert st["version"] == "0.4.0"
 
 
 def test_distill_prefers_structural_lever(lat: HermesInsight):

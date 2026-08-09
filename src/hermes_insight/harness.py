@@ -445,7 +445,7 @@ class HermesInsight:
             "patterns": c["patterns"],
             "links": c["links"],
             "last_brief_line": self.store.get_meta("last_brief_line", ""),
-            "version": "0.3.0",
+            "version": "0.4.0",
         }
 
     def export_patterns(self, *, limit: int = 1000) -> List[Dict[str, Any]]:
@@ -582,4 +582,30 @@ class HermesInsight:
             "by_kind": by,
             "last_index": self.store.get_meta("last_fabric_index", "")[:500],
             "stats": self.stats(),
+        }
+
+    def forge(
+        self,
+        *,
+        out_dir: Optional[PathLike] = None,
+        write_synthesis: bool = True,
+        products: Optional[Sequence[str]] = None,
+    ) -> Dict[str, Any]:
+        """Turn lattice connections into human-usable products (map/predict/transfer/invent/act/watch)."""
+        from hermes_insight.forge import forge as _forge
+
+        bundle = _forge(
+            self,
+            out_dir=out_dir,
+            write_synthesis=write_synthesis,
+            products=products,
+        )
+        self.store.set_meta("last_forge_dir", bundle.stats.get("run_dir", ""))
+        return {
+            "success": True,
+            "run_dir": bundle.stats.get("run_dir"),
+            "products": list(bundle.products.keys()),
+            "synthesis_ids": bundle.synthesis_ids,
+            "stats": bundle.stats,
+            "created_at": bundle.created_at,
         }
