@@ -94,7 +94,7 @@ def perceive(
     feats = extract_features(blob)
     thin_query = len(feats) < 3 and len(blob.split()) < 8
 
-    pack = lat.recall(blob, limit=limit, domain=domain)
+    pack = lat.recall(blob, limit=limit, domain=domain, write_meta=False)
     matches: List[Dict[str, Any]] = list(pack.get("matches") or [])
     # Prefer structural rules over bulk-indexed skill inventory rows
     rules = [m for m in matches if m.get("kind") == "rule" or not str(m.get("title") or "").startswith("skill:")]
@@ -203,6 +203,11 @@ def perceive(
             f"**Hint:** {hint}",
             "_Query was thin — concrete observations improve results sharply._",
         ]
+        try:
+            lat.store.set_meta("last_brief_line", "lever=`insufficient_signal` · match=`none`")
+            lat.store.set_meta("last_recall_line", "insufficient_signal: none")
+        except Exception:
+            pass
         return {
             "success": True,
             "ability": "pattern_recognition",
