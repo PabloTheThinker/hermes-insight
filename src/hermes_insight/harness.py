@@ -538,6 +538,7 @@ class HermesInsight:
         limit: int = 8,
         include_experiences: bool = True,
         domain: Optional[str] = None,
+        write_meta: bool = True,
     ) -> Dict[str, Any]:
         """Fast pre-action recall: priors + lived echoes + hops + brief."""
         from hermes_insight.experience import recall as _recall
@@ -548,6 +549,7 @@ class HermesInsight:
             limit=limit,
             include_experiences=include_experiences,
             domain=domain,
+            write_meta=write_meta,
         )
 
     def open_task(
