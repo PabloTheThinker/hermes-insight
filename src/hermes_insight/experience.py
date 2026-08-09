@@ -576,6 +576,7 @@ def recall(
     # pull neighbors of top match for faster connect-the-dots
     hops: List[Dict[str, Any]] = []
     if hits:
+        via_title = hits[0].pattern.title
         for nb in lat.store.neighbors(hits[0].pattern.id, limit=6):
             hops.append(
                 {
@@ -583,6 +584,7 @@ def recall(
                     "title": nb.title,
                     "kind": nb.kind.value,
                     "domain": nb.domain.value,
+                    "via": via_title,
                 }
             )
 
@@ -617,7 +619,16 @@ def recall(
     brief = "\n".join(brief_lines)
 
     if write_meta:
-        lat.store.set_meta("last_recall_line", f"{distillation.actual_variable}: {matches[0]['title'] if matches else 'none'}")
+        top_t = matches[0]["title"] if matches else "none"
+        lat.store.set_meta(
+            "last_recall_line",
+            f"{distillation.actual_variable}: {top_t}",
+        )
+        lat.store.set_meta(
+            "last_brief_line",
+            f"lever=`{distillation.actual_variable}` · match=`{top_t}`"
+            + (f"@{matches[0]['score']:.2f}" if matches else ""),
+        )
 
     return {
         "success": True,

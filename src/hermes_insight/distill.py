@@ -148,6 +148,16 @@ def distill(
     actual = ranked[0] if ranked else "insufficient_signal"
     if actual in _BAD_LEVERS or actual in _NOISE_HINTS:
         actual = prior_hits[0] if prior_hits else "insufficient_signal"
+
+    # When a strong structural match exists, anchor the lever to that rule —
+    # not a nearby scenic token (timeout vs retry, agent vs isolation, etc.).
+    actual = refine_lever_from_matches(
+        actual,
+        matches=matches,
+        domain_hint=domain_hint,
+        query_features=set(feats) | set(tokens),
+    )
+
     supporting = [f for f in ranked[1 : max_supporting + 1] if f != actual]
 
     discarded: List[str] = []
@@ -170,6 +180,102 @@ def distill(
         principle=principle,
         actionable=actionable,
     )
+
+
+_GENERIC_LEVERS = {
+    "agent",
+    "model",
+    "tool",
+    "system",
+    "procedure",
+    "process",
+    "service",
+    "work",
+    "load",
+}
+
+
+# Title → preferred lever when score is strong
+_TITLE_LEVER_RULES: List[tuple[str, str]] = [
+    ("retry storm", "retry"),
+    ("retry", "retry"),
+    ("skill routing", "skill"),
+    ("skill dump", "skill"),
+    ("skill from hard", "skill"),
+    ("profile isolation", "isolation"),
+    ("isolation wall", "isolation"),
+    ("credential", "token"),
+    ("single-consumer", "token"),
+    ("single consumer", "token"),
+    ("prompt cache", "cache"),
+    ("token waist", "token"),
+    ("tool schema", "token"),
+    ("session interrupt", "session"),
+    ("circuit", "circuit"),
+    ("backoff", "backoff"),
+    ("jitter", "jitter"),
+]
+
+
+def refine_lever_from_matches(
+    distilled: str,
+    *,
+    matches: Sequence[MatchResult] | None,
+    domain_hint: str | None = None,
+    query_features: Optional[set] = None,
+) -> str:
+    """Prefer the controlling feature of a strong top match over a weak distill."""
+    if not matches:
+        return distilled or "insufficient_signal"
+    top = matches[0]
+    score = float(top.score or 0.0)
+    if score < 0.45:
+        # weak match — keep distilled unless it's garbage
+        if distilled and distilled not in _BAD_LEVERS and distilled not in _NOISE_HINTS:
+            return distilled
+        return distilled or "insufficient_signal"
+
+    title = (top.pattern.title or "").lower()
+    shared = [stem_token(s) for s in (top.shared_features or []) if s]
+    pat_feats = [stem_token(f) for f in (top.pattern.features or [])[:16] if f]
+    qf = {stem_token(x) for x in (query_features or set()) if x}
+
+    # 1) Title rules win when clear
+    for needle, lever in _TITLE_LEVER_RULES:
+        if needle in title:
+            return lever
+
+    # 2) Domain-specific preferred tokens present on the match
+    domain_prefs = {
+        "multi_agent": ["isolation", "compartment", "profile", "credential", "token"],
+        "skill": ["skill", "routing", "procedure", "model"],
+        "system": ["retry", "jitter", "backoff", "circuit", "timeout", "cache"],
+        "agent": ["token", "credential", "cache", "session", "skill", "profile"],
+        "code": ["retry", "cache", "timeout", "auth", "token"],
+    }
+    prefs = domain_prefs.get((domain_hint or top.pattern.domain.value or "").lower(), [])
+    pool = shared + pat_feats
+    for pref in prefs:
+        if pref in pool or pref in qf:
+            return pref
+
+    # 3) Best non-generic shared feature that appears in the query
+    for f in shared:
+        if f in qf and f not in _GENERIC_LEVERS and f not in _BAD_LEVERS and len(f) >= 3:
+            return f
+
+    # 4) Pattern's own features (non-generic)
+    for f in pat_feats:
+        if f not in _GENERIC_LEVERS and f not in _BAD_LEVERS and len(f) >= 3:
+            return f
+
+    # 5) Keep distilled if it's specific; else first shared
+    if distilled and distilled not in _GENERIC_LEVERS and distilled not in _BAD_LEVERS:
+        return distilled
+    for f in shared:
+        if f not in _BAD_LEVERS and len(f) >= 3:
+            return f
+    return distilled or "insufficient_signal"
 
 
 def _principle(actual: str, supporting: Sequence[str], text: str) -> str:

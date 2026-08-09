@@ -96,6 +96,14 @@ def perceive(
 
     pack = lat.recall(blob, limit=limit, domain=domain)
     matches: List[Dict[str, Any]] = list(pack.get("matches") or [])
+    # Prefer structural rules over bulk-indexed skill inventory rows
+    rules = [m for m in matches if m.get("kind") == "rule" or not str(m.get("title") or "").startswith("skill:")]
+    skill_inv = [m for m in matches if str(m.get("title") or "").startswith("skill:")]
+    if rules:
+        # keep rules first, allow one skill inventory if strong and unique
+        matches = rules + [m for m in skill_inv if float(m.get("score") or 0) >= 0.55][:1]
+        matches.sort(key=lambda x: float(x.get("score") or 0), reverse=True)
+        matches = matches[:limit]
     experiences: List[Dict[str, Any]] = list(pack.get("experiences") or [])
     hops: List[Dict[str, Any]] = list(pack.get("hops") or [])
     lever = str(pack.get("lever") or "")
@@ -104,6 +112,37 @@ def perceive(
 
     top_score = float(matches[0].get("score") or 0) if matches else 0.0
     deep_used = False
+
+    # Align lever to strong top structure (dict form from recall)
+    if matches and top_score >= 0.45 and lever not in {"insufficient_signal", ""}:
+        from hermes_insight.distill import refine_lever_from_matches
+        from hermes_insight.models import MatchResult, Pattern, PatternKind, Domain
+        top = matches[0]
+        # rebuild a light MatchResult for refine
+        try:
+            kind = PatternKind(top.get("kind") or "rule")
+        except Exception:
+            kind = PatternKind.RULE
+        try:
+            dom = Domain(top.get("domain") or "general")
+        except Exception:
+            dom = Domain.GENERAL
+        fake = Pattern(
+            id=str(top.get("id") or "x"),
+            title=str(top.get("title") or ""),
+            body=str(top.get("body_preview") or ""),
+            kind=kind,
+            domain=dom,
+            features=list(top.get("shared") or [])[:12],
+        )
+        mr = MatchResult(pattern=fake, score=top_score, method="hybrid", shared_features=list(top.get("shared") or []))
+        lever = refine_lever_from_matches(
+            lever,
+            matches=[mr],
+            domain_hint=domain,
+            query_features=set(extract_features(blob)),
+        )
+
 
     # Auto-deep when we have substance but weak match
     need_deep = bool(deep) or (
@@ -232,6 +271,17 @@ def perceive(
         card_lines.append("_Query was thin — concrete observations improve results sharply._")
 
     card = "\n".join(card_lines)
+
+    try:
+        top_t = matches[0].get("title") if matches else "none"
+        lat.store.set_meta(
+            "last_brief_line",
+            f"lever=`{lever}` · match=`{top_t}`"
+            + (f"@{top_score:.2f}" if matches else ""),
+        )
+        lat.store.set_meta("last_recall_line", f"{lever}: {top_t}")
+    except Exception:
+        pass
 
     return {
         "success": True,

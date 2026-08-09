@@ -15,7 +15,7 @@ def lat(tmp_path: Path) -> HermesInsight:
 
 
 def test_version():
-    assert __version__ == "0.7.2"
+    assert __version__ == "0.7.3"
 
 
 def test_perceive_prefers_structural_rule(lat: HermesInsight):
@@ -162,3 +162,30 @@ def test_hygiene_decays_fabric(lat: HermesInsight):
     assert out["decay"]["weakened"] >= 1
     p2 = lat.get(p.id)
     assert p2 and p2.strength < 0.5
+
+
+def test_lever_prefers_top_rule(lat: HermesInsight):
+    lat.bootstrap()
+    r = lat.perceive(
+        "after deploy retries amplify origin load",
+        observations=["no jitter", "alert fatigue"],
+        domain="system",
+    )
+    assert r["usable"] is True
+    assert r["lever"] == "retry"
+    assert "retry" in (r["matches"][0]["title"] or "").lower()
+
+    r2 = lat.perceive(
+        "client agent can read conductor personal memory",
+        observations=["shared profile home"],
+        domain="multi_agent",
+    )
+    assert r2["usable"] is True
+    assert r2["lever"] in {"isolation", "profile", "compartment"}
+
+    r3 = lat.perceive(
+        "too many skills; model picks wrong procedure",
+        domain="skill",
+    )
+    assert r3["usable"] is True
+    assert r3["lever"] in {"skill", "routing"}

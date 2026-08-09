@@ -60,7 +60,7 @@ def test_ingest_match_cycle(lat: HermesInsight):
     assert "agent-field" in report.brief or "brief" in report.brief
     st = lat.stats()
     assert st["patterns"] >= 2
-    assert st["version"] == "0.7.2"
+    assert st["version"] == "0.7.3"
 
 
 def test_distill_prefers_structural_lever(lat: HermesInsight):

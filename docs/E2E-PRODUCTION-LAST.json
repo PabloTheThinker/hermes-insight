@@ -1,5 +1,5 @@
 {
-  "version": "0.7.2",
+  "version": "0.7.3",
   "tmpdir": "$TMP/hinsight-e2e",
   "passed": 44,
   "failed": 0,
@@ -14,7 +14,7 @@
     "last_experience_line": "",
     "last_recall_line": "",
     "active_task_id": "",
-    "version": "0.7.2"
+    "version": "0.7.3"
   },
   "fabric_by_kind": {
     "host": 1,

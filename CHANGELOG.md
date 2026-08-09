@@ -1,3 +1,10 @@
+## 0.7.3 — 2026-08-09
+
+- Lever refinement: strong top match anchors lever (retry/skill/isolation/token) instead of near-miss scenic tokens
+- Prefer structural rules over bulk `skill:` inventory rows in perceive
+- Hop `via` labels; fresher `last_brief_line` from recall/perceive
+- Plugin `agent_tier` from config (ILO set to conductor)
+
 # Changelog
 
 ## 0.7.2 — 2026-08-09

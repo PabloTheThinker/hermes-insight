@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 __plugin_name__ = "hermes-insight"
-__plugin_version__ = "0.7.2"
+__plugin_version__ = "0.7.3"
 
 
 def _cfg() -> dict:
@@ -62,10 +62,20 @@ def _agent_id() -> Optional[str]:
     return cfg.get("agent_id") or os.environ.get("HERMES_INSIGHT_AGENT_ID")
 
 
+def _agent_tier() -> str:
+    cfg = _cfg()
+    tier = cfg.get("agent_tier") or os.environ.get("HERMES_INSIGHT_AGENT_TIER") or "worker"
+    return str(tier)
+
+
 def _lattice():
     from hermes_insight import HermesInsight
 
-    return HermesInsight(db_path=_db_path(), agent_id=_agent_id())
+    return HermesInsight(
+        db_path=_db_path(),
+        agent_id=_agent_id(),
+        agent_tier=_agent_tier(),
+    )
 
 
 def _ok(data: Any) -> str:
