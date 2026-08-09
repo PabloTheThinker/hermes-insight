@@ -26,7 +26,7 @@
                  └────────┬─────────┘
                           │
                  ┌────────▼─────────┐
-                 │ PatternLattice   │  harness.py
+                 │ HermesInsight   │  harness.py
                  │  cycle/ingest/…  │
                  └────────┬─────────┘
           ┌───────────────┼────────────────┐
@@ -68,11 +68,11 @@ Cross-domain links boost **analogy** when feature overlap exists across differen
 
 ## Storage layout
 
-Default: `~/.pattern-lattice/lattice.db`  
-Override: `PATTERN_LATTICE_DB` or `PatternLattice(db_path=...)`  
+Default: `~/.hermes-insight/insight.db`  
+Override: `HERMES_INSIGHT_DB` or `HermesInsight(db_path=...)`  
 
 Hermes profiles should pass an explicit path under the profile home, e.g.
-`$HERMES_HOME/memories/pattern-lattice.db` (documented in HERMES.md — never hardcode operator machines).
+`$HERMES_HOME/memories/hermes-insight.db` (documented in HERMES.md — never hardcode operator machines).
 
 ## Extension points
 

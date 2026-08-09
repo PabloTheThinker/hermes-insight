@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Sequence
 
-from pattern_lattice.models import Link, Pattern
+from hermes_insight.models import Link, Pattern
 
 
 SCHEMA = """

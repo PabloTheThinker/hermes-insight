@@ -8,9 +8,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Sequence
 
-from pattern_lattice.features import extract_features, jaccard
-from pattern_lattice.match import match_patterns
-from pattern_lattice.models import MatchResult, Pattern, PatternKind
+from hermes_insight.features import extract_features, jaccard
+from hermes_insight.match import match_patterns
+from hermes_insight.models import MatchResult, Pattern, PatternKind
 
 
 def detect_anomalies(

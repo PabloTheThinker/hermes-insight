@@ -22,7 +22,7 @@ htmlcov/
 .idea/
 .vscode/
 *.log
-.pattern-lattice/
+.hermes-insight/
 local/
 tmp/
 .hermes/

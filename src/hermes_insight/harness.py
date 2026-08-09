@@ -1,4 +1,4 @@
-"""PatternLattice harness — the public agent API.
+"""HermesInsight harness — the public agent API.
 
 Cycle (aligned to superior pattern processing + ND connecting-the-dots):
 
@@ -17,15 +17,15 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Union
 
-from pattern_lattice.anomaly import detect_anomalies, file_anomaly
-from pattern_lattice.brief import compact_one_liner, format_brief
-from pattern_lattice.cross_domain import analogy_map, auto_link
-from pattern_lattice.distill import distill
-from pattern_lattice.evolve import evolve_once, reinforce
-from pattern_lattice.extrapolate import extrapolate
-from pattern_lattice.features import extract_features
-from pattern_lattice.match import match_patterns
-from pattern_lattice.models import (
+from hermes_insight.anomaly import detect_anomalies, file_anomaly
+from hermes_insight.brief import compact_one_liner, format_brief
+from hermes_insight.cross_domain import analogy_map, auto_link
+from hermes_insight.distill import distill
+from hermes_insight.evolve import evolve_once, reinforce
+from hermes_insight.extrapolate import extrapolate
+from hermes_insight.features import extract_features
+from hermes_insight.match import match_patterns
+from hermes_insight.models import (
     CycleReport,
     Domain,
     Evidence,
@@ -34,22 +34,22 @@ from pattern_lattice.models import (
     PatternKind,
     ProcessDim,
 )
-from pattern_lattice.store import PatternStore
+from hermes_insight.store import PatternStore
 
 
 PathLike = Union[str, Path]
 
 
 def default_db_path() -> Path:
-    env = os.environ.get("PATTERN_LATTICE_DB")
+    env = os.environ.get("HERMES_INSIGHT_DB")
     if env:
         return Path(env).expanduser()
-    home = Path(os.environ.get("PATTERN_LATTICE_HOME", "~/.pattern-lattice")).expanduser()
+    home = Path(os.environ.get("HERMES_INSIGHT_HOME", "~/.hermes-insight")).expanduser()
     home.mkdir(parents=True, exist_ok=True)
-    return home / "lattice.db"
+    return home / "insight.db"
 
 
-class PatternLattice:
+class HermesInsight:
     """High-level harness. Construct once per agent profile/workspace."""
 
     def __init__(self, db_path: Optional[PathLike] = None) -> None:

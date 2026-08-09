@@ -7,7 +7,7 @@
 - Multi-lens recognition (template / prototype / feature / hybrid) with light stemming
 - SQLite + FTS5 pattern graph store
 - Cross-domain linking and cluster synthesis
-- CLI (`pattern-lattice` / `plattice`)
+- CLI (`hermes-insight` / `hermes-insight`)
 - Hermes skill pack + plugin skeleton
 - Research and architecture docs
 - Offline demo and pytest suite

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Optional, Sequence
 
-from pattern_lattice.models import CycleReport, Distillation, MatchResult, Trajectory
+from hermes_insight.models import CycleReport, Distillation, MatchResult, Trajectory
 
 
 def format_brief(report: CycleReport, *, style: str = "agent") -> str:
@@ -15,7 +15,7 @@ def format_brief(report: CycleReport, *, style: str = "agent") -> str:
 
 def render_markdown(report: CycleReport) -> str:
     lines = [
-        "# Pattern Lattice brief",
+        "# Hermes Insight brief",
         "",
         f"**Query:** {report.query.strip() or '(none)'}",
         "",
@@ -95,7 +95,7 @@ def render_markdown(report: CycleReport) -> str:
             lines.append(f"- {o}")
         lines.append("")
 
-    lines.append("_Pattern Lattice — encode · match · link · distill · extrapolate · evolve_")
+    lines.append("_Hermes Insight — encode · match · link · distill · extrapolate · evolve_")
     return "\n".join(lines).strip() + "\n"
 
 

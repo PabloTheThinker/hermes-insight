@@ -9,8 +9,8 @@ from __future__ import annotations
 from collections import Counter
 from typing import Iterable, List, Optional, Sequence
 
-from pattern_lattice.features import extract_features, tokenize
-from pattern_lattice.models import Distillation, MatchResult, Pattern
+from hermes_insight.features import extract_features, tokenize
+from hermes_insight.models import Distillation, MatchResult, Pattern
 
 
 _NOISE_HINTS = {

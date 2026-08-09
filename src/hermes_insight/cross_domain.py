@@ -8,9 +8,9 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Sequence, Tuple
 
-from pattern_lattice.features import jaccard, overlap_list
-from pattern_lattice.models import Domain, Link, LinkKind, Pattern
-from pattern_lattice.store import PatternStore
+from hermes_insight.features import jaccard, overlap_list
+from hermes_insight.models import Domain, Link, LinkKind, Pattern
+from hermes_insight.store import PatternStore
 
 
 def propose_links(

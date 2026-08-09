@@ -1,6 +1,6 @@
-# Research brief — Pattern recognition → Pattern Lattice
+# Research brief — Pattern recognition → Hermes Insight
 
-This document synthesizes the research behind Pattern Lattice. It is an engineering
+This document synthesizes the research behind Hermes Insight. It is an engineering
 operationalization, not a medical or diagnostic claim.
 
 ## 1. What pattern recognition is
@@ -53,7 +53,7 @@ Four textbook families (not mutually exclusive in real brains):
 3. **Feature analysis** — detect parts (Pandemonium-style “daemons”) then combine  
 4. **Recognition-by-components** — parse objects into structural primitives (geons, etc.)  
 
-Pattern Lattice implements (1)–(3) explicitly as score channels and blends them into a
+Hermes Insight implements (1)–(3) explicitly as score channels and blends them into a
 **hybrid** recognizer. Agents (or optional LLMs) can enrich features toward (4).
 
 ## 5. Neurodivergent-associated pattern cognition (operational, not clinical)

@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from typing import List, Sequence
 
-from pattern_lattice.features import extract_features, tokenize
-from pattern_lattice.models import MatchResult, Pattern, Trajectory
+from hermes_insight.features import extract_features, tokenize
+from hermes_insight.models import MatchResult, Pattern, Trajectory
 
 
 def extrapolate(

@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from typing import Iterable, List, Optional, Sequence
 
-from pattern_lattice.features import jaccard, normalize_text, overlap_list, tokenize
-from pattern_lattice.models import MatchResult, Pattern, PatternKind
+from hermes_insight.features import jaccard, normalize_text, overlap_list, tokenize
+from hermes_insight.models import MatchResult, Pattern, PatternKind
 
 
 def template_score(query: str, pattern: Pattern) -> float:

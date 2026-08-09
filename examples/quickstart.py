@@ -6,12 +6,12 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-from pattern_lattice import PatternLattice
+from hermes_insight import HermesInsight
 
 
 def main() -> None:
     db = Path(tempfile.mkdtemp()) / "ex.db"
-    lat = PatternLattice(db_path=db)
+    lat = HermesInsight(db_path=db)
 
     lat.ingest(
         "singleflight",

@@ -1,4 +1,4 @@
-"""CLI for Pattern Lattice — agent-friendly JSON or human markdown."""
+"""CLI for Hermes Insight — agent-friendly JSON or human markdown."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ import json
 import sys
 from typing import Any, List
 
-from pattern_lattice import __version__
-from pattern_lattice.harness import PatternLattice, default_db_path
+from hermes_insight import __version__
+from hermes_insight.harness import HermesInsight, default_db_path
 
 
 def _print(data: Any, *, as_json: bool) -> None:
@@ -23,17 +23,17 @@ def _print(data: Any, *, as_json: bool) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="pattern-lattice",
+        prog="hermes-insight",
         description=(
             "Superior pattern-processing harness for AI agents. "
             "Encode, match, link, distill, extrapolate, evolve."
         ),
     )
-    p.add_argument("--version", action="version", version=f"pattern-lattice {__version__}")
+    p.add_argument("--version", action="version", version=f"hermes-insight {__version__}")
     p.add_argument(
         "--db",
         default=None,
-        help="SQLite path (default: $PATTERN_LATTICE_DB or ~/.pattern-lattice/lattice.db)",
+        help="SQLite path (default: $HERMES_INSIGHT_DB or ~/.hermes-insight/insight.db)",
     )
     p.add_argument("--json", action="store_true", help="JSON output")
 
@@ -102,8 +102,8 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
-def _lattice(args: argparse.Namespace) -> PatternLattice:
-    return PatternLattice(db_path=args.db or default_db_path())
+def _lattice(args: argparse.Namespace) -> HermesInsight:
+    return HermesInsight(db_path=args.db or default_db_path())
 
 
 def cmd_stats(args: argparse.Namespace) -> int:
@@ -197,7 +197,7 @@ def cmd_demo(args: argparse.Namespace) -> int:
 
     # isolated temp db unless user passed --db
     if not args.db:
-        tmp = Path(tempfile.mkdtemp(prefix="plattice-demo-")) / "demo.db"
+        tmp = Path(tempfile.mkdtemp(prefix="hermes-insight-demo-")) / "demo.db"
         args.db = str(tmp)
 
     lat = _lattice(args)

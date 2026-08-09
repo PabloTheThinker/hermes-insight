@@ -9,10 +9,10 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from typing import Dict, List, Optional, Sequence
 
-from pattern_lattice.cross_domain import auto_link
-from pattern_lattice.features import extract_features
-from pattern_lattice.models import Domain, Pattern, PatternKind
-from pattern_lattice.store import PatternStore
+from hermes_insight.cross_domain import auto_link
+from hermes_insight.features import extract_features
+from hermes_insight.models import Domain, Pattern, PatternKind
+from hermes_insight.store import PatternStore
 
 
 def reinforce(
@@ -151,7 +151,7 @@ def evolve_once(
         # also pull feature-similar even without links
         if len(neigh) < 2:
             pool = store.all_patterns(limit=500)
-            from pattern_lattice.match import match_patterns
+            from hermes_insight.match import match_patterns
 
             hits = match_patterns(
                 root.title + " " + root.body,
@@ -174,6 +174,6 @@ def tokenize_title(title: str) -> List[str]:
 
 
 def jacc(a: Sequence[str], b: Sequence[str]) -> float:
-    from pattern_lattice.features import jaccard
+    from hermes_insight.features import jaccard
 
     return jaccard(a, b)

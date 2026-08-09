@@ -1,4 +1,4 @@
-"""Core types for Pattern Lattice.
+"""Core types for Hermes Insight.
 
 Maps cognitive pattern-recognition theories onto durable agent structures:
 

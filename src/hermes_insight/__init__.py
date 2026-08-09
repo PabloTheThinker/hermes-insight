@@ -1,4 +1,4 @@
-"""Pattern Lattice — superior pattern-processing harness for AI agents.
+"""Hermes Insight — superior pattern-processing harness for AI agents.
 
 Neurodivergent-inspired connecting-the-dots cognition as software:
 encode → match → link → distill → extrapolate → generate → reinforce.
@@ -8,8 +8,8 @@ Standalone. Zero host coupling. Optional Hermes Agent skill/plugin later.
 
 from __future__ import annotations
 
-from pattern_lattice.harness import PatternLattice
-from pattern_lattice.models import (
+from hermes_insight.harness import HermesInsight
+from hermes_insight.models import (
     Domain,
     Evidence,
     LinkKind,
@@ -21,7 +21,7 @@ from pattern_lattice.models import (
 
 __version__ = "0.1.0"
 __all__ = [
-    "PatternLattice",
+    "HermesInsight",
     "Pattern",
     "PatternKind",
     "Domain",

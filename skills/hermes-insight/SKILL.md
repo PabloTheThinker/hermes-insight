@@ -1,5 +1,5 @@
 ---
-name: pattern-lattice
+name: hermes-insight
 description: "Use when an agent needs superior pattern recognition — distill levers, match structures, cross-domain analogy, trajectories, catalogue novelty, evolve a pattern graph. Offline harness + CLI."
 version: "0.1.0"
 author: Pablo Navarro
@@ -10,11 +10,11 @@ metadata:
     requires_binaries: []
 ---
 
-# Pattern Lattice (Hermes skill)
+# Hermes Insight (Hermes skill)
 
 Superior pattern-processing harness for agents. Neurodivergent-inspired connecting-the-dots: **encode → match → link → distill → extrapolate → evolve**.
 
-This skill teaches you to *use* the standalone `pattern-lattice` package. It does not embed operator-specific data.
+This skill teaches you to *use* the standalone `hermes-insight` package. It does not embed operator-specific data.
 
 ## When to load
 
@@ -27,19 +27,19 @@ This skill teaches you to *use* the standalone `pattern-lattice` package. It doe
 ## Setup (once per environment)
 
 ```bash
-pip install pattern-lattice
-# or editable: pip install -e /path/to/pattern-lattice
+pip install hermes-insight
+# or editable: pip install -e /path/to/hermes-insight
 
 # profile-scoped DB (Hermes)
 mkdir -p "$HERMES_HOME/memories"
-export PATTERN_LATTICE_DB="${PATTERN_LATTICE_DB:-$HERMES_HOME/memories/pattern-lattice.db}"
+export HERMES_INSIGHT_DB="${HERMES_INSIGHT_DB:-$HERMES_HOME/memories/hermes-insight.db}"
 ```
 
 Verify:
 
 ```bash
-pattern-lattice --version
-pattern-lattice demo
+hermes-insight --version
+hermes-insight demo
 ```
 
 ## Standing cognitive stance
@@ -57,34 +57,34 @@ pattern-lattice demo
 
 ```bash
 # Full cycle → markdown brief
-pattern-lattice cycle "situation text" \
+hermes-insight cycle "situation text" \
   -o "observation 1" \
   -o "observation 2"
 
 # JSON for tool parsing
-pattern-lattice --json cycle "situation" -o "obs"
+hermes-insight --json cycle "situation" -o "obs"
 
 # Catalogue a learned structure
-pattern-lattice ingest "short title" "full body..." \
+hermes-insight ingest "short title" "full body..." \
   --domain code --kind rule --tag retry --confidence 0.75
 
 # Match only
-pattern-lattice match "query text" -n 8
+hermes-insight match "query text" -n 8
 
 # Distill lever
-pattern-lattice distill "messy paragraph..."
+hermes-insight distill "messy paragraph..."
 
 # Trajectory
-pattern-lattice extrapolate "step1" "step2" "step3"
+hermes-insight extrapolate "step1" "step2" "step3"
 
 # After a pattern helped in the real world
-pattern-lattice feedback p_xxxxxxxxxxxx
+hermes-insight feedback p_xxxxxxxxxxxx
 
 # If it misled
-pattern-lattice feedback p_xxxxxxxxxxxx --unhelpful
+hermes-insight feedback p_xxxxxxxxxxxx --unhelpful
 
 # Evolution tick (synthesis + optional decay)
-pattern-lattice evolve
+hermes-insight evolve
 ```
 
 Domains: `general|code|system|social|process|sensory|language|market|science|self`  
@@ -93,11 +93,11 @@ Kinds: `template|prototype|feature|sequence|relation|rule|trajectory|anomaly|syn
 ## Python (execute_code / tools)
 
 ```python
-from pattern_lattice import PatternLattice
+from hermes_insight import HermesInsight
 import os
 
-db = os.environ.get("PATTERN_LATTICE_DB")  # prefer explicit
-lat = PatternLattice(db_path=db) if db else PatternLattice()
+db = os.environ.get("HERMES_INSIGHT_DB")  # prefer explicit
+lat = HermesInsight(db_path=db) if db else HermesInsight()
 
 lat.ingest("title", "body", domain="code", kind="rule", tags=["x"])
 report = lat.cycle("query", observations=["a", "b"])

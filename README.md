@@ -1,10 +1,12 @@
-# Pattern Lattice
+# Hermes Insight
 
 **Superior pattern-processing harness for AI agents.**
 
 Neurodivergent-inspired *connecting-the-dots* cognition as software: encode structures, match them with multiple lenses, hop laterally across domains, distill the actual variable, extrapolate trajectories, and evolve a living catalogue.
 
 Standalone Python library + CLI. **No cloud dependency. No host coupling.** Optional [Hermes Agent](https://github.com/NousResearch/hermes-agent) skill pack included for install-as-skill workflows.
+
+> **Name note:** *Hermes Insight* is an independent companion harness for agents (including Hermes Agent). It is **not** an official Nous Research product.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -25,7 +27,7 @@ Human (and especially many neurodivergent) cognition often:
 7. **Generates** higher-order syntheses from clusters  
 8. **Reinforces** what worked  
 
-AI agents are usually strong at local next-token reasoning and weak at *durable structural memory with lateral hops*. Pattern Lattice is a harness for that missing layer.
+AI agents are usually strong at local next-token reasoning and weak at *durable structural memory with lateral hops*. Hermes Insight is a harness for that missing layer.
 
 Research foundations (see [`docs/RESEARCH.md`](docs/RESEARCH.md)):
 
@@ -42,23 +44,23 @@ This project is **inspired by** those ideas. It is **not** a diagnostic tool and
 
 ```bash
 # clone
-git clone https://github.com/PabloTheThinker/pattern-lattice.git
-cd pattern-lattice
+git clone https://github.com/PabloTheThinker/hermes-insight.git
+cd hermes-insight
 
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 
 # isolated demo (temp DB)
-pattern-lattice demo
+hermes-insight demo
 
 # your own lattice
-export PATTERN_LATTICE_DB=./my-lattice.db
-pattern-lattice ingest "retry with jitter" \
+export HERMES_INSIGHT_DB=./my-insight.db
+hermes-insight ingest "retry with jitter" \
   "Retry transient failures with exponential backoff and jitter." \
   --domain code --tag retry --tag backoff
 
-pattern-lattice cycle "timeouts spike and on-call is drowning in pages" \
+hermes-insight cycle "timeouts spike and on-call is drowning in pages" \
   -o "retries amplified downstream load" \
   -o "duplicate alerts every few minutes"
 ```
@@ -66,9 +68,9 @@ pattern-lattice cycle "timeouts spike and on-call is drowning in pages" \
 Python API:
 
 ```python
-from pattern_lattice import PatternLattice
+from hermes_insight import HermesInsight
 
-lat = PatternLattice(db_path="./my-lattice.db")
+lat = HermesInsight(db_path="./my-insight.db")
 lat.ingest(
     "circuit breaker",
     "Open the circuit when error rate spikes to protect callers.",
@@ -141,8 +143,8 @@ Global flags: `--db PATH`, `--json`, `--version`.
 
 Env:
 
-- `PATTERN_LATTICE_DB` — sqlite file  
-- `PATTERN_LATTICE_HOME` — directory defaulting to `~/.pattern-lattice`
+- `HERMES_INSIGHT_DB` — sqlite file  
+- `HERMES_INSIGHT_HOME` — directory defaulting to `~/.hermes-insight`
 
 ---
 
@@ -150,14 +152,14 @@ Env:
 
 **Phase 1 (now):** standalone package anyone can use.
 
-**Skill pack:** copy or install [`skills/pattern-lattice/SKILL.md`](skills/pattern-lattice/SKILL.md) into a Hermes skills directory:
+**Skill pack:** copy or install [`skills/hermes-insight/SKILL.md`](skills/hermes-insight/SKILL.md) into a Hermes skills directory:
 
 ```bash
 # from a Hermes host
-mkdir -p "$HERMES_HOME/skills/cognition/pattern-lattice"
-cp skills/pattern-lattice/SKILL.md "$HERMES_HOME/skills/cognition/pattern-lattice/"
+mkdir -p "$HERMES_HOME/skills/cognition/hermes-insight"
+cp skills/hermes-insight/SKILL.md "$HERMES_HOME/skills/cognition/hermes-insight/"
 # optional: pip install this repo into the Hermes venv
-pip install -e /path/to/pattern-lattice
+pip install -e /path/to/hermes-insight
 ```
 
 **Phase 2 (later):** optional plugin under `hermes_plugin/` registering tools — designed to follow Hermes plugin discovery (`~/.hermes/plugins/`) without forking Hermes core. See [`docs/HERMES.md`](docs/HERMES.md).
@@ -166,7 +168,7 @@ pip install -e /path/to/pattern-lattice
 
 ## Design principles (Hermes-grade craft)
 
-- One clear public harness (`PatternLattice`), thin CLI over it  
+- One clear public harness (`HermesInsight`), thin CLI over it  
 - SQLite + FTS5 durable state (local, profile-safe paths)  
 - Deterministic core — LLM optional via `prompts.py` scaffolds  
 - JSON-serializable everything at the boundary  
@@ -178,10 +180,10 @@ pip install -e /path/to/pattern-lattice
 ## Project layout
 
 ```text
-src/pattern_lattice/     # library
+src/hermes_insight/     # library
 tests/                   # pytest
 docs/                    # research + architecture + hermes
-skills/pattern-lattice/  # Hermes SKILL.md
+skills/hermes-insight/  # Hermes SKILL.md
 hermes_plugin/           # optional future plugin skeleton
 examples/                # scripts
 ```
