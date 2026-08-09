@@ -20,7 +20,7 @@ def main() -> int:
 
     agent_root = Path.home() / "hermes-agent"
     if not agent_root.exists():
-        agent_root = Path("/home/ilo/hermes-agent")
+        agent_root = Path.home() / "hermes-agent"
 
     print("=== ingest_tree ===")
     for sub in ("agent", "tools", "cron", "hermes_cli"):

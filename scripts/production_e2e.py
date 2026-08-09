@@ -37,7 +37,11 @@ def main() -> int:
     projects = home / "projects"
     agent_src = home / "hermes-agent"
     if not agent_src.exists():
-        agent_src = Path("/home/ilo/hermes-agent")
+        # optional override for CI / unusual layouts
+        import os
+
+        alt = os.environ.get("HERMES_AGENT_SRC", "").strip()
+        agent_src = Path(alt) if alt else agent_src
 
     # --- 1 fresh harness ---
     lat = HermesInsight(db_path=str(db), agent_id="e2e-conductor", agent_tier="conductor")
@@ -140,6 +144,42 @@ def main() -> int:
         gate(f"cycle_lever:{domain}", lever in ok_levers or top >= 0.12, f"lever={lever} top={top:.3f}")
         gate(f"cycle_brief:{domain}", "agent-field" in r.brief or "Hermes Insight" in r.brief)
         gate(f"cycle_match:{domain}", bool(r.matches) and top >= 0.08, f"top={top:.3f}")
+
+    # --- 5b experience layer (any-agent path) ---
+    boot = HermesInsight(db_path=str(root / "fresh.db"))
+    bs = boot.bootstrap()
+    gate("bootstrap_seed", bs.get("seeded", 0) >= 8, str(bs))
+    rp = boot.recall("two workers share one bot credential and long-poll conflicts")
+    gate("recall_brief", "Insight recall" in (rp.get("brief") or ""), rp.get("lever", ""))
+    gate("recall_hits", bool(rp.get("matches") or rp.get("experiences")), str(len(rp.get("matches") or [])))
+    opened = boot.open_task("e2e-conflict", goal="dual consumer credential fight")
+    gate("task_open", opened.get("success") is True and bool(opened.get("task_id")), str(opened.get("task_id")))
+    tid = opened.get("task_id") or ""
+    ex = boot.experience(
+        "409 conflict observed",
+        "getUpdates conflict while second gateway still polling same bot token",
+        task_id=tid,
+        tags=["gateway", "telegram"],
+    )
+    gate("experience_log", ex.get("success") is True, ex.get("one_liner", ""))
+    gate("experience_autoconnnect", isinstance(ex.get("connected"), list), str(len(ex.get("connected") or [])))
+    closed = boot.close_task(tid, outcome="fixed", summary="single consumer restored")
+    gate("task_close", closed.get("success") is True, closed.get("outcome", ""))
+    # plugin experience handlers
+    try:
+        import importlib.util
+        import os
+
+        plug = Path(__file__).resolve().parents[1] / "hermes_plugin" / "hermes_insight_plugin" / "__init__.py"
+        spec = importlib.util.spec_from_file_location("hi_plug_exp", plug)
+        mod = importlib.util.module_from_spec(spec)
+        assert spec and spec.loader
+        os.environ["HERMES_INSIGHT_DB"] = str(root / "fresh.db")
+        spec.loader.exec_module(mod)
+        rr = json.loads(mod.handle_insight_recall({"query": "bot credential conflict"}))
+        gate("plugin_recall", rr.get("success") is True and "brief" in (rr.get("data") or {}))
+    except Exception as exc:  # noqa: BLE001
+        gate("plugin_recall", False, str(exc))
 
     # --- 6 forge products ---
     fr = lat.forge(out_dir=str(out), write_synthesis=True)

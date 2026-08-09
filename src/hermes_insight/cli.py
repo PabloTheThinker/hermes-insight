@@ -171,6 +171,42 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--no-synthesis", action="store_true", help="Do not write synthesis nodes back")
     s.set_defaults(func=cmd_forge)
 
+    # Experience path (any agent)
+    s = sub.add_parser("bootstrap", help="Seed starter agent-field patterns (empty DB)")
+    s.add_argument("--force", action="store_true")
+    s.set_defaults(func=cmd_bootstrap)
+
+    s = sub.add_parser("recall", help="Fast pre-action recall (priors + experiences + hops)")
+    s.add_argument("query")
+    s.add_argument("-n", "--limit", type=int, default=8)
+    s.add_argument("--domain", default=None)
+    s.set_defaults(func=cmd_recall)
+
+    s = sub.add_parser("experience", help="Log lived event/episode and auto-connect")
+    s.add_argument("title")
+    s.add_argument("body")
+    s.add_argument("--kind", default="event", help="event|episode|task|sequence")
+    s.add_argument("--task-id", default=None)
+    s.add_argument("--outcome", default=None)
+    s.add_argument("--tag", action="append", default=[])
+    s.set_defaults(func=cmd_experience)
+
+    s = sub.add_parser("task", help="Open or close a task episode")
+    s.add_argument("action", choices=["open", "close"])
+    s.add_argument("--name", default="task")
+    s.add_argument("--goal", default="")
+    s.add_argument("--task-id", default=None)
+    s.add_argument("--outcome", default="done")
+    s.add_argument("--summary", default="")
+    s.set_defaults(func=cmd_task)
+
+    s = sub.add_parser("connect", help="Link two patterns or auto-connect free text")
+    s.add_argument("left")
+    s.add_argument("right", nargs="?", default=None)
+    s.add_argument("--kind", default="similar")
+    s.add_argument("--note", default="")
+    s.set_defaults(func=cmd_connect)
+
     return p
 
 
@@ -350,6 +386,66 @@ def cmd_forge(args: argparse.Namespace) -> int:
     # human pointer
     if not args.json and result.get("run_dir"):
         print(f"\nForged → {result['run_dir']}", file=sys.stderr)
+    return 0
+
+
+def cmd_bootstrap(args: argparse.Namespace) -> int:
+    lat = _lattice(args)
+    _print(lat.bootstrap(force=bool(args.force)), as_json=True)
+    return 0
+
+
+def cmd_recall(args: argparse.Namespace) -> int:
+    lat = _lattice(args)
+    pack = lat.recall(args.query, limit=args.limit, domain=args.domain)
+    if args.json:
+        _print(pack, as_json=True)
+    else:
+        print(pack.get("brief") or json.dumps(pack, indent=2))
+    return 0
+
+
+def cmd_experience(args: argparse.Namespace) -> int:
+    lat = _lattice(args)
+    _print(
+        lat.experience(
+            args.title,
+            args.body,
+            kind=args.kind,
+            task_id=args.task_id,
+            outcome=args.outcome,
+            tags=args.tag,
+        ),
+        as_json=True,
+    )
+    return 0
+
+
+def cmd_task(args: argparse.Namespace) -> int:
+    lat = _lattice(args)
+    if args.action == "open":
+        _print(
+            lat.open_task(args.name, goal=args.goal, task_id=args.task_id),
+            as_json=True,
+        )
+    else:
+        _print(
+            lat.close_task(
+                args.task_id,
+                outcome=args.outcome,
+                summary=args.summary,
+            ),
+            as_json=True,
+        )
+    return 0
+
+
+def cmd_connect(args: argparse.Namespace) -> int:
+    lat = _lattice(args)
+    _print(
+        lat.connect(args.left, args.right, kind=args.kind, note=args.note),
+        as_json=True,
+    )
     return 0
 
 

@@ -438,6 +438,8 @@ class HermesInsight:
 
     def stats(self) -> Dict[str, Any]:
         c = self.store.count()
+        from hermes_insight import __version__
+
         return {
             "db_path": str(self.db_path),
             "agent_id": self.agent_id,
@@ -445,8 +447,133 @@ class HermesInsight:
             "patterns": c["patterns"],
             "links": c["links"],
             "last_brief_line": self.store.get_meta("last_brief_line", ""),
-            "version": "0.5.1",
+            "last_experience_line": self.store.get_meta("last_experience_line", ""),
+            "last_recall_line": self.store.get_meta("last_recall_line", ""),
+            "active_task_id": self.store.get_meta("active_task_id", ""),
+            "version": __version__,
         }
+
+    # ------------------------------------------------------------------
+    # Experience — tasks, events, fast recall (any Hermes agent path)
+    # ------------------------------------------------------------------
+
+    def bootstrap(self, *, force: bool = False) -> Dict[str, Any]:
+        """Seed starter agent-field patterns so a fresh lattice can match."""
+        from hermes_insight.experience import seed_agent_starters
+
+        return seed_agent_starters(self, force=force)
+
+    def experience(
+        self,
+        title: str,
+        body: str,
+        *,
+        kind: str = "event",
+        task_id: Optional[str] = None,
+        outcome: Optional[str] = None,
+        tags: Optional[Sequence[str]] = None,
+        confidence: float = 0.65,
+        auto_connect: bool = True,
+    ) -> Dict[str, Any]:
+        """Log a lived event/episode and auto-link to structural patterns."""
+        from hermes_insight.experience import log_experience
+
+        return log_experience(
+            self,
+            title,
+            body,
+            kind=kind,
+            task_id=task_id or self.store.get_meta("active_task_id") or None,
+            outcome=outcome,
+            tags=tags,
+            confidence=confidence,
+            auto_connect=auto_connect,
+        )
+
+    def recall(
+        self,
+        query: str,
+        *,
+        limit: int = 8,
+        include_experiences: bool = True,
+        domain: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Fast pre-action recall: priors + lived echoes + hops + brief."""
+        from hermes_insight.experience import recall as _recall
+
+        return _recall(
+            self,
+            query,
+            limit=limit,
+            include_experiences=include_experiences,
+            domain=domain,
+        )
+
+    def open_task(
+        self,
+        name: str,
+        *,
+        goal: str = "",
+        tags: Optional[Sequence[str]] = None,
+        task_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Open a task episode; returns task_id and prior pattern matches."""
+        from hermes_insight.experience import open_task as _open
+
+        return _open(self, name, goal=goal, tags=tags, task_id=task_id)
+
+    def close_task(
+        self,
+        task_id: Optional[str] = None,
+        *,
+        outcome: str = "done",
+        summary: str = "",
+        reinforce_connected: bool = True,
+    ) -> Dict[str, Any]:
+        """Close task episode and reinforce patterns that matched."""
+        from hermes_insight.experience import close_task as _close
+
+        tid = task_id or self.store.get_meta("active_task_id", "")
+        if not tid:
+            return {"success": False, "error": "no task_id (pass one or open_task first)"}
+        return _close(
+            self,
+            tid,
+            outcome=outcome,
+            summary=summary,
+            reinforce_connected=reinforce_connected,
+        )
+
+    def connect(
+        self,
+        left: str,
+        right: Optional[str] = None,
+        *,
+        kind: str = "similar",
+        note: str = "",
+        weight: float = 0.6,
+    ) -> Dict[str, Any]:
+        """Explicit link two patterns, or auto-connect free text into the lattice."""
+        from hermes_insight.experience import connect as _connect
+
+        return _connect(self, left, right, kind=kind, note=note, weight=weight)
+
+    def ingest_messages(
+        self,
+        messages: Sequence[Dict[str, Any]],
+        *,
+        task_id: Optional[str] = None,
+        title: str = "session slice",
+    ) -> Dict[str, Any]:
+        """Ingest a scrubbed chat transcript slice as a connected episode."""
+        from hermes_insight.experience import ingest_messages as _ing
+
+        return _ing(
+            self,
+            messages,
+            task_id=task_id or self.store.get_meta("active_task_id") or None,
+            title=title,
+        )
 
     def export_patterns(self, *, limit: int = 1000) -> List[Dict[str, Any]]:
         return [p.to_dict() for p in self.store.list_patterns(limit=limit)]

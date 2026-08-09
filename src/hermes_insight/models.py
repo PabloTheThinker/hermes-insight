@@ -35,6 +35,9 @@ class PatternKind(str, Enum):
     TOOL = "tool"  # callable tool capability
     SKILL = "skill"  # procedural skill package
     PROMPT = "prompt"  # prompt/policy surface
+    EVENT = "event"  # discrete occurrence / observation in time
+    EPISODE = "episode"  # multi-step task or session arc
+    TASK = "task"  # open/closed work unit an agent is running
 
 
 class Domain(str, Enum):
@@ -54,6 +57,7 @@ class Domain(str, Enum):
     SYSTEM = "system"
     SOCIAL = "social"
     PROCESS = "process"
+    EXPERIENCE = "experience"  # lived tasks, events, session outcomes
     SENSORY = "sensory"
     LANGUAGE = "language"
     MARKET = "market"
@@ -78,6 +82,11 @@ class LinkKind(str, Enum):
     HAS_SKILL = "has_skill"
     CALLS = "calls"
     SHARES_CONTEXT = "shares_context"
+    # Experience / temporal
+    TRIGGERED_BY = "triggered_by"
+    RESOLVED_BY = "resolved_by"
+    EXPERIENCED_AS = "experienced_as"  # episode/event instance of a pattern
+    NEXT = "next"  # temporal successor within a task
 
 
 class ProcessDim(str, Enum):

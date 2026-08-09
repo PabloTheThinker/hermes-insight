@@ -1,12 +1,12 @@
 # Hermes Insight
 
-**Pattern harness for the AI agent / model field** — agents, models, tools, skills, multi-agent compartments, fabric index, and Pattern Forge.
+**Pattern harness for the AI agent / model field** — agents, models, tools, skills, multi-agent compartments, fabric index, Pattern Forge, and an **experience layer** so any Hermes agent can connect tasks & events to structure faster.
 
 Standalone Python library + CLI. **No cloud dependency.** Optional [Hermes Agent](https://github.com/NousResearch/hermes-agent) skill + native plugin.
 
 > **Name note:** *Hermes Insight* is an independent companion for the Hermes community. It is **not** an official Nous Research product.
 
-Built for what Hermes/agent builders keep asking for: **walkable structure** (not only flat memory), **multi-agent compartments**, **skill/model routing signal**, **fleet maps**, and a **forge loop** that turns connections into products. See [docs/COMMUNITY.md](docs/COMMUNITY.md).
+Built for what Hermes/agent builders keep asking for: **walkable structure**, **multi-agent compartments**, **skill/model routing signal**, **fleet maps**, a **forge loop**, and **lived experience → pattern links** so agents stop rediscovering the same failure every session. See [docs/COMMUNITY.md](docs/COMMUNITY.md) · [docs/EXPERIENCE.md](docs/EXPERIENCE.md).
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -16,221 +16,87 @@ Built for what Hermes/agent builders keep asking for: **walkable structure** (no
 
 ```bash
 pip install -e ".[dev]"
-python3 scripts/production_e2e.py   # 30+ gates: index, cycles, forge, scrub, plugin
+python3 scripts/production_e2e.py
 ```
 
-Last summary: `docs/E2E-PRODUCTION-LAST.json`
+## Install on any Hermes agent (one command)
 
-## Why this exists
+```bash
+./scripts/install_for_hermes.sh
+# profile / client compartment:
+HERMES_HOME=~/.hermes/profiles/myagent ./scripts/install_for_hermes.sh --agent myagent
+```
 
-Pattern recognition is not “one embedding distance.”
+Installs package + skill + plugin, merges config safely, bootstraps starter patterns.
 
-Human (and especially many neurodivergent) cognition often:
+### Agent loop (the product)
 
-1. **Decomposes** input into features  
-2. **Matches** via templates, prototypes, *and* feature sets  
-3. **Catalogues** the world so novelty is noticeable  
-4. **Distills** a messy scene to the *actual variable*  
-5. **Extrapolates** where a sequence is heading  
-6. **Links across domains** when structure rhymes (analogy)  
-7. **Generates** higher-order syntheses from clusters  
-8. **Reinforces** what worked  
+```text
+insight_recall  →  insight_task open  →  insight_experience*  →  insight_task close
+                         └──────── insight_cycle (if novel) ────────┘
+```
 
-AI agents are usually strong at local next-token reasoning and weak at *durable structural memory with lateral hops*. Hermes Insight is a harness for that missing layer.
-
-Research foundations (see [`docs/RESEARCH.md`](docs/RESEARCH.md)):
-
-- Superior pattern processing (SPP) as a core of human cognitive advantage  
-- Classic cognitive models: template / prototype / feature analysis  
-- Operational six-dimension pattern cognition (perception → generation continuum)  
-- Lived ND descriptions: distillation, trajectory, sensory cataloguing, explicit social pattern analysis  
-
-This project is **inspired by** those ideas. It is **not** a diagnostic tool and not a claim about any individual.
+| Tool | Job |
+|------|-----|
+| `insight_recall` | Fast priors + lived echoes + hops **before** acting |
+| `insight_task` | Open/close task episodes (`task_id` chains events) |
+| `insight_experience` | Log event/episode; **auto-connect** to matching patterns |
+| `insight_connect` | Explicit “same shape as X” or free-text auto-link |
+| `insight_cycle` | Deep multi-lens cycle when the scene is novel |
+| `insight_forge` | Turn lattice into maps / playbooks / invention seeds |
 
 ---
 
-## Pattern Forge
+## Why this exists
 
-Patterns earn rent when they become products:
+Pattern recognition is not “one embedding distance.” Agents need durable structural memory with lateral hops **and** lived time. Hermes Insight is that harness (SPP-inspired — see [`docs/RESEARCH.md`](docs/RESEARCH.md)). Not a diagnostic tool.
 
-```bash
-hermes-insight forge
-# → orientation map, prediction board, transfer pack, invention seeds, playbooks, watch edges
-```
-
-## Server fabric
-
-Index host structure (scrubbed) so Insight sees projects, software trees, metadata, and connections:
-
-```bash
-hermes-insight index-server
-hermes-insight fabric-stats
-hermes-insight cycle "how do plugins relate to listening services?"
-```
+---
 
 ## Quick start
 
 ```bash
-# clone
 git clone https://github.com/PabloTheThinker/hermes-insight.git
 cd hermes-insight
-
-python3 -m venv .venv
-source .venv/bin/activate
+python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 
-# isolated demo (temp DB)
 hermes-insight demo
-
-# your own lattice
 export HERMES_INSIGHT_DB=./my-insight.db
-hermes-insight ingest "retry with jitter" \
-  "Retry transient failures with exponential backoff and jitter." \
-  --domain code --tag retry --tag backoff
-
-hermes-insight cycle "timeouts spike and on-call is drowning in pages" \
-  -o "retries amplified downstream load" \
-  -o "duplicate alerts every few minutes"
+hermes-insight bootstrap
+hermes-insight recall "two gateway workers share one bot token"
+hermes-insight task open --name fix-conflict --goal "getUpdates 409"
+# … work …
+hermes-insight experience "saw conflict" "second consumer still polling" --task-id TID
+hermes-insight task close --task-id TID --outcome fixed --summary "single consumer rule"
 ```
-
-Python API:
 
 ```python
 from hermes_insight import HermesInsight
 
 lat = HermesInsight(db_path="./my-insight.db")
-lat.ingest(
-    "circuit breaker",
-    "Open the circuit when error rate spikes to protect callers.",
-    domain="code",
-    kind="rule",
-    tags=["circuit", "breaker"],
-)
-report = lat.cycle(
-    "dependency errors cascading into our API",
-    observations=["p99 climbing", "retries storm"],
-)
-print(report.brief)
-print(report.distillation.actual_variable)
+lat.bootstrap()
+print(lat.recall("dependency errors cascading after deploy")["brief"])
+t = lat.open_task("stop retry storm", goal="pages after deploy")
+lat.experience("retries without jitter", "amplified load", task_id=t["task_id"])
+lat.close_task(t["task_id"], outcome="fixed", summary="jitter + circuit breaker")
 ```
 
 ---
 
-## Cognitive cycle
-
-```text
-observations
-    │
-    ▼
-┌────────────┐
-│ Perception │  feature decompose
-└─────┬──────┘
-      ▼
-┌────────────┐
-│  Seeking   │  FTS + candidate hunt
-└─────┬──────┘
-      ▼
-┌────────────┐
-│Recognition │  template · prototype · feature · hybrid
-└─────┬──────┘
-      ▼
-┌────────────┐
-│ Processing │  distill actual variable
-└─────┬──────┘
-      ▼
-┌────────────┐
-│Maintenance │  catalogue · anomaly file · links
-└─────┬──────┘
-      ▼
-┌────────────┐
-│ Generation │  trajectory · synthesis · bigger ideas
-└─────┬──────┘
-      ▼
-   brief  →  agent acts  →  feedback/reinforce
-```
-
----
-
-## CLI
-
-Also: `ingest-tree`, `--agent`, `register-agent`, native Hermes plugin tools `insight_*`.
-
-
-| Command | Purpose |
-|--------|---------|
-| `stats` | counts + db path |
-| `ingest` | add pattern |
-| `match` / `search` | recognition |
-| `cycle` | full brief |
-| `distill` | actual variable |
-| `extrapolate` | trajectory |
-| `analogy` | cross-domain map |
-| `feedback` | reinforce / weaken |
-| `evolve` | decay + cluster synthesis |
-| `export` | JSON dump |
-| `demo` | seed + sample cycle |
-
-Global flags: `--db PATH`, `--json`, `--version`.
-
-Env:
-
-- `HERMES_INSIGHT_DB` — sqlite file  
-- `HERMES_INSIGHT_HOME` — directory defaulting to `~/.hermes-insight`
-
----
-
-## Hermes Agent
-
-**Phase 1 (now):** standalone package anyone can use.
-
-**Skill pack:** copy or install [`skills/hermes-insight/SKILL.md`](skills/hermes-insight/SKILL.md) into a Hermes skills directory:
+## Pattern Forge + server fabric
 
 ```bash
-# from a Hermes host
-mkdir -p "$HERMES_HOME/skills/cognition/hermes-insight"
-cp skills/hermes-insight/SKILL.md "$HERMES_HOME/skills/cognition/hermes-insight/"
-# optional: pip install this repo into the Hermes venv
-pip install -e /path/to/hermes-insight
-```
-
-**Phase 2 (later):** optional plugin under `hermes_plugin/` registering tools — designed to follow Hermes plugin discovery (`~/.hermes/plugins/`) without forking Hermes core. See [`docs/HERMES.md`](docs/HERMES.md).
-
----
-
-## Design principles (Hermes-grade craft)
-
-- One clear public harness (`HermesInsight`), thin CLI over it  
-- SQLite + FTS5 durable state (local, profile-safe paths)  
-- Deterministic core — LLM optional via `prompts.py` scaffolds  
-- JSON-serializable everything at the boundary  
-- Tests for cycle, match, distill, anomaly, CLI demo  
-- Isolation script: `scripts/check_isolation.sh`  
-
----
-
-## Project layout
-
-```text
-src/hermes_insight/     # library
-tests/                   # pytest
-docs/                    # research + architecture + hermes
-skills/hermes-insight/  # Hermes SKILL.md
-hermes_plugin/           # optional future plugin skeleton
-examples/                # scripts
+hermes-insight index-server
+hermes-insight forge
 ```
 
 ---
 
 ## Status
 
-`0.1.0` alpha — core cycle works offline; API may evolve before `0.2`.
-
----
+`0.6.0` — experience layer (recall/task/experience/connect), any-agent install script, starter bootstrap, expanded plugin tools.
 
 ## License
 
 MIT © Pablo Navarro
-
-## Author
-
-Published by **Pablo Navarro**. Built for agents that need to *see structure*, not only complete text.

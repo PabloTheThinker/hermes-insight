@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 __plugin_name__ = "hermes-insight"
-__plugin_version__ = "0.5.1"
+__plugin_version__ = "0.6.0"
 
 
 def _cfg() -> dict:
@@ -271,6 +271,117 @@ def handle_insight_forge(args: dict, **kwargs) -> str:
         return _err(str(exc))
 
 
+def handle_insight_recall(args: dict, **kwargs) -> str:
+    """Fast pre-action pattern + experience recall."""
+    try:
+        lat = _lattice()
+        return _ok(
+            lat.recall(
+                str(args.get("query") or ""),
+                limit=int(args.get("limit") or 8),
+                include_experiences=bool(args.get("include_experiences", True)),
+                domain=args.get("domain"),
+            )
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("insight_recall failed")
+        return _err(str(exc))
+
+
+def handle_insight_experience(args: dict, **kwargs) -> str:
+    """Log a lived event/episode and auto-connect to the lattice."""
+    try:
+        lat = _lattice()
+        return _ok(
+            lat.experience(
+                str(args.get("title") or ""),
+                str(args.get("body") or ""),
+                kind=str(args.get("kind") or "event"),
+                task_id=args.get("task_id"),
+                outcome=args.get("outcome"),
+                tags=list(args.get("tags") or []),
+                confidence=float(args.get("confidence") or 0.65),
+                auto_connect=bool(args.get("auto_connect", True)),
+            )
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("insight_experience failed")
+        return _err(str(exc))
+
+
+def handle_insight_task(args: dict, **kwargs) -> str:
+    """Open or close a task episode (connects experience across steps)."""
+    try:
+        lat = _lattice()
+        action = str(args.get("action") or "open").lower().strip()
+        if action in {"open", "start"}:
+            return _ok(
+                lat.open_task(
+                    str(args.get("name") or args.get("title") or "task"),
+                    goal=str(args.get("goal") or args.get("body") or ""),
+                    tags=list(args.get("tags") or []),
+                    task_id=args.get("task_id"),
+                )
+            )
+        if action in {"close", "done", "fail", "end"}:
+            outcome = str(args.get("outcome") or ("failed" if action == "fail" else "done"))
+            return _ok(
+                lat.close_task(
+                    args.get("task_id"),
+                    outcome=outcome,
+                    summary=str(args.get("summary") or args.get("body") or ""),
+                    reinforce_connected=bool(args.get("reinforce", True)),
+                )
+            )
+        return _err("action must be open|close")
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("insight_task failed")
+        return _err(str(exc))
+
+
+def handle_insight_connect(args: dict, **kwargs) -> str:
+    """Link two patterns or auto-connect free text into the lattice."""
+    try:
+        lat = _lattice()
+        return _ok(
+            lat.connect(
+                str(args.get("left") or args.get("a") or args.get("query") or ""),
+                args.get("right") or args.get("b"),
+                kind=str(args.get("kind") or "similar"),
+                note=str(args.get("note") or ""),
+                weight=float(args.get("weight") or 0.6),
+            )
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("insight_connect failed")
+        return _err(str(exc))
+
+
+def handle_insight_bootstrap(args: dict, **kwargs) -> str:
+    try:
+        return _ok(_lattice().bootstrap(force=bool(args.get("force", False))))
+    except Exception as exc:  # noqa: BLE001
+        return _err(str(exc))
+
+
+def handle_insight_ingest_messages(args: dict, **kwargs) -> str:
+    try:
+        msgs = args.get("messages") or []
+        if isinstance(msgs, str):
+            import json as _json
+
+            msgs = _json.loads(msgs)
+        return _ok(
+            _lattice().ingest_messages(
+                list(msgs),
+                task_id=args.get("task_id"),
+                title=str(args.get("title") or "session slice"),
+            )
+        )
+    except Exception as exc:  # noqa: BLE001
+        return _err(str(exc))
+
+
 # schemas
 _CYCLE_SCHEMA = {
     "name": "insight_cycle",
@@ -449,14 +560,145 @@ _FORGE_SCHEMA = {
     },
 }
 
+_RECALL_SCHEMA = {
+    "name": "insight_recall",
+    "description": (
+        "FAST pre-action pattern recall. Call BEFORE hard debugging, architecture choices, "
+        "or recurring ops. Returns structural priors, lived experience echoes, graph hops, "
+        "and a short brief with the actual lever. Prefer this over full insight_cycle when "
+        "you need speed mid-task."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "query": {"type": "string", "description": "What you are about to work on / saw"},
+            "limit": {"type": "integer", "default": 8},
+            "domain": {"type": "string"},
+            "include_experiences": {"type": "boolean", "default": True},
+        },
+        "required": ["query"],
+    },
+}
 
-_SYSTEM_BLOCK = """## Hermes Insight
-You have structural pattern-processing tools (`insight_*`).
-Prefer insight_cycle when diagnosing multi-factor systems, architectures, or recurring failures.
-Use insight_index_server / insight_index_path so projects, files, metadata, and connections are visible in the lattice.
-After indexing, run insight_forge to turn connections into maps, predictions, transfers, invention seeds, and playbooks.
-Distill the actual variable; do not force-fit novelty; reinforce patterns that paid rent via insight_feedback.
-Secrets are scrubbed — still never paste raw credentials into tools.
+_EXPERIENCE_SCHEMA = {
+    "name": "insight_experience",
+    "description": (
+        "Log a lived EVENT or EPISODE into the lattice and AUTO-CONNECT it to matching "
+        "patterns. Use after a meaningful observation, failure, fix, or decision so the "
+        "next session connects dots faster. Pass task_id when inside an open task."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "title": {"type": "string"},
+            "body": {"type": "string"},
+            "kind": {
+                "type": "string",
+                "description": "event | episode | task | sequence",
+                "default": "event",
+            },
+            "task_id": {"type": "string"},
+            "outcome": {"type": "string", "description": "optional: success|failed|blocked|..."},
+            "tags": {"type": "array", "items": {"type": "string"}},
+            "confidence": {"type": "number"},
+            "auto_connect": {"type": "boolean", "default": True},
+        },
+        "required": ["title", "body"],
+    },
+}
+
+_TASK_SCHEMA = {
+    "name": "insight_task",
+    "description": (
+        "Open or close a TASK episode. open → returns task_id + prior pattern matches for "
+        "the goal. close → logs outcome, chains events, reinforces patterns that paid rent. "
+        "Use around multi-step work so experiences link across steps."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "action": {
+                "type": "string",
+                "description": "open | close",
+            },
+            "name": {"type": "string", "description": "Task name (open)"},
+            "goal": {"type": "string"},
+            "task_id": {"type": "string", "description": "Required for close unless one is active"},
+            "outcome": {"type": "string", "description": "done|failed|blocked|shipped|..."},
+            "summary": {"type": "string"},
+            "tags": {"type": "array", "items": {"type": "string"}},
+            "reinforce": {"type": "boolean", "default": True},
+        },
+        "required": ["action"],
+    },
+}
+
+_CONNECT_SCHEMA = {
+    "name": "insight_connect",
+    "description": (
+        "Explicitly link two pattern ids/titles, OR pass only `left` as free text to "
+        "auto-catalogue and connect it into the lattice. Use when you see 'same shape as X'."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "left": {"type": "string", "description": "Pattern id/title OR free text"},
+            "right": {"type": "string", "description": "Pattern id/title (optional)"},
+            "kind": {
+                "type": "string",
+                "description": "similar|analogy|causes|precedes|instance_of|experienced_as|next|...",
+                "default": "similar",
+            },
+            "note": {"type": "string"},
+            "weight": {"type": "number", "default": 0.6},
+        },
+        "required": ["left"],
+    },
+}
+
+_BOOTSTRAP_SCHEMA = {
+    "name": "insight_bootstrap",
+    "description": "Seed starter agent-field patterns into an empty lattice (safe no-op if already populated).",
+    "parameters": {
+        "type": "object",
+        "properties": {"force": {"type": "boolean", "default": False}},
+    },
+}
+
+_INGEST_MSG_SCHEMA = {
+    "name": "insight_ingest_messages",
+    "description": (
+        "Ingest a scrubbed session transcript slice (list of {role, content}) as one "
+        "episode and auto-connect to patterns. Use to pull recent chat into the lattice."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "messages": {
+                "type": "array",
+                "items": {"type": "object"},
+                "description": "[{role, content}, ...]",
+            },
+            "title": {"type": "string"},
+            "task_id": {"type": "string"},
+        },
+        "required": ["messages"],
+    },
+}
+
+
+_SYSTEM_BLOCK = """## Hermes Insight (pattern recognition)
+You have structural pattern-processing tools (`insight_*`). Use them to connect experience faster:
+
+**Every multi-step or recurring task:**
+1. `insight_recall` FIRST with the problem/goal (priors + lived echoes + hops).
+2. `insight_task` action=open when starting multi-step work (keep task_id).
+3. `insight_experience` after meaningful events, failures, fixes, decisions.
+4. `insight_task` action=close with outcome+summary when done (reinforces what worked).
+5. `insight_cycle` for deep root-cause when recall is thin or the scene is novel.
+6. `insight_feedback` / close-task reinforce patterns that paid rent.
+
+**Also:** index fabric (`insight_index_server` / `insight_index_path`), then `insight_forge` to turn connections into maps/playbooks. Distill the actual variable; do not force-fit novelty. Secrets are scrubbed — never paste raw credentials.
 """
 
 
@@ -493,16 +735,29 @@ def register(ctx) -> None:
     _reg(_INDEX_CONN_SCHEMA, handle_insight_index_connections)
     _reg(_FABRIC_STATS_SCHEMA, handle_insight_fabric_stats)
     _reg(_FORGE_SCHEMA, handle_insight_forge)
+    # Experience path — any agent can improve PR mid-task
+    _reg(_RECALL_SCHEMA, handle_insight_recall, emoji="◎")
+    _reg(_EXPERIENCE_SCHEMA, handle_insight_experience, emoji="◉")
+    _reg(_TASK_SCHEMA, handle_insight_task, emoji="▣")
+    _reg(_CONNECT_SCHEMA, handle_insight_connect, emoji="⟷")
+    _reg(_BOOTSTRAP_SCHEMA, handle_insight_bootstrap, emoji="🌱")
+    _reg(_INGEST_MSG_SCHEMA, handle_insight_ingest_messages, emoji="☰")
 
     # optional prompt injection if host supports it
+    if hasattr(ctx, "on_session_start_prompt") or hasattr(ctx, "register_system_prompt"):
+        try:
+            if hasattr(ctx, "register_system_prompt"):
+                ctx.register_system_prompt(_SYSTEM_BLOCK)
+        except Exception:
+            logger.debug("system prompt register skipped", exc_info=True)
+
     if hasattr(ctx, "register_hook"):
         def _prompt_block(**_kwargs):
             return _SYSTEM_BLOCK
 
-        # Some Hermes versions use system_prompt hooks; safe no-op if unsupported name
-        for hook in ("on_session_start",):
+        for hook in ("on_session_start", "session_start"):
             try:
-                ctx.register_hook(hook, lambda **kw: None)
+                ctx.register_hook(hook, lambda **kw: {"system_prompt_append": _SYSTEM_BLOCK})
             except Exception:
                 pass
 
@@ -513,16 +768,20 @@ def register(ctx) -> None:
             sub = parts[0] if parts else "stats"
             if sub == "stats":
                 return json.dumps(lat.stats(), indent=2)
+            if sub == "bootstrap":
+                return json.dumps(lat.bootstrap(), indent=2)
+            if sub == "recall" and len(parts) > 1:
+                return lat.recall(parts[1]).get("brief", "")
             if sub == "cycle" and len(parts) > 1:
                 r = lat.cycle(parts[1])
                 return r.brief
-            return "Usage: /insight stats | /insight cycle <query>"
+            return "Usage: /insight stats|bootstrap|recall <q>|cycle <q>"
 
         try:
             ctx.register_command(
                 "insight",
                 handler=_slash,
-                description="Hermes Insight — stats or cycle",
+                description="Hermes Insight — stats, bootstrap, recall, cycle",
             )
         except Exception:
             logger.debug("slash command registration skipped", exc_info=True)

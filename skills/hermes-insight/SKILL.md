@@ -1,104 +1,97 @@
 ---
 name: hermes-insight
-description: "Use when an agent needs superior pattern recognition — distill levers, match structures, cross-domain analogy, trajectories, catalogue novelty, multi-agent lattices, code ingest. CLI + native insight_* tools."
-version: "0.5.0"
+description: "Use when an agent needs superior pattern recognition — recall priors, log experience, connect events to structure, distill levers, multi-agent lattices."
+version: "0.6.0"
 author: Pablo Navarro
 license: MIT
 metadata:
   hermes:
-    tags: [cognition, pattern-recognition, memory, harness, spp, multi-agent]
+    tags: [cognition, pattern-recognition, memory, harness, spp, multi-agent, experience]
     requires_binaries: []
 ---
 
 # Hermes Insight (Hermes skill)
 
-**Field:** AI agents and models (not generic IT-only language).
-Native nouns: agent, model, tool, skill, plugin, profile, context, memory, multi-agent, inference, prompt.
+**Field:** AI agents and models.  
+Native nouns: agent, model, tool, skill, plugin, profile, context, memory, multi-agent, inference, **experience**, **task**, **event**.
 
+Superior pattern-processing harness. Neurodivergent-inspired connecting-the-dots:
+**recall → act → experience → connect → distill → reinforce**.
 
-Superior pattern-processing harness for agents. Neurodivergent-inspired connecting-the-dots: **encode → match → link → distill → extrapolate → evolve**.
-
-Standalone package + optional **native Hermes plugin** (`insight_*` tools).
+Standalone package + native Hermes plugin (`insight_*` tools).
 
 ## When to load
 
-- Root-cause / “what’s actually going on” analysis  
-- Repeated incidents, architectures, ops, market shapes  
-- Cross-domain analogy (“same shape as X”)  
-- Durable structural memory beyond chat logs  
-- Multi-agent compartmentalized lattices  
-- Bulk code/tree pattern catalogue  
+- Before hard debugging / architecture / recurring ops (**recall first**)
+- Multi-step tasks that should leave structural memory
+- Cross-domain “same shape as X”
+- After failures and fixes (so the next session is faster)
+- Multi-agent compartmentalized lattices
+- Bulk code/tree catalogue + forge products
 
-## Setup
-
-```bash
-pip install hermes-insight   # or editable path
-
-mkdir -p "$HERMES_HOME/memories/hermes-insight"
-export HERMES_INSIGHT_DB="${HERMES_INSIGHT_DB:-$HERMES_HOME/memories/hermes-insight/insight.db}"
-```
-
-### Native plugin (recommended on Hermes)
+## Install (any Hermes agent)
 
 ```bash
+# from the hermes-insight repo
+./scripts/install_for_hermes.sh
+# or a profile / client agent:
+HERMES_HOME=~/.hermes/profiles/myagent ./scripts/install_for_hermes.sh --agent myagent --tier worker
+
+# manual
+pip install hermes-insight   # or: pip install -e /path/to/hermes-insight
+mkdir -p "$HERMES_HOME/skills/cognition/hermes-insight"
+cp skills/hermes-insight/SKILL.md "$HERMES_HOME/skills/cognition/hermes-insight/"
 cp -R hermes_plugin/hermes_insight_plugin "$HERMES_HOME/plugins/hermes-insight"
 ```
 
 ```yaml
 plugins:
-  enabled: [hermes-insight]   # merge with your existing list
+  enabled: […existing…, hermes-insight]   # merge — never replace the whole list
   entries:
     hermes-insight:
-      agent_id: default
+      agent_id: default          # optional compartment
       # db_path: ${HERMES_HOME}/memories/hermes-insight/insight.db
 ```
 
-Restart Hermes after enabling. Tools: `insight_cycle`, `insight_ingest`, `insight_ingest_tree`, `insight_match`, `insight_distill`, `insight_feedback`, `insight_stats`, `insight_evolve`.
+Restart Hermes after enabling. Fresh DBs auto-seed starter agent-field patterns on first `insight_recall` / `bootstrap`.
+
+## Default loop (do this — it is the product)
+
+| Step | Tool | When |
+|------|------|------|
+| 1 | **`insight_recall`** | BEFORE hard work — priors + lived echoes + hops |
+| 2 | **`insight_task` open** | Starting multi-step work — keep `task_id` |
+| 3 | **`insight_experience`** | After events, failures, fixes, decisions |
+| 4 | **`insight_connect`** | When you see “same shape as X” |
+| 5 | **`insight_task` close** | Done — outcome + summary reinforces patterns |
+| 6 | **`insight_cycle`** | Deep novel root-cause when recall is thin |
+| 7 | **`insight_feedback`** | Manual reinforce/weaken if needed |
+
+Also: `insight_bootstrap`, `insight_ingest_messages`, fabric index + `insight_forge`.
 
 ## Cognitive stance
 
-1. Structure over gist — name the **actual variable**  
-2. Multi-lens match — template · prototype · features · IDF hybrid  
-3. Lateral hops — cross-domain analogy  
-4. Trajectories early — direction + risks + confidence  
+1. **Recall before rediscovery** — second failure should hit the lattice  
+2. Structure over gist — name the **actual variable**  
+3. Multi-lens match — template · prototype · features · IDF hybrid  
+4. Lateral hops — cross-domain analogy  
 5. Catalogue novelty — do not force-fit  
 6. Observation ≠ inference  
 7. Finished briefs  
 8. Feedback loops — reinforce what paid rent  
-9. Multi-agent — separate DBs/compartments per trust boundary  
-
-## Forge (make something new)
-
-```bash
-hermes-insight forge
-```
-
-Human uses of patterns → map · predict · transfer · invent · playbooks · watch.
-Plugin: `insight_forge`.
-
-## Server fabric (see everything)
-
-```bash
-hermes-insight index-server
-hermes-insight index-path ~/projects/foo
-hermes-insight index-connections
-hermes-insight fabric-stats
-```
-
-Plugin: insight_index_server, insight_index_path, insight_index_connections, insight_fabric_stats.
-Secrets and host fingerprints are scrubbed before catalogue.
+9. Multi-agent — separate DBs per trust boundary  
 
 ## CLI
 
 ```bash
-hermes-insight demo
-hermes-insight --agent conductor cycle "situation" -o "obs1" -o "obs2"
-hermes-insight ingest-tree /path/to/repo --limit 60
-hermes-insight ingest "title" "body" --domain code --tag x
-hermes-insight match "query" --domain system
-hermes-insight distill "messy text"
-hermes-insight feedback p_xxx
-hermes-insight register-agent worker-a --tier worker --parent conductor
+hermes-insight bootstrap
+hermes-insight recall "two workers share one bot token"
+hermes-insight task open --name fix-gateway --goal "conflict on getUpdates"
+hermes-insight experience "saw 409" "second consumer still polling" --task-id t_xxx
+hermes-insight task close --task-id t_xxx --outcome fixed --summary "one consumer rule"
+hermes-insight cycle "…" -o "obs"
+hermes-insight forge
+hermes-insight index-server
 ```
 
 ## Python
@@ -107,19 +100,12 @@ hermes-insight register-agent worker-a --tier worker --parent conductor
 from hermes_insight import HermesInsight
 
 lat = HermesInsight(agent_id="conductor", agent_tier="conductor")
-lat.ingest_tree("~/hermes-agent/agent", limit=40)
-report = lat.cycle("...", observations=["..."], domain="system")
-print(report.brief)
+lat.bootstrap()
+print(lat.recall("gateway credential conflict")["brief"])
+t = lat.open_task("fix conflict", goal="dual long-poll")
+lat.experience("conflict", "409 from getUpdates", task_id=t["task_id"])
+lat.close_task(t["task_id"], outcome="fixed", summary="single consumer")
 ```
-
-## Prefer tools when plugin is live
-
-| Need | Tool |
-|------|------|
-| Full analysis | `insight_cycle` |
-| Catalogue file/tree | `insight_ingest` / `insight_ingest_tree` |
-| Lever only | `insight_distill` |
-| After success/fail | `insight_feedback` |
 
 ## Privacy
 
@@ -127,5 +113,5 @@ Separate DB per trust boundary (personal vs client). Never catalogue secrets int
 
 ## Docs
 
-Repo: https://github.com/PabloTheThinker/hermes-insight  
-`docs/RESEARCH.md` · `docs/ARCHITECTURE.md` · `docs/HERMES.md`
+https://github.com/PabloTheThinker/hermes-insight  
+`docs/RESEARCH.md` · `docs/ARCHITECTURE.md` · `docs/HERMES.md` · `docs/EXPERIENCE.md`
