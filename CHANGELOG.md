@@ -1,46 +1,32 @@
+# Changelog
+
+## 0.7.2 — 2026-08-09
+
+- **Speed:** `candidate_pool` (FTS + structural shortlist) — perceive ~2s → ~110ms on 600-node lattices
+- **Fabric hygiene:** `decay_fabric_noise` + `insight_hygiene` / CLI `hygiene`
+- **Auto experience:** plugin `on_session_end` logs completed/failed turns into the lattice
+- **Bootstrap:** seed when starters missing (not merely when DB non-empty); densify rate-limited
+- **Levers:** domain-conditioned priors in distill
+- Less disk thrash (touch top-3 only); deep cycle only when truly weak
+
 ## 0.7.1 — 2026-08-09
 
-- Quality pass from live lattice audit: fix `someth` lever stem, dedupe `route.ts` piles, densify structural links (hops work), thin-query honesty, skill-routing starter
-- `usable` flag on perceive; auto densify on bootstrap
-- 34 unit tests; production E2E still green
-
-# Changelog
+- Quality pass: fix garbage levers, dedupe file dumps, densify links, thin-query honesty, skill-routing starter
+- `usable` flag on perceive
 
 ## 0.7.0 — 2026-08-09
 
-- **`perceive` ability** — one-call pattern recognition (lever + structures + action hint)
-- Plugin tool **`insight_perceive`** as the default agent ability
-- Stronger **structural match priors** (rules/prototypes over bare source files; experience recency)
-- Public hygiene: SECURITY.md, CONTRIBUTING.md, isolation gate, scrub house fingerprints from forge
-- docs/ABILITY.md · skill 0.7 doctrine · any-user install examples
+- `perceive` ability + `insight_perceive` primary tool
+- Structural match priors; public SECURITY/CONTRIBUTING; isolation gate
 
 ## 0.6.0 — 2026-08-09
 
-- Experience layer — recall, experience, open_task/close_task, connect, ingest_messages
-- Auto-link lived events; temporal `next` chains; bootstrap starters
-- Plugin tools + CLI + `install_for_hermes.sh`
-- docs/EXPERIENCE.md
+- Experience layer (recall/task/experience/connect) + install_for_hermes.sh
 
-## 0.5.1 — 2026-08-09
+## 0.5.x — 2026-08-09
 
-- Production E2E script + community fit doc
+- Agent-field ontology, fabric index, forge, production E2E
 
-## 0.5.0 — 2026-08-09
+## 0.1.0–0.4.0 — 2026-08-09
 
-- Agent/model field ontology; fabric indexes skills/plugins/profiles/tools/models
-
-## 0.4.0 — 2026-08-09
-
-- Pattern Forge (map/predict/transfer/invent/playbooks/watch)
-
-## 0.3.0 — 2026-08-09
-
-- Server fabric indexer + scrubbing
-
-## 0.2.0 — 2026-08-09
-
-- IDF match, multi-agent, code ingest, native plugin
-
-## 0.1.0 — 2026-08-09
-
-- Initial release
+- Core cycle, multi-agent, plugin, forge products
