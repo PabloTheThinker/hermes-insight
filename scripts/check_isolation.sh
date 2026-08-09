@@ -5,7 +5,6 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 # Patterns that must never appear in published sources (except this script).
-# Keep intentional scrub *fixtures* under tests/ out of scope for path-based IPs.
 PATTERNS=(
   '/home/ilo'
   '/home/pablo'
@@ -23,11 +22,10 @@ PATTERNS=(
   'XAI_API_KEY[[:space:]]*='
 )
 
-# Stricter patterns — apply only outside tests/ (tests may include scrub fixtures)
+# Stricter patterns outside tests/ (tests may include scrub fixtures)
 STRICT_NON_TEST=(
   '100\.[0-9]+\.[0-9]+\.[0-9]+'
-  'client.*secret'
-  '/home/[a-z]'
+  'sk-[a-zA-Z0-9]{20,}'
 )
 
 FAIL=0

@@ -45,7 +45,7 @@ print(lat.perceive(
 )["card"])
 ```
 
-Returns: **lever**, **top structures**, **lived echoes**, **action hint**.
+Returns: **lever**, **top structures**, **lived echoes**, **action hint**, **`usable`** flag.
 
 ---
 
@@ -53,22 +53,23 @@ Returns: **lever**, **top structures**, **lived echoes**, **action hint**.
 
 ```bash
 ./scripts/install_for_hermes.sh
-# profile / named agent:
-HERMES_HOME=~/.hermes/profiles/myagent ./scripts/install_for_hermes.sh --agent myagent
+# named agent / profile:
+HERMES_HOME=~/.hermes/profiles/myagent ./scripts/install_for_hermes.sh --agent myagent --tier worker
 ```
-
-Enables plugin tools. **Primary tool:** `insight_perceive`.
 
 | Tool | Role |
 |------|------|
-| **`insight_perceive`** | Default ability — lever + matches + hint |
+| **`insight_perceive`** | Primary ability — lever + matches + hint |
 | `insight_task` | Open/close multi-step episodes |
 | `insight_experience` | Log events; auto-link to patterns |
 | `insight_recall` | Fast-only recall |
 | `insight_cycle` | Deep multi-lens cycle |
 | `insight_forge` | Maps / playbooks / invention seeds |
+| `insight_hygiene` | Decay fabric noise + densify links |
 
-Doctrine: see [docs/ABILITY.md](docs/ABILITY.md) · [docs/EXPERIENCE.md](docs/EXPERIENCE.md).
+Doctrine: [docs/ABILITY.md](docs/ABILITY.md) · [docs/EXPERIENCE.md](docs/EXPERIENCE.md)
+
+**Loop:** `perceive` → act on hint → `experience` / task close → next recall is smarter.
 
 ---
 
@@ -77,7 +78,7 @@ Doctrine: see [docs/ABILITY.md](docs/ABILITY.md) · [docs/EXPERIENCE.md](docs/EX
 ```bash
 pip install -e ".[dev]"
 pytest -q
-./scripts/check_isolation.sh
+bash scripts/check_isolation.sh
 python3 scripts/production_e2e.py
 ```
 
@@ -88,13 +89,14 @@ python3 scripts/production_e2e.py
 - Local SQLite only; separate DB per agent compartment  
 - Scrubber redacts secret-shaped strings and skips `.env`  
 - Public tree must pass `scripts/check_isolation.sh`  
+- Session auto-log only records **failed/interrupted** turns (not every chat)  
 - See [SECURITY.md](SECURITY.md)
 
 ---
 
 ## Status
 
-`0.7.0` — `perceive` ability, structural match priors, experience layer, any-agent install, public isolation gate.
+**0.7.4** — perceive ability, experience layer, structural priors, mesh/network starters, session-noise hygiene, any-agent install, public isolation gate.
 
 ## License
 

@@ -15,7 +15,7 @@ def lat(tmp_path: Path) -> HermesInsight:
 
 
 def test_version():
-    assert __version__ == "0.7.3"
+    assert __version__ == "0.7.4"
 
 
 def test_perceive_prefers_structural_rule(lat: HermesInsight):
@@ -189,3 +189,42 @@ def test_lever_prefers_top_rule(lat: HermesInsight):
     )
     assert r3["usable"] is True
     assert r3["lever"] in {"skill", "routing"}
+
+
+def test_mesh_starter_and_perceive(lat: HermesInsight):
+    lat.bootstrap()
+    titles = {p.title for p in lat.store.list_patterns(kind="rule", limit=80)}
+    assert "mesh ghost peer after reboot" in titles
+    r = lat.perceive(
+        "mesh ledger shows ghost peer after reboot",
+        observations=["ESTAB to unknown", "handshake stale"],
+        domain="system",
+    )
+    assert r["usable"] is True
+    tops = " ".join(m.get("title") or "" for m in (r.get("matches") or [])[:3]).lower()
+    assert (
+        "mesh" in tops
+        or "ghost" in tops
+        or r["lever"] in {"mesh", "peer", "handshake", "stale", "ghost", "reboot"}
+    )
+
+
+def test_hygiene_weakens_session_auto(lat: HermesInsight):
+    lat.experience(
+        "session turn completed (telegram)",
+        "platform=telegram\nmodel=x\nsession=abc",
+        kind="episode",
+        tags=["session", "auto", "telegram"],
+        confidence=0.4,
+        auto_connect=False,
+    )
+    hits = [
+        p
+        for p in lat.store.list_patterns(kind="episode", limit=50)
+        if p.title.startswith("session turn")
+    ]
+    assert hits
+    hits[0].strength = 0.6
+    lat.store.upsert_pattern(hits[0])
+    out = lat.hygiene(decay=False, densify=False, prune_session_auto=True)
+    assert out.get("session_auto_weakened", 0) >= 1

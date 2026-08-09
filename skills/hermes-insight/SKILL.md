@@ -1,7 +1,7 @@
 ---
 name: hermes-insight
 description: "Use when an agent needs pattern recognition — perceive situations, distill levers, connect experience, match structures."
-version: "0.7.0"
+version: "0.7.4"
 author: Pablo Navarro
 license: MIT
 metadata:

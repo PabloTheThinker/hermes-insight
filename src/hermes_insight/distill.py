@@ -214,6 +214,10 @@ _TITLE_LEVER_RULES: List[tuple[str, str]] = [
     ("circuit", "circuit"),
     ("backoff", "backoff"),
     ("jitter", "jitter"),
+    ("mesh ghost", "mesh"),
+    ("ghost peer", "peer"),
+    ("split dns", "dns"),
+    ("single writer", "lock"),
 ]
 
 

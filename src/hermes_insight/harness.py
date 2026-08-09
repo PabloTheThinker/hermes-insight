@@ -487,7 +487,7 @@ class HermesInsight:
             deep=deep,
         )
 
-    def hygiene(self, *, decay: bool = True, densify: bool = True) -> Dict[str, Any]:
+    def hygiene(self, *, decay: bool = True, densify: bool = True, prune_session_auto: bool = True) -> Dict[str, Any]:
         """Decay fabric noise + densify structural links (periodic maintenance)."""
         out: Dict[str, Any] = {}
         if densify:
@@ -496,6 +496,18 @@ class HermesInsight:
             out["densify"] = densify_structural_links(self)
         if decay:
             out["decay"] = self.store.decay_fabric_noise()
+        if prune_session_auto:
+            weakened = 0
+            for p in self.store.list_patterns(kind="episode", limit=500):
+                tags = set(p.tags or [])
+                if "session" in tags and "auto" in tags and "material" not in tags:
+                    if p.title.startswith("session turn") or p.title.startswith("session completed"):
+                        old = p.strength
+                        p.strength = max(0.08, p.strength * 0.5)
+                        if p.strength < old:
+                            self.store.upsert_pattern(p)
+                            weakened += 1
+            out["session_auto_weakened"] = weakened
         return out
 
     def bootstrap(self, *, force: bool = False) -> Dict[str, Any]:

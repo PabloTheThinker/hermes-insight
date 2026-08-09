@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 __plugin_name__ = "hermes-insight"
-__plugin_version__ = "0.7.3"
+__plugin_version__ = "0.7.4"
 
 
 def _cfg() -> dict:
@@ -866,24 +866,43 @@ def register(ctx) -> None:
             return {"system_prompt_append": _SYSTEM_BLOCK}
 
         def _on_session_end(**kwargs):
-            """Auto-log completed turns so lived experience accumulates without manual effort."""
+            """Log only material session endings — not every completed chat turn."""
             try:
-                if not kwargs.get("completed"):
+                import time as _time
+
+                completed = bool(kwargs.get("completed"))
+                interrupted = bool(kwargs.get("interrupted"))
+                failed = bool(kwargs.get("failed"))
+                if not (completed or interrupted or failed):
                     return None
-                if kwargs.get("interrupted") or kwargs.get("failed"):
-                    # still useful as failure experience
-                    outcome = "interrupted" if kwargs.get("interrupted") else "failed"
-                else:
-                    outcome = "completed"
+
+                # Routine happy completes are noise. Keep failures/interrupts always.
+                # Completed: at most one thin counter bump / hour — no episode flood.
                 lat = _lattice()
                 sid = str(kwargs.get("session_id") or "")
-                # de-dupe burst ends on same session turn
                 key = f"{sid}:{kwargs.get('turn_id') or ''}"
                 if lat.store.get_meta("last_auto_session_key", "") == key:
                     return None
+                lat.store.set_meta("last_auto_session_key", key)
+
                 platform = str(kwargs.get("platform") or "agent")
                 model = str(kwargs.get("model") or "")
-                title = f"session turn {outcome} ({platform})"
+                now = _time.time()
+
+                if completed and not interrupted and not failed:
+                    # Counter only — experience growth comes from perceive/task/log=true
+                    n = int(lat.store.get_meta("session_completed_count", "0") or 0) + 1
+                    lat.store.set_meta("session_completed_count", str(n))
+                    lat.store.set_meta("last_session_completed_at", str(now))
+                    # rare light decay, never densify here
+                    import random
+
+                    if random.random() < 0.08:
+                        lat.store.decay_fabric_noise(max_touch=40, min_age_days=0.5)
+                    return None
+
+                outcome = "interrupted" if interrupted else "failed"
+                title = f"session {outcome} ({platform})"
                 body = (
                     f"platform={platform}\nmodel={model}\n"
                     f"session={sid[:40]}\nturn={kwargs.get('turn_id') or ''}\n"
@@ -894,16 +913,10 @@ def register(ctx) -> None:
                     body=body,
                     kind="episode",
                     outcome=outcome,
-                    tags=["session", "auto", platform.replace(" ", "_")[:24]],
-                    confidence=0.45 if outcome == "completed" else 0.55,
+                    tags=["session", "auto", "material", platform.replace(" ", "_")[:24]],
+                    confidence=0.55,
                     auto_connect=True,
                 )
-                lat.store.set_meta("last_auto_session_key", key)
-                # light decay occasionally (no densify — densify is heavier)
-                import random
-
-                if random.random() < 0.12:
-                    lat.store.decay_fabric_noise(max_touch=80, min_age_days=0.2)
             except Exception:
                 logger.debug("insight on_session_end auto-log failed", exc_info=True)
             return None

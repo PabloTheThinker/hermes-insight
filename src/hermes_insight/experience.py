@@ -174,6 +174,43 @@ AGENT_STARTER_PATTERNS: List[Dict[str, Any]] = [
         "tags": ["recurring", "catalogue", "recall", "learn"],
         "features": ["recurring", "failure", "catalogue", "recall", "link"],
     },
+    {
+        "title": "mesh ghost peer after reboot",
+        "body": (
+            "After a host reboot, mesh/VPN peers can look alive in the ledger while "
+            "the control plane lost the node — or ESTAB sockets remain to stale IPs. "
+            "Reconcile: peer online flag, last handshake age, route table, and real "
+            "ping/SSH before treating the ghost as a live hop."
+        ),
+        "kind": "rule",
+        "domain": "system",
+        "tags": ["mesh", "network", "peer", "reboot", "vpn", "stale"],
+        "features": ["mesh", "peer", "reboot", "handshake", "stale", "route", "ghost"],
+    },
+    {
+        "title": "split DNS vs mesh path",
+        "body": (
+            "Name resolves on one plane (public DNS) while traffic expects another "
+            "(mesh/private). Symptom: works on laptop, fails on server, or intermittent "
+            "timeouts. Fix the resolution plane first, then the route."
+        ),
+        "kind": "rule",
+        "domain": "system",
+        "tags": ["dns", "mesh", "network", "split-horizon"],
+        "features": ["dns", "resolve", "mesh", "route", "timeout", "split"],
+    },
+    {
+        "title": "single writer for shared state",
+        "body": (
+            "SQLite DBs, lock files, and long-poll credentials need one writer/consumer. "
+            "Two agents on one DB path or one bot token thrash each other. Compartment "
+            "paths and exclusive locks before scaling seats."
+        ),
+        "kind": "rule",
+        "domain": "multi_agent",
+        "tags": ["lock", "sqlite", "credential", "compartment"],
+        "features": ["lock", "writer", "sqlite", "credential", "compartment", "exclusive"],
+    },
 ]
 
 
@@ -212,19 +249,25 @@ def seed_agent_starters(lat: "HermesInsight", *, force: bool = False) -> Dict[st
         for p in lat.store.list_patterns(kind="rule", limit=50)
         if "starter" in (p.tags or []) or "bootstrap" in (p.tags or [])
     ]
-    if len(existing_starters) >= 6 and not force:
-        # Cheap orphan check — full densify only when structural graph is sparse
-        import time as _time
+    import time as _time
 
+    have_titles = {p.title for p in existing_starters}
+    # Any kind — starters include prototypes (e.g. delivery gap)
+    for p in lat.store.list_patterns(limit=200):
+        if "starter" in (p.tags or []) or "bootstrap" in (p.tags or []):
+            have_titles.add(p.title)
+        if p.title in {r["title"] for r in AGENT_STARTER_PATTERNS}:
+            have_titles.add(p.title)
+    missing = [row for row in AGENT_STARTER_PATTERNS if row["title"] not in have_titles]
+
+    if not force and not missing and len(existing_starters) >= 6:
         last = float(lat.store.get_meta("last_densify_at", "0") or 0)
         now = _time.time()
         rules = lat.store.list_patterns(kind="rule", limit=20)
         orphan_rules = sum(1 for r in rules if not lat.store.links_for(r.id, limit=1))
         dens: Dict[str, Any] = {}
-        # densify at most every 6h; prefer starters-only for speed
         if (orphan_rules >= 3 or last <= 0) and (now - last > 21600):
             dens = densify_structural_links(lat, min_score=0.12, limit_per=6)
-            # only densify starter/rule subset already limited inside function
             lat.store.set_meta("last_densify_at", str(now))
         dens.update(
             {
@@ -236,8 +279,12 @@ def seed_agent_starters(lat: "HermesInsight", *, force: bool = False) -> Dict[st
             }
         )
         return dens
+
     ids: List[str] = []
-    for row in AGENT_STARTER_PATTERNS:
+    rows = AGENT_STARTER_PATTERNS if force else missing
+    if force:
+        rows = AGENT_STARTER_PATTERNS
+    for row in rows:
         pat = lat.ingest(
             row["title"],
             row["body"],
@@ -247,15 +294,19 @@ def seed_agent_starters(lat: "HermesInsight", *, force: bool = False) -> Dict[st
             features=row.get("features"),
             confidence=0.75,
             source="bootstrap",
-            link=False,  # densify as a batch after all seeds land
+            link=False,
         )
         ids.append(pat.id)
     dens = densify_structural_links(lat, min_score=0.10, limit_per=12)
-    lat.store.set_meta("bootstrap_version", "0.7.2")
-    import time as _time
-
+    lat.store.set_meta("bootstrap_version", "0.7.4")
     lat.store.set_meta("last_densify_at", str(_time.time()))
-    return {"seeded": len(ids), "pattern_ids": ids, "skipped": False, **dens}
+    return {
+        "seeded": len(ids),
+        "pattern_ids": ids,
+        "skipped": False,
+        "missing_filled": len(missing) if not force else len(AGENT_STARTER_PATTERNS),
+        **dens,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -551,6 +602,8 @@ def recall(
     )
     matches: List[Dict[str, Any]] = []
     experiences: List[Dict[str, Any]] = []
+    qlow = query.lower()
+    want_session_noise = any(w in qlow for w in ("session", "turn completed", "telegram session"))
     for i, h in enumerate(hits):
         if i < 3:
             h.pattern.touch(0.01)
@@ -565,9 +618,13 @@ def recall(
             "shared": h.shared_features[:10],
             "body_preview": h.pattern.body[:220],
         }
-        if h.pattern.kind in {PatternKind.EVENT, PatternKind.EPISODE, PatternKind.TASK} or "experience" in (
-            h.pattern.tags or []
-        ):
+        tags = set(h.pattern.tags or [])
+        is_exp = h.pattern.kind in {PatternKind.EVENT, PatternKind.EPISODE, PatternKind.TASK} or "experience" in tags
+        # Drop bulk session-auto noise unless the query is about sessions
+        if is_exp and "session" in tags and "auto" in tags and "material" not in tags:
+            if not want_session_noise and str(h.pattern.title).startswith("session turn"):
+                continue
+        if is_exp:
             if include_experiences:
                 experiences.append(row)
         else:

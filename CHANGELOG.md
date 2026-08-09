@@ -1,39 +1,31 @@
+# Changelog
+
+## 0.7.4 — 2026-08-09
+
+- **Session auto-log dampened** — only failed/interrupted turns file episodes; completed turns bump a counter only
+- **Mesh/network starters** — ghost peer after reboot, split DNS vs mesh path, single-writer shared state
+- **Bootstrap fills missing starter titles** without full force re-seed
+- **Recall** hides bulk session-turn noise unless the query is about sessions
+- **Hygiene** can weaken old session-auto episodes (`prune_session_auto`)
+- Lever title rules for mesh/dns/lock; public docs/README refresh
+
 ## 0.7.3 — 2026-08-09
 
-- Lever refinement: strong top match anchors lever (retry/skill/isolation/token) instead of near-miss scenic tokens
-- Prefer structural rules over bulk `skill:` inventory rows in perceive
-- Hop `via` labels; fresher `last_brief_line` from recall/perceive
-- Plugin `agent_tier` from config (ILO set to conductor)
-
-# Changelog
+- Lever refinement from strong top match; prefer rules over skill inventory
+- Hop `via` labels; fresher last_brief; agent_tier from config
 
 ## 0.7.2 — 2026-08-09
 
-- **Speed:** `candidate_pool` (FTS + structural shortlist) — perceive ~2s → ~110ms on 600-node lattices
-- **Fabric hygiene:** `decay_fabric_noise` + `insight_hygiene` / CLI `hygiene`
-- **Auto experience:** plugin `on_session_end` logs completed/failed turns into the lattice
-- **Bootstrap:** seed when starters missing (not merely when DB non-empty); densify rate-limited
-- **Levers:** domain-conditioned priors in distill
-- Less disk thrash (touch top-3 only); deep cycle only when truly weak
+- candidate_pool speed (~110ms); fabric decay; domain lever priors; gated densify
 
 ## 0.7.1 — 2026-08-09
 
-- Quality pass: fix garbage levers, dedupe file dumps, densify links, thin-query honesty, skill-routing starter
-- `usable` flag on perceive
+- Quality pass: garbage levers, dedupe, densify, thin-query honesty
 
 ## 0.7.0 — 2026-08-09
 
-- `perceive` ability + `insight_perceive` primary tool
-- Structural match priors; public SECURITY/CONTRIBUTING; isolation gate
+- `perceive` ability + experience layer + public isolation
 
-## 0.6.0 — 2026-08-09
+## 0.6.0 and earlier
 
-- Experience layer (recall/task/experience/connect) + install_for_hermes.sh
-
-## 0.5.x — 2026-08-09
-
-- Agent-field ontology, fabric index, forge, production E2E
-
-## 0.1.0–0.4.0 — 2026-08-09
-
-- Core cycle, multi-agent, plugin, forge products
+- Experience APIs, forge, fabric index, multi-agent, core cycle
