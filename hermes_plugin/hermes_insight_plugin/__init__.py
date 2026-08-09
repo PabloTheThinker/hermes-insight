@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 __plugin_name__ = "hermes-insight"
-__plugin_version__ = "0.5.0"
+__plugin_version__ = "0.5.1"
 
 
 def _cfg() -> dict:

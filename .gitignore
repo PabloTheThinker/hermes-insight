@@ -26,3 +26,7 @@ htmlcov/
 local/
 tmp/
 .hermes/
+
+.e2e-last/
+*.insight.db
+

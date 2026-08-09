@@ -1,16 +1,27 @@
 # Hermes Insight
 
-**Pattern harness for the AI agent / model field** — agents, models, tools, skills, multi-agent compartments, fabric, forge.
+**Pattern harness for the AI agent / model field** — agents, models, tools, skills, multi-agent compartments, fabric index, and Pattern Forge.
 
-Neurodivergent-inspired *connecting-the-dots* cognition as software: encode structures, match them with multiple lenses, hop laterally across domains, distill the actual variable, extrapolate trajectories, and evolve a living catalogue.
+Standalone Python library + CLI. **No cloud dependency.** Optional [Hermes Agent](https://github.com/NousResearch/hermes-agent) skill + native plugin.
 
-Standalone Python library + CLI. **No cloud dependency. No host coupling.** Optional [Hermes Agent](https://github.com/NousResearch/hermes-agent) skill pack included for install-as-skill workflows.
+> **Name note:** *Hermes Insight* is an independent companion for the Hermes community. It is **not** an official Nous Research product.
 
-> **Name note:** *Hermes Insight* is an independent companion harness for agents (including Hermes Agent). It is **not** an official Nous Research product.
+Built for what Hermes/agent builders keep asking for: **walkable structure** (not only flat memory), **multi-agent compartments**, **skill/model routing signal**, **fleet maps**, and a **forge loop** that turns connections into products. See [docs/COMMUNITY.md](docs/COMMUNITY.md).
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
+
+## Production check
+
+```bash
+pip install -e ".[dev]"
+python3 scripts/production_e2e.py   # 30+ gates: index, cycles, forge, scrub, plugin
+```
+
+Last summary: `docs/E2E-PRODUCTION-LAST.json`
+
+## Quick start
 
 ## Why this exists
 

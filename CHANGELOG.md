@@ -1,3 +1,9 @@
+## 0.5.1 — 2026-08-09
+
+- Intense production E2E script (`scripts/production_e2e.py`) — 32 gates
+- Community fit doc from X/Hermes builder demand (`docs/COMMUNITY.md`)
+- README production check + positioning for Hermes community
+
 ## 0.5.0 — 2026-08-09
 
 - Agent/model field ontology (domains, kinds, links, synonyms)
