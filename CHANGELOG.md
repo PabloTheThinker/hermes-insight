@@ -1,17 +1,18 @@
 # Changelog
 
+## 0.3.0 — 2026-08-09
+
+- Server fabric indexer: projects, files, Hermes metadata, listening connections, processes
+- Secret/fingerprint scrubbing before catalogue
+- CLI: index-server, index-path, index-connections, fabric-stats
+- Plugin tools: insight_index_server, insight_index_path, insight_index_connections, insight_fabric_stats
+- Fixed ss listen parsing (Netid State format)
+- Live host index: 48 projects, 383+ files, listen nodes, hermes runtime
+
 ## 0.2.0 — 2026-08-09
 
-- **Match quality:** IDF-weighted hybrid scores, synonym expansion, richer feature universe (tags/symbols/path)
-- **Distill:** lever priors + noise suppression (stops generic `agent`/`user` traps)
-- **Code-aware ingest:** `ingest_file` / `ingest_tree` with AST symbol extraction
-- **Multi-agent compartments:** `agent_id` / tiers, separate DBs, registry
-- **Native Hermes plugin:** tools `insight_*`, `plugin.yaml`, slash `/insight`
-- CLI: `--agent`, `ingest-tree`, `register-agent`, `agents`
-- Dogfood script against real Hermes Agent source trees
-- Production E2E success gates on lever + match score
+- IDF match, multi-agent, code ingest, native plugin
 
 ## 0.1.0 — 2026-08-09
 
-- Initial public release as **Hermes Insight**
-- Core cycle, SQLite+FTS5, skill pack, demo
+- Initial Hermes Insight release

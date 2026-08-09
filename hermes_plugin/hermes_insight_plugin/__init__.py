@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 __plugin_name__ = "hermes-insight"
-__plugin_version__ = "0.2.0"
+__plugin_version__ = "0.3.0"
 
 
 def _cfg() -> dict:
@@ -203,6 +203,58 @@ def handle_insight_evolve(args: dict, **kwargs) -> str:
         return _err(str(exc))
 
 
+def handle_insight_index_server(args: dict, **kwargs) -> str:
+    try:
+        lat = _lattice()
+        roots = args.get("roots")
+        if isinstance(roots, str):
+            roots = [roots]
+        result = lat.index_server(
+            roots=roots,
+            include_files=bool(args.get("include_files", True)),
+            include_connections=bool(args.get("include_connections", True)),
+            include_processes=bool(args.get("include_processes", True)),
+            include_hermes=bool(args.get("include_hermes", True)),
+            max_files_per_project=int(args.get("max_files_per_project") or 40),
+            max_projects=int(args.get("max_projects") or 80),
+            link=bool(args.get("link", True)),
+        )
+        return _ok(result)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("insight_index_server failed")
+        return _err(str(exc))
+
+
+def handle_insight_index_path(args: dict, **kwargs) -> str:
+    try:
+        path = str(args.get("path") or "").strip()
+        if not path:
+            return _err("path required")
+        return _ok(
+            _lattice().index_path(
+                path,
+                max_files=int(args.get("max_files") or 60),
+                link=bool(args.get("link", True)),
+            )
+        )
+    except Exception as exc:  # noqa: BLE001
+        return _err(str(exc))
+
+
+def handle_insight_index_connections(args: dict, **kwargs) -> str:
+    try:
+        return _ok(_lattice().index_connections())
+    except Exception as exc:  # noqa: BLE001
+        return _err(str(exc))
+
+
+def handle_insight_fabric_stats(args: dict, **kwargs) -> str:
+    try:
+        return _ok(_lattice().fabric_stats())
+    except Exception as exc:  # noqa: BLE001
+        return _err(str(exc))
+
+
 # schemas
 _CYCLE_SCHEMA = {
     "name": "insight_cycle",
@@ -309,12 +361,64 @@ _EVOLVE_SCHEMA = {
     },
 }
 
+_INDEX_SERVER_SCHEMA = {
+    "name": "insight_index_server",
+    "description": (
+        "Index the server fabric into Insight: projects, source files, Hermes metadata, "
+        "listening ports/connections, process snapshot. Secrets and host fingerprints scrubbed."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "roots": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Optional roots; default discovers ~/projects, hermes-agent, HERMES_HOME",
+            },
+            "include_files": {"type": "boolean", "default": True},
+            "include_connections": {"type": "boolean", "default": True},
+            "include_processes": {"type": "boolean", "default": True},
+            "include_hermes": {"type": "boolean", "default": True},
+            "max_files_per_project": {"type": "integer", "default": 40},
+            "max_projects": {"type": "integer", "default": 80},
+            "link": {"type": "boolean", "default": True},
+        },
+    },
+}
+
+_INDEX_PATH_SCHEMA = {
+    "name": "insight_index_path",
+    "description": "Index one project directory or file into the Insight lattice (scrubbed).",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "path": {"type": "string"},
+            "max_files": {"type": "integer", "default": 60},
+            "link": {"type": "boolean", "default": True},
+        },
+        "required": ["path"],
+    },
+}
+
+_INDEX_CONN_SCHEMA = {
+    "name": "insight_index_connections",
+    "description": "Index listening ports and process connection classes only.",
+    "parameters": {"type": "object", "properties": {}},
+}
+
+_FABRIC_STATS_SCHEMA = {
+    "name": "insight_fabric_stats",
+    "description": "Counts of fabric-tagged patterns (projects, listens, files, hermes runtime).",
+    "parameters": {"type": "object", "properties": {}},
+}
+
 
 _SYSTEM_BLOCK = """## Hermes Insight
 You have structural pattern-processing tools (`insight_*`).
 Prefer insight_cycle when diagnosing multi-factor systems, architectures, or recurring failures.
+Use insight_index_server / insight_index_path so projects, files, metadata, and connections are visible in the lattice.
 Distill the actual variable; do not force-fit novelty; reinforce patterns that paid rent via insight_feedback.
-Catalogue durable structures with insight_ingest / insight_ingest_tree.
+Secrets are scrubbed — still never paste raw credentials into tools.
 """
 
 
@@ -346,6 +450,10 @@ def register(ctx) -> None:
     _reg(_FEEDBACK_SCHEMA, handle_insight_feedback)
     _reg(_STATS_SCHEMA, handle_insight_stats)
     _reg(_EVOLVE_SCHEMA, handle_insight_evolve)
+    _reg(_INDEX_SERVER_SCHEMA, handle_insight_index_server)
+    _reg(_INDEX_PATH_SCHEMA, handle_insight_index_path)
+    _reg(_INDEX_CONN_SCHEMA, handle_insight_index_connections)
+    _reg(_FABRIC_STATS_SCHEMA, handle_insight_fabric_stats)
 
     # optional prompt injection if host supports it
     if hasattr(ctx, "register_hook"):

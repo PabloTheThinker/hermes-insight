@@ -123,6 +123,37 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("demo", help="Seed a tiny demo lattice and run a cycle")
     s.set_defaults(func=cmd_demo)
 
+    s = sub.add_parser(
+        "index-server",
+        help="Index server fabric: projects, files, metadata, connections (scrubbed)",
+    )
+    s.add_argument(
+        "--root",
+        action="append",
+        default=None,
+        help="Root path to scan (repeatable). Default: ~/projects, ~/hermes-agent, HERMES_HOME…",
+    )
+    s.add_argument("--max-projects", type=int, default=80)
+    s.add_argument("--max-files", type=int, default=40, help="Max files per project")
+    s.add_argument("--no-files", action="store_true")
+    s.add_argument("--no-connections", action="store_true")
+    s.add_argument("--no-processes", action="store_true")
+    s.add_argument("--no-hermes", action="store_true")
+    s.add_argument("--no-link", action="store_true")
+    s.set_defaults(func=cmd_index_server)
+
+    s = sub.add_parser("index-path", help="Index one project/directory/file into the lattice")
+    s.add_argument("path")
+    s.add_argument("--max-files", type=int, default=60)
+    s.add_argument("--no-link", action="store_true")
+    s.set_defaults(func=cmd_index_path)
+
+    s = sub.add_parser("index-connections", help="Index listening ports / process connections only")
+    s.set_defaults(func=cmd_index_connections)
+
+    s = sub.add_parser("fabric-stats", help="Counts of fabric-tagged patterns in the lattice")
+    s.set_defaults(func=cmd_fabric_stats)
+
     return p
 
 
@@ -248,6 +279,43 @@ def cmd_register_agent(args: argparse.Namespace) -> int:
 def cmd_agents(args: argparse.Namespace) -> int:
     lat = _lattice(args)
     _print(lat.list_agents(), as_json=True)
+    return 0
+
+
+def cmd_index_server(args: argparse.Namespace) -> int:
+    lat = _lattice(args)
+    result = lat.index_server(
+        roots=args.root,
+        include_files=not args.no_files,
+        include_connections=not args.no_connections,
+        include_processes=not args.no_processes,
+        include_hermes=not args.no_hermes,
+        max_files_per_project=args.max_files,
+        max_projects=args.max_projects,
+        link=not args.no_link,
+    )
+    _print(result, as_json=True)
+    return 0
+
+
+def cmd_index_path(args: argparse.Namespace) -> int:
+    lat = _lattice(args)
+    _print(
+        lat.index_path(args.path, max_files=args.max_files, link=not args.no_link),
+        as_json=True,
+    )
+    return 0
+
+
+def cmd_index_connections(args: argparse.Namespace) -> int:
+    lat = _lattice(args)
+    _print(lat.index_connections(), as_json=True)
+    return 0
+
+
+def cmd_fabric_stats(args: argparse.Namespace) -> int:
+    lat = _lattice(args)
+    _print(lat.fabric_stats(), as_json=True)
     return 0
 
 

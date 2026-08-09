@@ -1,7 +1,7 @@
 ---
 name: hermes-insight
 description: "Use when an agent needs superior pattern recognition — distill levers, match structures, cross-domain analogy, trajectories, catalogue novelty, multi-agent lattices, code ingest. CLI + native insight_* tools."
-version: "0.2.0"
+version: "0.3.0"
 author: Pablo Navarro
 license: MIT
 metadata:
@@ -62,6 +62,18 @@ Restart Hermes after enabling. Tools: `insight_cycle`, `insight_ingest`, `insigh
 7. Finished briefs  
 8. Feedback loops — reinforce what paid rent  
 9. Multi-agent — separate DBs/compartments per trust boundary  
+
+## Server fabric (see everything)
+
+```bash
+hermes-insight index-server
+hermes-insight index-path ~/projects/foo
+hermes-insight index-connections
+hermes-insight fabric-stats
+```
+
+Plugin: insight_index_server, insight_index_path, insight_index_connections, insight_fabric_stats.
+Secrets and host fingerprints are scrubbed before catalogue.
 
 ## CLI
 

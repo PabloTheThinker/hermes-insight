@@ -40,6 +40,16 @@ This project is **inspired by** those ideas. It is **not** a diagnostic tool and
 
 ---
 
+## Server fabric
+
+Index host structure (scrubbed) so Insight sees projects, software trees, metadata, and connections:
+
+```bash
+hermes-insight index-server
+hermes-insight fabric-stats
+hermes-insight cycle "how do plugins relate to listening services?"
+```
+
 ## Quick start
 
 ```bash

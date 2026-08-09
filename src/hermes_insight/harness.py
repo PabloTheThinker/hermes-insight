@@ -136,11 +136,17 @@ class HermesInsight:
         link: bool = True,
         confidence: float = 0.55,
     ) -> Optional[Pattern]:
+        from hermes_insight.scrub import scrub_metadata, scrub_text, should_skip_path
+
         p = Path(path).expanduser()
+        if should_skip_path(str(p)):
+            return None
         fields = file_to_pattern_fields(p)
         if not fields:
             return None
         title, body, features, tags, meta = fields
+        body = scrub_text(body)
+        meta = scrub_metadata(meta)
         if self.agent_id:
             tags = [self.agent_id, *tags]
             meta["agent_id"] = self.agent_id
@@ -439,8 +445,141 @@ class HermesInsight:
             "patterns": c["patterns"],
             "links": c["links"],
             "last_brief_line": self.store.get_meta("last_brief_line", ""),
-            "version": "0.2.0",
+            "version": "0.3.0",
         }
 
     def export_patterns(self, *, limit: int = 1000) -> List[Dict[str, Any]]:
         return [p.to_dict() for p in self.store.list_patterns(limit=limit)]
+
+    # ------------------------------------------------------------------
+    # Server fabric — see projects, files, metadata, connections
+    # ------------------------------------------------------------------
+
+    def index_server(
+        self,
+        *,
+        roots: Optional[Sequence[str | Path]] = None,
+        include_projects: bool = True,
+        include_files: bool = True,
+        include_connections: bool = True,
+        include_processes: bool = True,
+        include_hermes: bool = True,
+        max_files_per_project: int = 40,
+        max_projects: int = 80,
+        link: bool = True,
+    ) -> Dict[str, Any]:
+        """Index the machine fabric into this lattice (secrets scrubbed)."""
+        from hermes_insight.fabric import FabricIndexer
+
+        report = FabricIndexer(self).index_server(
+            roots=roots,
+            include_projects=include_projects,
+            include_files=include_files,
+            include_connections=include_connections,
+            include_processes=include_processes,
+            include_hermes=include_hermes,
+            max_files_per_project=max_files_per_project,
+            max_projects=max_projects,
+            link=link,
+        )
+        self.store.set_meta("last_fabric_index", str(report.to_dict()))
+        out = report.to_dict()
+        out["stats"] = self.stats()
+        return out
+
+    def index_path(
+        self,
+        path: PathLike,
+        *,
+        as_project: bool = True,
+        max_files: int = 60,
+        link: bool = True,
+    ) -> Dict[str, Any]:
+        """Index one project or directory tree into the lattice."""
+        from hermes_insight.fabric import FabricIndexer, project_summary
+        from hermes_insight.features import extract_features
+        from hermes_insight.scrub import scrub_text
+
+        p = Path(path).expanduser().resolve()
+        if not p.exists():
+            return {"success": False, "error": f"path not found: {p}"}
+        idx = FabricIndexer(self)
+        report_files = 0
+        project_id = None
+        if as_project or p.is_dir():
+            summary = project_summary(p if p.is_dir() else p.parent)
+            body = (
+                f"Path index `{summary.get('name')}`\n"
+                f"manifests: {summary.get('manifests')}\n"
+                f"languages: {summary.get('languages')}\n"
+                f"{summary.get('readme_head') or ''}"
+            )
+            pat = self.ingest(
+                title=f"project:{summary.get('name')}",
+                body=scrub_text(body)[:3500],
+                domain=Domain.CODE,
+                kind=PatternKind.PROTOTYPE,
+                tags=["fabric", "project", str(summary.get("name"))[:32]],
+                features=extract_features(body),
+                confidence=0.65,
+                source="index-path",
+                metadata={"fabric": "project", **summary},
+                link=link,
+            )
+            project_id = pat.id
+            if p.is_dir():
+                from hermes_insight.fabric import FabricReport
+
+                rep = FabricReport()
+                report_files = idx._ingest_project_files(
+                    p,
+                    project_id=pat.id,
+                    max_files=max_files,
+                    globs=("**/*.py", "**/*.ts", "**/*.tsx", "**/*.md", "**/*.yaml", "**/*.yml", "**/*.toml"),
+                    link=link,
+                    report=rep,
+                )
+                return {
+                    "success": True,
+                    "project_id": project_id,
+                    "files_ingested": rep.files_ingested,
+                    "skipped": rep.skipped,
+                    "stats": self.stats(),
+                }
+            else:
+                fp = self.ingest_file(p, link=link)
+                return {
+                    "success": True,
+                    "project_id": project_id,
+                    "file_id": fp.id if fp else None,
+                    "stats": self.stats(),
+                }
+        fp = self.ingest_file(p, link=link)
+        return {"success": bool(fp), "file_id": fp.id if fp else None, "stats": self.stats()}
+
+    def index_connections(self, *, link: bool = True) -> Dict[str, Any]:
+        """Index listening ports / process connections only."""
+        return self.index_server(
+            roots=[],
+            include_projects=False,
+            include_files=False,
+            include_connections=True,
+            include_processes=True,
+            include_hermes=False,
+            link=link,
+        )
+
+    def fabric_stats(self) -> Dict[str, Any]:
+        """Counts of fabric-tagged patterns currently in the lattice."""
+        patterns = self.store.all_patterns(limit=10000)
+        fabric = [p for p in patterns if "fabric" in (p.tags or []) or (p.metadata or {}).get("fabric")]
+        by = {}
+        for p in fabric:
+            kind = (p.metadata or {}).get("fabric") or "tagged"
+            by[kind] = by.get(kind, 0) + 1
+        return {
+            "fabric_patterns": len(fabric),
+            "by_kind": by,
+            "last_index": self.store.get_meta("last_fabric_index", "")[:500],
+            "stats": self.stats(),
+        }
