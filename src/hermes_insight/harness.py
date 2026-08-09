@@ -209,7 +209,7 @@ class HermesInsight:
         if len(fts) >= limit:
             return fts
         feats = expand_query_features(extract_features(query))
-        pool = self.store.all_patterns(limit=2500)
+        pool = self.store.candidate_pool(query, fts_limit=40, structural_limit=80, fill_limit=60)
         idf = build_idf(pool)
         ranked = match_patterns(query, feats, pool, limit=limit, idf=idf)
         seen = {p.id for p in fts}
@@ -231,13 +231,13 @@ class HermesInsight:
         domain: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         feats = expand_query_features(extract_features(query))
-        shortlist = self.store.fts_search(query, limit=50)
-        pool_ids = {p.id for p in shortlist}
-        pool = list(shortlist)
-        if len(pool) < 40:
-            for p in self.store.all_patterns(limit=2000):
-                if p.id not in pool_ids:
-                    pool.append(p)
+        pool = self.store.candidate_pool(
+            query,
+            domain=domain,
+            fts_limit=48,
+            structural_limit=140,
+            fill_limit=60,
+        )
         idf = build_idf(pool)
         hits = match_patterns(
             query,
@@ -280,13 +280,15 @@ class HermesInsight:
             ProcessDim.RECOGNITION.value,
         ]
 
-        shortlist = self.store.fts_search(blob, limit=50)
-        pool = shortlist or self.store.all_patterns(limit=2500)
-        if shortlist and len(shortlist) < 40:
-            seen = {p.id for p in pool}
-            for p in self.store.all_patterns(limit=1500):
-                if p.id not in seen:
-                    pool.append(p)
+        pool = self.store.candidate_pool(
+            blob,
+            domain=None if domain_s == "general" else domain_s,
+            fts_limit=56,
+            structural_limit=160,
+            fill_limit=80,
+        )
+        if not pool:
+            pool = self.store.all_patterns(limit=500)
         idf = build_idf(pool)
         matches = match_patterns(
             blob,
@@ -302,7 +304,7 @@ class HermesInsight:
             self.store.upsert_pattern(m.pattern)
 
         dims.append(ProcessDim.PROCESSING.value)
-        distillation = distill(blob, matches=matches)
+        distillation = distill(blob, matches=matches, domain_hint=domain_s)
 
         dims.append(ProcessDim.PERCEPTION.value)
         anomalies = detect_anomalies(blob, pool, novelty_threshold=0.14)
@@ -379,20 +381,21 @@ class HermesInsight:
     # Specialized ops
     # ------------------------------------------------------------------
 
-    def distill(self, text: str) -> Dict[str, Any]:
-        pool = self.store.all_patterns(limit=1500)
+    def distill(self, text: str, *, domain: Optional[str] = None) -> Dict[str, Any]:
+        pool = self.store.candidate_pool(text, domain=domain, fts_limit=40, structural_limit=120, fill_limit=60)
         matches = match_patterns(
             text,
             expand_query_features(extract_features(text)),
             pool,
             limit=10,
+            domain_hint=domain,
             idf=build_idf(pool),
         )
-        return distill(text, matches=matches).to_dict()
+        return distill(text, matches=matches, domain_hint=domain).to_dict()
 
     def extrapolate(self, observations: Sequence[str]) -> Dict[str, Any]:
         blob = "\n".join(observations)
-        pool = self.store.all_patterns(limit=1500)
+        pool = self.store.candidate_pool(blob, fts_limit=40, structural_limit=100, fill_limit=50)
         matches = match_patterns(
             blob,
             expand_query_features(extract_features(blob)),
@@ -483,6 +486,17 @@ class HermesInsight:
             task_id=task_id,
             deep=deep,
         )
+
+    def hygiene(self, *, decay: bool = True, densify: bool = True) -> Dict[str, Any]:
+        """Decay fabric noise + densify structural links (periodic maintenance)."""
+        out: Dict[str, Any] = {}
+        if densify:
+            from hermes_insight.experience import densify_structural_links
+
+            out["densify"] = densify_structural_links(self)
+        if decay:
+            out["decay"] = self.store.decay_fabric_noise()
+        return out
 
     def bootstrap(self, *, force: bool = False) -> Dict[str, Any]:
         """Seed starter agent-field patterns so a fresh lattice can match."""

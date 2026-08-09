@@ -15,7 +15,7 @@ def lat(tmp_path: Path) -> HermesInsight:
 
 
 def test_version():
-    assert __version__ == "0.7.1"
+    assert __version__ == "0.7.2"
 
 
 def test_perceive_prefers_structural_rule(lat: HermesInsight):
@@ -117,3 +117,48 @@ def test_dedupe_same_title_files(lat: HermesInsight):
         (h.get("pattern") or {}).get("title") or h.get("title") for h in hits
     ]
     assert titles.count("route.ts") <= 1
+
+
+def test_candidate_pool_faster_than_full_scan(lat: HermesInsight):
+    for i in range(120):
+        lat.ingest(
+            f"file_{i}.py",
+            f"def foo_{i}():\n    return {i}\n# filler auth token retry cache " * 3,
+            domain="code",
+            kind="prototype",
+            tags=["fabric", "file"],
+            confidence=0.4,
+            link=False,
+        )
+    lat.bootstrap()
+    import time
+
+    t0 = time.time()
+    r = lat.perceive(
+        "two workers share one bot credential long-poll conflict",
+        domain="agent",
+    )
+    dt = time.time() - t0
+    assert r["usable"] is True
+    assert r["lever"] in {"token", "credential", "consumer", "conflict"}
+    assert dt < 2.5, f"too slow: {dt:.2f}s"
+
+
+def test_hygiene_decays_fabric(lat: HermesInsight):
+    p = lat.ingest(
+        "old_dump.py",
+        "unused fabric dump code",
+        domain="code",
+        kind="prototype",
+        tags=["fabric", "file"],
+        confidence=0.5,
+        link=False,
+    )
+    p.last_used_at = 1.0
+    p.updated_at = 1.0
+    p.strength = 0.5
+    lat.store.upsert_pattern(p)
+    out = lat.hygiene(decay=True, densify=False)
+    assert out["decay"]["weakened"] >= 1
+    p2 = lat.get(p.id)
+    assert p2 and p2.strength < 0.5

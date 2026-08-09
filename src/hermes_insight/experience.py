@@ -181,18 +181,19 @@ def densify_structural_links(lat: "HermesInsight", *, min_score: float = 0.12, l
     """Ensure rules/starters/skills are linked into the graph (fixes empty hops)."""
     from hermes_insight.cross_domain import auto_link
 
-    structural = [
-        p
-        for p in lat.store.all_patterns(limit=5000)
-        if p.kind.value in {"rule", "skill", "synthesis", "prototype"}
-        and (
-            "starter" in (p.tags or [])
-            or p.kind.value in {"rule", "skill", "synthesis"}
-            or p.confidence >= 0.7
-        )
-    ]
-    # Prefer small high-value set
-    structural = structural[:120]
+    structural = []
+    seen = set()
+    for p in lat.store.list_patterns(kind="rule", limit=40):
+        if p.id not in seen:
+            seen.add(p.id); structural.append(p)
+    for p in lat.store.list_patterns(kind="synthesis", limit=20):
+        if p.id not in seen:
+            seen.add(p.id); structural.append(p)
+    for p in lat.store.structural_patterns(limit=40):
+        if "starter" in (p.tags or []) or p.kind.value in {"event", "episode", "task"}:
+            if p.id not in seen:
+                seen.add(p.id); structural.append(p)
+    structural = structural[:60]
     linked = 0
     for p in structural:
         before = len(lat.store.links_for(p.id, limit=50))
@@ -204,12 +205,36 @@ def densify_structural_links(lat: "HermesInsight", *, min_score: float = 0.12, l
 
 
 def seed_agent_starters(lat: "HermesInsight", *, force: bool = False) -> Dict[str, Any]:
-    """Install starter patterns if DB is empty (or force)."""
+    """Install starter patterns if structural starters missing (or force)."""
     st = lat.stats()
-    if st.get("patterns", 0) >= 8 and not force:
-        # still densify if starters exist but are orphaned
-        dens = densify_structural_links(lat)
-        dens.update({"seeded": 0, "skipped": True, "reason": "already populated", "patterns": st["patterns"]})
+    existing_starters = [
+        p
+        for p in lat.store.list_patterns(kind="rule", limit=50)
+        if "starter" in (p.tags or []) or "bootstrap" in (p.tags or [])
+    ]
+    if len(existing_starters) >= 6 and not force:
+        # Cheap orphan check — full densify only when structural graph is sparse
+        import time as _time
+
+        last = float(lat.store.get_meta("last_densify_at", "0") or 0)
+        now = _time.time()
+        rules = lat.store.list_patterns(kind="rule", limit=20)
+        orphan_rules = sum(1 for r in rules if not lat.store.links_for(r.id, limit=1))
+        dens: Dict[str, Any] = {}
+        # densify at most every 6h; prefer starters-only for speed
+        if (orphan_rules >= 3 or last <= 0) and (now - last > 21600):
+            dens = densify_structural_links(lat, min_score=0.12, limit_per=6)
+            # only densify starter/rule subset already limited inside function
+            lat.store.set_meta("last_densify_at", str(now))
+        dens.update(
+            {
+                "seeded": 0,
+                "skipped": True,
+                "reason": "starters present",
+                "patterns": st["patterns"],
+                "starters": len(existing_starters),
+            }
+        )
         return dens
     ids: List[str] = []
     for row in AGENT_STARTER_PATTERNS:
@@ -226,7 +251,10 @@ def seed_agent_starters(lat: "HermesInsight", *, force: bool = False) -> Dict[st
         )
         ids.append(pat.id)
     dens = densify_structural_links(lat, min_score=0.10, limit_per=12)
-    lat.store.set_meta("bootstrap_version", "0.7.1")
+    lat.store.set_meta("bootstrap_version", "0.7.2")
+    import time as _time
+
+    lat.store.set_meta("last_densify_at", str(_time.time()))
     return {"seeded": len(ids), "pattern_ids": ids, "skipped": False, **dens}
 
 
@@ -294,9 +322,12 @@ def log_experience(
     if auto_connect:
         blob = f"{title}\n{body}"
         feats = expand_query_features(extract_features(blob))
-        pool = lat.store.all_patterns(limit=2500)
-        # exclude self
+        pool = lat.store.candidate_pool(
+            blob, fts_limit=40, structural_limit=120, fill_limit=40
+        )
         pool = [p for p in pool if p.id != pat.id]
+        if len(pool) < 20:
+            pool = [p for p in lat.store.structural_patterns(limit=100) if p.id != pat.id]
         idf = build_idf(pool)
         hits = match_patterns(blob, feats, pool, limit=connect_limit, min_score=0.06, idf=idf)
         for h in hits:
@@ -501,13 +532,13 @@ def recall(
     seed_agent_starters(lat)
 
     feats = expand_query_features(extract_features(query))
-    shortlist = lat.store.fts_search(query, limit=40)
-    pool_ids = {p.id for p in shortlist}
-    pool = list(shortlist)
-    if len(pool) < 30:
-        for p in lat.store.all_patterns(limit=2000):
-            if p.id not in pool_ids:
-                pool.append(p)
+    pool = lat.store.candidate_pool(
+        query,
+        domain=domain,
+        fts_limit=48,
+        structural_limit=140,
+        fill_limit=50,
+    )
     idf = build_idf(pool)
     hits = match_patterns(
         query,
@@ -520,9 +551,10 @@ def recall(
     )
     matches: List[Dict[str, Any]] = []
     experiences: List[Dict[str, Any]] = []
-    for h in hits:
-        h.pattern.touch(0.01)
-        lat.store.upsert_pattern(h.pattern)
+    for i, h in enumerate(hits):
+        if i < 3:
+            h.pattern.touch(0.01)
+            lat.store.upsert_pattern(h.pattern)
         row = {
             "id": h.pattern.id,
             "title": h.pattern.title,
@@ -554,7 +586,7 @@ def recall(
                 }
             )
 
-    distillation = distill(query, matches=hits)
+    distillation = distill(query, matches=hits, domain_hint=domain)
     traj_bits = []
     if hits:
         traj_bits.append(f"strongest prior: **{hits[0].pattern.title}** ({hits[0].score:.2f})")

@@ -221,6 +221,118 @@ class PatternStore:
     def all_patterns(self, limit: int = 5000) -> List[Pattern]:
         return self.list_patterns(limit=limit)
 
+    def structural_patterns(self, *, limit: int = 200) -> List[Pattern]:
+        """High-value nodes for recognition shortlist (rules/skills/events first)."""
+        kinds = ("rule", "skill", "synthesis", "event", "episode", "task", "agent", "model", "tool")
+        out: List[Pattern] = []
+        seen: set[str] = set()
+        with self._db() as conn:
+            for kind in kinds:
+                rows = conn.execute(
+                    """
+                    SELECT * FROM patterns
+                    WHERE kind = ?
+                    ORDER BY strength DESC, use_count DESC, updated_at DESC
+                    LIMIT ?
+                    """,
+                    (kind, max(8, limit // len(kinds))),
+                ).fetchall()
+                for row in rows:
+                    p = self._row_to_pattern(row)
+                    if p.id not in seen:
+                        seen.add(p.id)
+                        out.append(p)
+            # starters tagged
+            rows = conn.execute(
+                """
+                SELECT * FROM patterns
+                WHERE tags_json LIKE '%starter%' OR tags_json LIKE '%bootstrap%'
+                ORDER BY strength DESC LIMIT 40
+                """
+            ).fetchall()
+            for row in rows:
+                p = self._row_to_pattern(row)
+                if p.id not in seen:
+                    seen.add(p.id)
+                    out.append(p)
+        return out[:limit]
+
+    def candidate_pool(
+        self,
+        query: str,
+        *,
+        domain: Optional[str] = None,
+        fts_limit: int = 48,
+        structural_limit: int = 120,
+        fill_limit: int = 80,
+    ) -> List[Pattern]:
+        """Fast shortlist: FTS hits + structural priors + optional domain fill.
+
+        Avoids scoring the entire fabric dump on every perceive.
+        """
+        seen: set[str] = set()
+        pool: List[Pattern] = []
+
+        def _add(items: List[Pattern]) -> None:
+            for p in items:
+                if p.id not in seen:
+                    seen.add(p.id)
+                    pool.append(p)
+
+        _add(self.fts_search(query, limit=fts_limit))
+        _add(self.structural_patterns(limit=structural_limit))
+        if domain:
+            _add(self.list_patterns(domain=domain, limit=fill_limit // 2))
+        # small strength-ranked fill for coverage without full table scan
+        if len(pool) < fts_limit + 40:
+            _add(self.list_patterns(limit=fill_limit))
+        return pool
+
+    def decay_fabric_noise(
+        self,
+        *,
+        max_touch: int = 400,
+        min_age_days: float = 0.5,
+        strength_floor: float = 0.15,
+        delta: float = 0.04,
+    ) -> Dict[str, int]:
+        """Weaken unused fabric/code dumps so they stop drowning recognition."""
+        import time as _time
+
+        now = _time.time()
+        min_age = min_age_days * 86400
+        weakened = 0
+        skipped = 0
+        pats = self.list_patterns(limit=3000)
+        for p in pats:
+            tags = set(p.tags or [])
+            is_fabric = "fabric" in tags or (p.metadata or {}).get("fabric")
+            is_code_dump = p.domain.value == "code" and p.kind.value in {"prototype", "template"}
+            if not (is_fabric or is_code_dump):
+                skipped += 1
+                continue
+            if p.kind.value in {"rule", "skill", "event", "episode", "task"}:
+                skipped += 1
+                continue
+            if "starter" in tags or "bootstrap" in tags:
+                skipped += 1
+                continue
+            age = now - float(p.last_used_at or p.updated_at or p.created_at or 0)
+            if age < min_age:
+                skipped += 1
+                continue
+            if p.use_count > 3 and p.strength > 0.55:
+                skipped += 1
+                continue
+            old = p.strength
+            p.strength = max(strength_floor, p.strength - delta)
+            if p.strength < old:
+                self.upsert_pattern(p)
+                weakened += 1
+            if weakened >= max_touch:
+                break
+        return {"weakened": weakened, "skipped": skipped}
+
     def fts_search(self, query: str, limit: int = 20) -> List[Pattern]:
         q = (query or "").strip()
         if not q:

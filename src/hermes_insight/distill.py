@@ -53,6 +53,7 @@ def distill(
     matches: Sequence[MatchResult] | None = None,
     known: Sequence[Pattern] | None = None,
     max_supporting: int = 6,
+    domain_hint: str | None = None,
 ) -> Distillation:
     """Extract a core variable + principle from free text and optional matches."""
     feats = expand_query_features(extract_features(text, max_features=48))
@@ -122,6 +123,27 @@ def distill(
         # promote first prior if scenic top is weak
         if not ranked or ranked[0] in _NOISE_HINTS or ranked[0] in _BAD_LEVERS:
             ranked = prior_hits + [f for f in ranked if f not in prior_hits]
+
+
+    # Domain-conditioned lever priors
+    _DOMAIN_PRIORS = {
+        "multi_agent": ["compartment", "isolation", "profile", "agent", "delegation", "credential"],
+        "agent": ["credential", "token", "profile", "cache", "tool", "skill", "session"],
+        "skill": ["skill", "routing", "tool", "model", "procedure"],
+        "model": ["model", "routing", "inference", "eval", "skill"],
+        "system": ["retry", "timeout", "circuit", "cache", "credential", "consumer"],
+        "code": ["retry", "cache", "timeout", "circuit", "auth", "token"],
+        "experience": ["recurring", "catalogue", "recall", "failure"],
+    }
+    dpriors = _DOMAIN_PRIORS.get((domain_hint or "").lower(), [])
+    for dp in reversed(dpriors):
+        if dp in ranked:
+            ranked = [dp] + [x for x in ranked if x != dp]
+            break
+        # soft promote if present in text/features
+        if dp in feats or dp in blob:
+            ranked = [dp] + [x for x in ranked if x != dp]
+            break
 
     actual = ranked[0] if ranked else "insufficient_signal"
     if actual in _BAD_LEVERS or actual in _NOISE_HINTS:

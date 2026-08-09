@@ -176,6 +176,11 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--force", action="store_true")
     s.set_defaults(func=cmd_bootstrap)
 
+    s = sub.add_parser("hygiene", help="Decay fabric noise + densify structural links")
+    s.add_argument("--no-decay", action="store_true")
+    s.add_argument("--no-densify", action="store_true")
+    s.set_defaults(func=cmd_hygiene)
+
     s = sub.add_parser(
         "perceive",
         help="Pattern recognition ability — lever + priors + action hint (primary)",
@@ -404,6 +409,15 @@ def cmd_forge(args: argparse.Namespace) -> int:
 def cmd_bootstrap(args: argparse.Namespace) -> int:
     lat = _lattice(args)
     _print(lat.bootstrap(force=bool(args.force)), as_json=True)
+    return 0
+
+
+def cmd_hygiene(args: argparse.Namespace) -> int:
+    lat = _lattice(args)
+    _print(
+        lat.hygiene(decay=not args.no_decay, densify=not args.no_densify),
+        as_json=True,
+    )
     return 0
 
 

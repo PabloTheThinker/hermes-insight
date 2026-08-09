@@ -106,10 +106,10 @@ def perceive(
     deep_used = False
 
     # Auto-deep when we have substance but weak match
-    need_deep = deep or (
+    need_deep = bool(deep) or (
         (not thin_query)
-        and (not matches or top_score < 0.18)
-        and len(blob) >= 40
+        and top_score < 0.18
+        and len(blob) >= 48
     )
     if need_deep:
         report = lat.cycle(
@@ -186,10 +186,6 @@ def perceive(
 
     if not hops:
         hops = _collect_hops(lat, matches)
-        # if still empty, densify once and retry hops
-        if not hops and matches:
-            densify_structural_links(lat, min_score=0.10)
-            hops = _collect_hops(lat, matches)
 
     hint = _action_hint(lever, matches, conf)
 

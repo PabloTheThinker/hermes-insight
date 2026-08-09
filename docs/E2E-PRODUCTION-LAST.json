@@ -1,5 +1,5 @@
 {
-  "version": "0.7.1",
+  "version": "0.7.2",
   "tmpdir": "$TMP/hinsight-e2e",
   "passed": 44,
   "failed": 0,
@@ -8,13 +8,13 @@
     "db_path": "$TMP/hinsight-e2e/prod.db",
     "agent_id": "e2e-conductor",
     "agent_tier": "conductor",
-    "patterns": 342,
-    "links": 507,
-    "last_brief_line": "lever=`skill` \u00b7 match=`synthesis: skill / rule`@0.54 \u00b7 traj=emerging",
+    "patterns": 340,
+    "links": 496,
+    "last_brief_line": "lever=`skill` \u00b7 match=`rule:skill-model-routing`@0.55 \u00b7 traj=emerging",
     "last_experience_line": "",
     "last_recall_line": "",
     "active_task_id": "",
-    "version": "0.7.1"
+    "version": "0.7.2"
   },
   "fabric_by_kind": {
     "host": 1,

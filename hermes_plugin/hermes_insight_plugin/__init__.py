@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 __plugin_name__ = "hermes-insight"
-__plugin_version__ = "0.7.1"
+__plugin_version__ = "0.7.2"
 
 
 def _cfg() -> dict:
@@ -357,6 +357,18 @@ def handle_insight_connect(args: dict, **kwargs) -> str:
         return _err(str(exc))
 
 
+
+def handle_insight_hygiene(args: dict, **kwargs) -> str:
+    try:
+        lat = _lattice()
+        return _ok(lat.hygiene(
+            decay=bool(args.get("decay", True)),
+            densify=bool(args.get("densify", True)),
+        ))
+    except Exception as exc:  # noqa: BLE001
+        return _err(str(exc))
+
+
 def handle_insight_bootstrap(args: dict, **kwargs) -> str:
     try:
         return _ok(_lattice().bootstrap(force=bool(args.get("force", False))))
@@ -680,7 +692,23 @@ _CONNECT_SCHEMA = {
     },
 }
 
+_HYGIENE_SCHEMA = {
+    "name": "insight_hygiene",
+    "description": (
+        "Maintain the Insight lattice for better recognition: decay unused fabric/code "
+        "noise and densify structural links (rules/skills). Run periodically or after bulk index."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "decay": {"type": "boolean", "default": True},
+            "densify": {"type": "boolean", "default": True},
+        },
+    },
+}
+
 _BOOTSTRAP_SCHEMA = {
+
     "name": "insight_bootstrap",
     "description": "Seed starter agent-field patterns into an empty lattice (safe no-op if already populated).",
     "parameters": {
@@ -812,6 +840,7 @@ def register(ctx) -> None:
     _reg(_TASK_SCHEMA, handle_insight_task, emoji="▣")
     _reg(_CONNECT_SCHEMA, handle_insight_connect, emoji="⟷")
     _reg(_BOOTSTRAP_SCHEMA, handle_insight_bootstrap, emoji="🌱")
+    _reg(_HYGIENE_SCHEMA, handle_insight_hygiene, emoji="🧹")
     _reg(_INGEST_MSG_SCHEMA, handle_insight_ingest_messages, emoji="☰")
 
     # optional prompt injection if host supports it
@@ -823,12 +852,60 @@ def register(ctx) -> None:
             logger.debug("system prompt register skipped", exc_info=True)
 
     if hasattr(ctx, "register_hook"):
-        def _prompt_block(**_kwargs):
-            return _SYSTEM_BLOCK
+        def _on_session_start(**_kwargs):
+            return {"system_prompt_append": _SYSTEM_BLOCK}
 
-        for hook in ("on_session_start", "session_start"):
+        def _on_session_end(**kwargs):
+            """Auto-log completed turns so lived experience accumulates without manual effort."""
             try:
-                ctx.register_hook(hook, lambda **kw: {"system_prompt_append": _SYSTEM_BLOCK})
+                if not kwargs.get("completed"):
+                    return None
+                if kwargs.get("interrupted") or kwargs.get("failed"):
+                    # still useful as failure experience
+                    outcome = "interrupted" if kwargs.get("interrupted") else "failed"
+                else:
+                    outcome = "completed"
+                lat = _lattice()
+                sid = str(kwargs.get("session_id") or "")
+                # de-dupe burst ends on same session turn
+                key = f"{sid}:{kwargs.get('turn_id') or ''}"
+                if lat.store.get_meta("last_auto_session_key", "") == key:
+                    return None
+                platform = str(kwargs.get("platform") or "agent")
+                model = str(kwargs.get("model") or "")
+                title = f"session turn {outcome} ({platform})"
+                body = (
+                    f"platform={platform}\nmodel={model}\n"
+                    f"session={sid[:40]}\nturn={kwargs.get('turn_id') or ''}\n"
+                    f"exit={kwargs.get('turn_exit_reason') or outcome}"
+                )
+                lat.experience(
+                    title=title[:100],
+                    body=body,
+                    kind="episode",
+                    outcome=outcome,
+                    tags=["session", "auto", platform.replace(" ", "_")[:24]],
+                    confidence=0.45 if outcome == "completed" else 0.55,
+                    auto_connect=True,
+                )
+                lat.store.set_meta("last_auto_session_key", key)
+                # light decay occasionally (no densify — densify is heavier)
+                import random
+
+                if random.random() < 0.12:
+                    lat.store.decay_fabric_noise(max_touch=80, min_age_days=0.2)
+            except Exception:
+                logger.debug("insight on_session_end auto-log failed", exc_info=True)
+            return None
+
+        for hook, fn in (
+            ("on_session_start", _on_session_start),
+            ("session_start", _on_session_start),
+            ("on_session_end", _on_session_end),
+            ("session_end", _on_session_end),
+        ):
+            try:
+                ctx.register_hook(hook, fn)
             except Exception:
                 pass
 
@@ -846,7 +923,11 @@ def register(ctx) -> None:
             if sub == "cycle" and len(parts) > 1:
                 r = lat.cycle(parts[1])
                 return r.brief
-            return "Usage: /insight stats|bootstrap|recall <q>|cycle <q>"
+            if sub == "perceive" and len(parts) > 1:
+                return lat.perceive(parts[1]).get("card", "")
+            if sub == "hygiene":
+                return json.dumps(lat.hygiene(), indent=2)
+            return "Usage: /insight stats|bootstrap|perceive <q>|recall <q>|cycle <q>|hygiene"
 
         try:
             ctx.register_command(
