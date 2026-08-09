@@ -1,50 +1,49 @@
 # Hermes Insight plugin
 
-Native Hermes Agent plugin for the **Hermes Insight** pattern-processing harness.
+Native Hermes Agent plugin for **pattern recognition**.
 
 ## Install
 
 ```bash
 pip install hermes-insight   # or: pip install -e /path/to/hermes-insight
 
+# recommended one-shot
+./scripts/install_for_hermes.sh
+
+# manual
 mkdir -p "$HERMES_HOME/plugins"
 cp -R hermes_plugin/hermes_insight_plugin "$HERMES_HOME/plugins/hermes-insight"
 ```
-
-Enable (opt-in list):
 
 ```yaml
 # $HERMES_HOME/config.yaml
 plugins:
   enabled:
-    - hermes-insight
+    - hermes-insight   # merge into existing list
   entries:
     hermes-insight:
-      # optional multi-agent compartment
       agent_id: default
-      # optional override
       # db_path: ${HERMES_HOME}/memories/hermes-insight/insight.db
 ```
 
-Restart the Hermes process / gateway after enabling.
+Restart Hermes / gateway after enabling.
 
-## Tools
+## Primary tool
 
 | Tool | Purpose |
 |------|---------|
-| `insight_cycle` | Full brief (match · distill · trajectory · novelty) |
-| `insight_ingest` | Catalogue title/body or one file |
-| `insight_ingest_tree` | Bulk code-aware tree ingest |
-| `insight_match` | Recognition only |
-| `insight_distill` | Actual variable |
-| `insight_feedback` | Reinforce / weaken |
-| `insight_stats` | Counts + path |
-| `insight_evolve` | Evolution tick |
+| **`insight_perceive`** | Pattern recognition ability — lever + matches + action hint |
+| `insight_task` | Open/close task episodes |
+| `insight_experience` | Log event; auto-connect |
+| `insight_recall` | Fast recall only |
+| `insight_cycle` | Deep multi-lens cycle |
+| `insight_forge` | Maps / playbooks / seeds |
+| `insight_bootstrap` | Seed starter patterns |
 
-Slash: `/insight stats` · `/insight cycle <query>` (when command registration is supported).
+Slash (when supported): `/insight stats` · `/insight recall <q>` · `/insight cycle <q>`
 
 ## Notes
 
-- Independent companion project — **not** an official Nous Research product.
-- Per-profile DB defaults to `$HERMES_HOME/memories/hermes-insight/insight.db`.
-- Multi-agent: set `agent_id` or `--agent` / `HERMES_INSIGHT_AGENT_ID`.
+- Independent companion — **not** an official Nous product  
+- Separate DB per agent compartment  
+- See `docs/ABILITY.md` and `SECURITY.md`

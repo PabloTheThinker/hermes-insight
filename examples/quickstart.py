@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Minimal example: build a tiny lattice and run a cycle."""
+"""Minimal example: perceive a situation with the pattern-recognition ability."""
 
 from __future__ import annotations
 
@@ -12,28 +12,16 @@ from hermes_insight import HermesInsight
 def main() -> None:
     db = Path(tempfile.mkdtemp()) / "ex.db"
     lat = HermesInsight(db_path=db)
+    lat.bootstrap()
 
-    lat.ingest(
-        "singleflight",
-        "Coalesce concurrent recomputes for the same key into one in-flight call.",
-        domain="code",
-        kind="rule",
-        tags=["cache", "singleflight", "coalesce"],
-    )
-    lat.ingest(
-        "thundering herd",
-        "Many clients stampede a backend when a shared resource becomes available.",
-        domain="system",
-        kind="prototype",
-        tags=["stampede", "herd", "load"],
-    )
-
-    report = lat.cycle(
-        "hot key expired and every pod refetched origin at once",
+    card = lat.perceive(
+        "hot cache key expired and every pod refetched origin at once",
         observations=["latency cliff", "origin CPU pegged"],
-        domain="code",
+        log_experience=True,
     )
-    print(report.brief)
+    print(card["card"])
+    print("---")
+    print("hint:", card["action_hint"])
     print("db:", db)
 
 

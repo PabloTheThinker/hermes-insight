@@ -1,25 +1,25 @@
 {
-  "version": "0.6.0",
+  "version": "0.7.0",
   "tmpdir": "$TMP/hinsight-e2e",
-  "passed": 40,
+  "passed": 44,
   "failed": 0,
   "fail_names": [],
   "stats": {
     "db_path": "$TMP/hinsight-e2e/prod.db",
     "agent_id": "e2e-conductor",
     "agent_tier": "conductor",
-    "patterns": 340,
-    "links": 500,
-    "last_brief_line": "lever=`skill` \u00b7 match=`synthesis: skill / agent`@0.54 \u00b7 traj=emerging",
+    "patterns": 341,
+    "links": 510,
+    "last_brief_line": "lever=`skill` \u00b7 match=`synthesis: skill / agent`@0.63 \u00b7 traj=emerging",
     "last_experience_line": "",
     "last_recall_line": "",
     "active_task_id": "",
-    "version": "0.6.0"
+    "version": "0.7.0"
   },
   "fabric_by_kind": {
     "host": 1,
     "processes": 1,
-    "listen": 6,
+    "listen": 4,
     "file": 173,
     "project": 25,
     "model": 1,
@@ -29,5 +29,5 @@
     "skill": 100,
     "hermes": 1
   },
-  "forge_run": "$TMP/hinsight-e2e/forged/20260809T204901Z"
+  "forge_run": "$TMP/hinsight-e2e/forged"
 }

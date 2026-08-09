@@ -197,11 +197,54 @@ def hybrid_score(
     # domain agreement boost
     if domain_hint and pattern.domain.value == domain_hint:
         score = min(1.0, score * 1.08)
+
+    # --- structural pattern recognition priors ---
+    # Prefer rules/prototypes/skills over raw source-file dumps for agent/ops queries.
+    kind = pattern.kind
+    if kind == PatternKind.RULE:
+        score = min(1.0, score + 0.14)
+    elif kind == PatternKind.PROTOTYPE:
+        score = min(1.0, score + 0.10)
+    elif kind == PatternKind.SYNTHESIS:
+        score = min(1.0, score + 0.08)
+    elif kind == PatternKind.SKILL:
+        score = min(1.0, score + 0.07)
+    elif kind in (PatternKind.EVENT, PatternKind.EPISODE, PatternKind.TASK):
+        # lived experience — recency-weighted
+        import time as _time
+
+        age_h = max(0.0, (_time.time() - float(pattern.updated_at or pattern.created_at or 0)) / 3600.0)
+        recency = 0.12 * math.exp(-age_h / 72.0)  # half-life ~ days
+        score = min(1.0, score + 0.05 + recency)
+    elif kind in (PatternKind.FEATURE,):
+        score = min(1.0, score + 0.02)
+
+    tags = set(stem_token(x) for x in (pattern.tags or []))
+    if "starter" in tags or "bootstrap" in tags:
+        score = min(1.0, score + 0.06)
+    if "experience" in tags:
+        score = min(1.0, score + 0.04)
+    if "fabric" in tags and kind not in (PatternKind.RULE, PatternKind.PROTOTYPE, PatternKind.SKILL):
+        # fabric file nodes are structural inventory, not usually the lever
+        score *= 0.92
+
+    title_l = pattern.title.lower()
+    # demote bare source filenames unless query is clearly about that file
+    if re.search(r"\.(py|ts|tsx|js|go|rs|md)$", title_l) or title_l.startswith("skill:"):
+        q_l = query.lower()
+        base = title_l.split("/")[-1]
+        if base not in q_l and title_l not in q_l:
+            if kind not in (PatternKind.SKILL, PatternKind.RULE, PatternKind.PROTOTYPE):
+                score *= 0.82
+
     # path/module keywords in query
-    if any(x in query.lower() for x in ("plugin", "tool", "cron", "profile", "skill")):
-        title_l = pattern.title.lower()
-        if any(k in title_l for k in ("plugin", "tool", "cron", "profile", "skill", "gateway", "registry")):
-            score = min(1.0, score + 0.05)
+    if any(x in query.lower() for x in ("plugin", "tool", "cron", "profile", "skill", "gateway", "credential", "agent")):
+        if any(k in title_l for k in ("plugin", "tool", "cron", "profile", "skill", "gateway", "registry", "credential", "agent", "consumer")):
+            score = min(1.0, score + 0.06)
+
+    # use_count soft prior — patterns that paid rent before
+    if pattern.use_count:
+        score = min(1.0, score + min(0.06, 0.01 * math.log1p(pattern.use_count)))
 
     method = "hybrid"
     dominant = max(("template", t), ("prototype", p), ("feature", f), key=lambda x: x[1])

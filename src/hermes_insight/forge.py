@@ -304,7 +304,7 @@ def build_transfer_pack(insight: Any) -> str:
         "|------|----|-----|",
         "| listen isolation (single consumer) | multi-agent lattices | same shape: one credential → one compartment |",
         "| project hub density | revenue products | attention mass often marks where value already concentrates |",
-        "| hermes plugin surface | client agents | factory pattern: package what works for ILO into seats |",
+        "| hermes plugin surface | specialized agents | factory pattern: package what works into profile seats |",
         "| code retry/circuit rules | ops listen health | failure modes rhyme across software and process planes |",
         "",
         "## One transfer challenge",
@@ -329,7 +329,20 @@ def build_invention_seeds(insight: Any) -> str:
 
     seeds = []
 
-    commercial_hints = ("vektra", "pay", "zp3", "roof", "salon", "desk", "commerce", "hire", "employee")
+    commercial_hints = (
+        "pay",
+        "commerce",
+        "hire",
+        "employee",
+        "billing",
+        "checkout",
+        "saas",
+        "customer",
+        "sales",
+        "desk",
+        "shop",
+        "store",
+    )
     commercial = [
         p
         for p in projects

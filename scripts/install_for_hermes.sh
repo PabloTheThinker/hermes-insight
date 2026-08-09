@@ -3,7 +3,7 @@
 # Usage:
 #   ./scripts/install_for_hermes.sh
 #   HERMES_HOME=~/.hermes/profiles/client ./scripts/install_for_hermes.sh
-#   ./scripts/install_for_hermes.sh --agent ridge --tier client
+#   ./scripts/install_for_hermes.sh --agent worker1 --tier worker
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

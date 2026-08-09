@@ -1,15 +1,26 @@
 #!/usr/bin/env python3
-"""Refresh agent-field index + forge (no dangerous shell keywords)."""
+"""Refresh agent-field index + forge for the current HERMES_HOME (generic)."""
+from __future__ import annotations
+
+import os
 from pathlib import Path
+
 from hermes_insight import HermesInsight
 
-DB = Path.home() / ".hermes/memories/hermes-insight/agents/ilo.insight.db"
-HH = Path.home() / ".hermes"
-lat = HermesInsight(db_path=str(DB))
+home = Path(os.environ.get("HERMES_HOME", Path.home() / ".hermes")).expanduser()
+agent = (os.environ.get("HERMES_INSIGHT_AGENT_ID") or "").strip()
+mem = home / "memories" / "hermes-insight"
+if agent:
+    db = mem / "agents" / f"{agent}.insight.db"
+else:
+    db = mem / "insight.db"
+db.parent.mkdir(parents=True, exist_ok=True)
 
-print("index_server hermes home…")
+lat = HermesInsight(db_path=str(db), agent_id=agent or None)
+
+print("index_server hermes home…", home)
 rep = lat.index_server(
-    roots=[str(HH)],
+    roots=[str(home)],
     include_files=False,
     include_connections=True,
     include_processes=False,
@@ -25,16 +36,10 @@ fr = lat.forge(products=["map", "predict", "invent", "playbooks"])
 print("run", fr.get("run_dir"))
 print("synth", fr.get("synthesis_ids"))
 
-r = lat.cycle(
+r = lat.perceive(
     "How should multi-agent profiles share a model route without leaking client skills?",
     domain="multi_agent",
-    evolve=False,
+    deep=True,
 )
-print("=== BRIEF ===")
-print(r.brief[:2000])
-
-run = Path(fr["run_dir"])
-print("=== MAP HEAD ===")
-print((run / "01-orientation-map.md").read_text()[:1500])
-print("=== INVENT HEAD ===")
-print((run / "04-invention-seeds.md").read_text()[:1600])
+print("=== PERCEIVE CARD ===")
+print(r.get("card", "")[:2000])

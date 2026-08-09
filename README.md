@@ -1,74 +1,36 @@
 # Hermes Insight
 
-**Pattern harness for the AI agent / model field** — agents, models, tools, skills, multi-agent compartments, fabric index, Pattern Forge, and an **experience layer** so any Hermes agent can connect tasks & events to structure faster.
+**Pattern recognition ability for AI agents** — a local structural lattice that matches, links, distills, and learns from experience.
 
 Standalone Python library + CLI. **No cloud dependency.** Optional [Hermes Agent](https://github.com/NousResearch/hermes-agent) skill + native plugin.
 
-> **Name note:** *Hermes Insight* is an independent companion for the Hermes community. It is **not** an official Nous Research product.
-
-Built for what Hermes/agent builders keep asking for: **walkable structure**, **multi-agent compartments**, **skill/model routing signal**, **fleet maps**, a **forge loop**, and **lived experience → pattern links** so agents stop rediscovering the same failure every session. See [docs/COMMUNITY.md](docs/COMMUNITY.md) · [docs/EXPERIENCE.md](docs/EXPERIENCE.md).
+> **Not an official Nous Research product.** Independent companion for the Hermes community.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
 
-## Production check
+## Why
 
-```bash
-pip install -e ".[dev]"
-python3 scripts/production_e2e.py
-```
+Agents are strong at next-token reasoning and weak at **durable structural memory**:
 
-## Install on any Hermes agent (one command)
+- same failure rediscovered every session  
+- no “what is the actual variable?”  
+- no lived time binding events → rules  
 
-```bash
-./scripts/install_for_hermes.sh
-# profile / client compartment:
-HERMES_HOME=~/.hermes/profiles/myagent ./scripts/install_for_hermes.sh --agent myagent
-```
-
-Installs package + skill + plugin, merges config safely, bootstraps starter patterns.
-
-### Agent loop (the product)
-
-```text
-insight_recall  →  insight_task open  →  insight_experience*  →  insight_task close
-                         └──────── insight_cycle (if novel) ────────┘
-```
-
-| Tool | Job |
-|------|-----|
-| `insight_recall` | Fast priors + lived echoes + hops **before** acting |
-| `insight_task` | Open/close task episodes (`task_id` chains events) |
-| `insight_experience` | Log event/episode; **auto-connect** to matching patterns |
-| `insight_connect` | Explicit “same shape as X” or free-text auto-link |
-| `insight_cycle` | Deep multi-lens cycle when the scene is novel |
-| `insight_forge` | Turn lattice into maps / playbooks / invention seeds |
+Hermes Insight is that missing layer: **encode → match → link → distill → perceive → reinforce**.
 
 ---
 
-## Why this exists
-
-Pattern recognition is not “one embedding distance.” Agents need durable structural memory with lateral hops **and** lived time. Hermes Insight is that harness (SPP-inspired — see [`docs/RESEARCH.md`](docs/RESEARCH.md)). Not a diagnostic tool.
-
----
-
-## Quick start
+## 30-second ability
 
 ```bash
-git clone https://github.com/PabloTheThinker/hermes-insight.git
-cd hermes-insight
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
-
-hermes-insight demo
+pip install -e ".[dev]"   # or: pip install hermes-insight
 export HERMES_INSIGHT_DB=./my-insight.db
+
 hermes-insight bootstrap
-hermes-insight recall "two gateway workers share one bot token"
-hermes-insight task open --name fix-conflict --goal "getUpdates 409"
-# … work …
-hermes-insight experience "saw conflict" "second consumer still polling" --task-id TID
-hermes-insight task close --task-id TID --outcome fixed --summary "single consumer rule"
+hermes-insight perceive "two workers share one bot token; long-poll conflicts" \
+  -o "409 from getUpdates" --log
 ```
 
 ```python
@@ -76,26 +38,63 @@ from hermes_insight import HermesInsight
 
 lat = HermesInsight(db_path="./my-insight.db")
 lat.bootstrap()
-print(lat.recall("dependency errors cascading after deploy")["brief"])
-t = lat.open_task("stop retry storm", goal="pages after deploy")
-lat.experience("retries without jitter", "amplified load", task_id=t["task_id"])
-lat.close_task(t["task_id"], outcome="fixed", summary="jitter + circuit breaker")
+print(lat.perceive(
+    "two workers share one bot token; long-poll conflicts",
+    observations=["409 from getUpdates"],
+    log_experience=True,
+)["card"])
+```
+
+Returns: **lever**, **top structures**, **lived echoes**, **action hint**.
+
+---
+
+## Install on any Hermes agent
+
+```bash
+./scripts/install_for_hermes.sh
+# profile / named agent:
+HERMES_HOME=~/.hermes/profiles/myagent ./scripts/install_for_hermes.sh --agent myagent
+```
+
+Enables plugin tools. **Primary tool:** `insight_perceive`.
+
+| Tool | Role |
+|------|------|
+| **`insight_perceive`** | Default ability — lever + matches + hint |
+| `insight_task` | Open/close multi-step episodes |
+| `insight_experience` | Log events; auto-link to patterns |
+| `insight_recall` | Fast-only recall |
+| `insight_cycle` | Deep multi-lens cycle |
+| `insight_forge` | Maps / playbooks / invention seeds |
+
+Doctrine: see [docs/ABILITY.md](docs/ABILITY.md) · [docs/EXPERIENCE.md](docs/EXPERIENCE.md).
+
+---
+
+## Production check
+
+```bash
+pip install -e ".[dev]"
+pytest -q
+./scripts/check_isolation.sh
+python3 scripts/production_e2e.py
 ```
 
 ---
 
-## Pattern Forge + server fabric
+## Privacy
 
-```bash
-hermes-insight index-server
-hermes-insight forge
-```
+- Local SQLite only; separate DB per agent compartment  
+- Scrubber redacts secret-shaped strings and skips `.env`  
+- Public tree must pass `scripts/check_isolation.sh`  
+- See [SECURITY.md](SECURITY.md)
 
 ---
 
 ## Status
 
-`0.6.0` — experience layer (recall/task/experience/connect), any-agent install script, starter bootstrap, expanded plugin tools.
+`0.7.0` — `perceive` ability, structural match priors, experience layer, any-agent install, public isolation gate.
 
 ## License
 

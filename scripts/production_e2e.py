@@ -165,6 +165,23 @@ def main() -> int:
     gate("experience_autoconnnect", isinstance(ex.get("connected"), list), str(len(ex.get("connected") or [])))
     closed = boot.close_task(tid, outcome="fixed", summary="single consumer restored")
     gate("task_close", closed.get("success") is True, closed.get("outcome", ""))
+    perc = boot.perceive(
+        "two gateway workers share one bot credential and long-poll conflicts",
+        observations=["409 conflict"],
+        domain="agent",
+    )
+    gate("perceive_card", "Pattern recognition" in (perc.get("card") or ""), perc.get("lever", ""))
+    gate("perceive_hint", bool(perc.get("action_hint")), str(perc.get("action_hint", ""))[:80])
+    gate(
+        "perceive_structural_top",
+        bool(perc.get("matches"))
+        and (
+            "credential" in (perc["matches"][0].get("title") or "").lower()
+            or "consumer" in (perc["matches"][0].get("title") or "").lower()
+            or float(perc["matches"][0].get("score") or 0) >= 0.2
+        ),
+        str((perc.get("matches") or [{}])[0].get("title")),
+    )
     # plugin experience handlers
     try:
         import importlib.util
@@ -178,8 +195,15 @@ def main() -> int:
         spec.loader.exec_module(mod)
         rr = json.loads(mod.handle_insight_recall({"query": "bot credential conflict"}))
         gate("plugin_recall", rr.get("success") is True and "brief" in (rr.get("data") or {}))
+        pr = json.loads(
+            mod.handle_insight_perceive(
+                {"situation": "bot credential conflict dual consumer", "domain": "agent"}
+            )
+        )
+        gate("plugin_perceive", pr.get("success") is True and "card" in (pr.get("data") or {}))
     except Exception as exc:  # noqa: BLE001
         gate("plugin_recall", False, str(exc))
+        gate("plugin_perceive", False, str(exc))
 
     # --- 6 forge products ---
     fr = lat.forge(out_dir=str(out), write_synthesis=True)
@@ -220,20 +244,23 @@ def main() -> int:
     ]
     gate("scrub_no_private_keys", not any(bad))
     # ensure scrubber works on synthetic leak
-    dirty = "api_key=sk-abcdefghijklmnopqrstuv password=supersecret /home/someone/x"
+    dirty = "api_key=sk-abcdefghijklmnopqrstuv password=supersecret path=/Users/someone/x"
     clean = scrub_text(dirty)
-    gate("scrub_function", "sk-abcdefghijklmnop" not in clean and "supersecret" not in clean)
+    gate(
+        "scrub_function",
+        "sk-abcdefghijklmnopqrstuv" not in clean and "supersecret" not in clean,
+        clean[:120],
+    )
 
     # --- 9 plugin handler smoke ---
     try:
         import importlib.util
+        import os
 
         plug = Path(__file__).resolve().parents[1] / "hermes_plugin" / "hermes_insight_plugin" / "__init__.py"
         spec = importlib.util.spec_from_file_location("hi_plug_e2e", plug)
         mod = importlib.util.module_from_spec(spec)
         assert spec and spec.loader
-        import os
-
         os.environ["HERMES_INSIGHT_DB"] = str(db)
         spec.loader.exec_module(mod)
         st = json.loads(mod.handle_insight_stats({}))
@@ -265,9 +292,15 @@ def main() -> int:
     }
     summary_path = root / "E2E-SUMMARY.json"
     summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-    # durable copy under project
+    # durable copy under project (paths scrubbed for public tree)
     durable = Path(__file__).resolve().parents[1] / "docs" / "E2E-PRODUCTION-LAST.json"
-    durable.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    pub = dict(summary)
+    pub["tmpdir"] = "$TMP/hinsight-e2e"
+    if isinstance(pub.get("stats"), dict):
+        pub["stats"] = dict(pub["stats"])
+        pub["stats"]["db_path"] = "$TMP/hinsight-e2e/prod.db"
+    pub["forge_run"] = "$TMP/hinsight-e2e/forged"
+    durable.write_text(json.dumps(pub, indent=2) + "\n", encoding="utf-8")
     print("=== SUMMARY ===")
     print(json.dumps(summary, indent=2))
     print(f"durable={durable}")

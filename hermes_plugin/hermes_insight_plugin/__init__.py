@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 __plugin_name__ = "hermes-insight"
-__plugin_version__ = "0.6.0"
+__plugin_version__ = "0.7.0"
 
 
 def _cfg() -> dict:
@@ -364,6 +364,30 @@ def handle_insight_bootstrap(args: dict, **kwargs) -> str:
         return _err(str(exc))
 
 
+def handle_insight_perceive(args: dict, **kwargs) -> str:
+    """Primary pattern-recognition ability for any Hermes agent."""
+    try:
+        lat = _lattice()
+        obs = args.get("observations") or []
+        if isinstance(obs, str):
+            obs = [obs]
+        return _ok(
+            lat.perceive(
+                str(args.get("situation") or args.get("query") or ""),
+                observations=list(obs),
+                domain=args.get("domain"),
+                limit=int(args.get("limit") or 8),
+                log_experience=bool(args.get("log", False) or args.get("log_experience", False)),
+                experience_title=args.get("title"),
+                task_id=args.get("task_id"),
+                deep=bool(args.get("deep", False)),
+            )
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("insight_perceive failed")
+        return _err(str(exc))
+
+
 def handle_insight_ingest_messages(args: dict, **kwargs) -> str:
     try:
         msgs = args.get("messages") or []
@@ -665,6 +689,47 @@ _BOOTSTRAP_SCHEMA = {
     },
 }
 
+_PERCEIVE_SCHEMA = {
+    "name": "insight_perceive",
+    "description": (
+        "PRIMARY pattern-recognition ability. Call when you need to understand a situation "
+        "structurally: returns the controlling lever, top matching patterns, lived echoes, "
+        "graph hops, and an action hint. Prefer this over inventing root cause from scratch. "
+        "Set log=true to also catalogue the scene for future recall. Set deep=true for a "
+        "full cognitive cycle when the scene looks novel."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "situation": {
+                "type": "string",
+                "description": "What you see / the problem / the decision",
+            },
+            "query": {"type": "string", "description": "Alias for situation"},
+            "observations": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Extra facts: errors, metrics, user quotes",
+            },
+            "domain": {"type": "string"},
+            "limit": {"type": "integer", "default": 8},
+            "log": {
+                "type": "boolean",
+                "default": False,
+                "description": "Also log as experience (connects for next time)",
+            },
+            "deep": {
+                "type": "boolean",
+                "default": False,
+                "description": "Force full cycle if scene may be novel",
+            },
+            "task_id": {"type": "string"},
+            "title": {"type": "string", "description": "Optional experience title when log=true"},
+        },
+        "required": ["situation"],
+    },
+}
+
 _INGEST_MSG_SCHEMA = {
     "name": "insight_ingest_messages",
     "description": (
@@ -687,18 +752,23 @@ _INGEST_MSG_SCHEMA = {
 }
 
 
-_SYSTEM_BLOCK = """## Hermes Insight (pattern recognition)
-You have structural pattern-processing tools (`insight_*`). Use them to connect experience faster:
+_SYSTEM_BLOCK = """## Hermes Insight — pattern recognition ability
+You have structural pattern-processing tools (`insight_*`).
 
-**Every multi-step or recurring task:**
-1. `insight_recall` FIRST with the problem/goal (priors + lived echoes + hops).
-2. `insight_task` action=open when starting multi-step work (keep task_id).
-3. `insight_experience` after meaningful events, failures, fixes, decisions.
-4. `insight_task` action=close with outcome+summary when done (reinforces what worked).
-5. `insight_cycle` for deep root-cause when recall is thin or the scene is novel.
-6. `insight_feedback` / close-task reinforce patterns that paid rent.
+**Default ability (use this):**
+- `insight_perceive` — ONE call: lever + matching structures + lived echoes + action hint.
+  Use before hard debugging, architecture choices, or recurring failures.
+  Set log=true after a meaningful scene so the next session is faster.
+  Set deep=true when the scene looks novel.
 
-**Also:** index fabric (`insight_index_server` / `insight_index_path`), then `insight_forge` to turn connections into maps/playbooks. Distill the actual variable; do not force-fit novelty. Secrets are scrubbed — never paste raw credentials.
+**Multi-step work:**
+1. insight_perceive (situation)
+2. insight_task open (keep task_id)
+3. insight_experience after events/fixes
+4. insight_task close with outcome (reinforces patterns)
+
+**Also:** insight_recall (fast only), insight_cycle (deep only), fabric index + insight_forge.
+Distill the actual variable; do not force-fit novelty. Never paste raw credentials.
 """
 
 
@@ -735,7 +805,8 @@ def register(ctx) -> None:
     _reg(_INDEX_CONN_SCHEMA, handle_insight_index_connections)
     _reg(_FABRIC_STATS_SCHEMA, handle_insight_fabric_stats)
     _reg(_FORGE_SCHEMA, handle_insight_forge)
-    # Experience path — any agent can improve PR mid-task
+    # Primary ability + experience path
+    _reg(_PERCEIVE_SCHEMA, handle_insight_perceive, emoji="◈")
     _reg(_RECALL_SCHEMA, handle_insight_recall, emoji="◎")
     _reg(_EXPERIENCE_SCHEMA, handle_insight_experience, emoji="◉")
     _reg(_TASK_SCHEMA, handle_insight_task, emoji="▣")

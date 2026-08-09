@@ -1,43 +1,35 @@
 # Changelog
 
+## 0.7.0 — 2026-08-09
+
+- **`perceive` ability** — one-call pattern recognition (lever + structures + action hint)
+- Plugin tool **`insight_perceive`** as the default agent ability
+- Stronger **structural match priors** (rules/prototypes over bare source files; experience recency)
+- Public hygiene: SECURITY.md, CONTRIBUTING.md, isolation gate, scrub house fingerprints from forge
+- docs/ABILITY.md · skill 0.7 doctrine · any-user install examples
+
 ## 0.6.0 — 2026-08-09
 
-- **Experience layer** — `recall`, `experience`, `open_task` / `close_task`, `connect`, `ingest_messages`
-- Auto-link lived events to structural patterns (`experienced_as` / `instance_of`) + temporal `next` chains
-- Starter **bootstrap** patterns so any fresh agent lattice can match immediately
-- Plugin tools: `insight_recall`, `insight_experience`, `insight_task`, `insight_connect`, `insight_bootstrap`, `insight_ingest_messages`
-- Stronger plugin system prompt: recall → task → experience → close loop
-- CLI: `bootstrap`, `recall`, `experience`, `task`, `connect`
-- `scripts/install_for_hermes.sh` — one-command install for any Hermes home/profile
-- docs/EXPERIENCE.md · skill 0.6 doctrine
+- Experience layer — recall, experience, open_task/close_task, connect, ingest_messages
+- Auto-link lived events; temporal `next` chains; bootstrap starters
+- Plugin tools + CLI + `install_for_hermes.sh`
+- docs/EXPERIENCE.md
 
 ## 0.5.1 — 2026-08-09
 
-- Intense production E2E script (`scripts/production_e2e.py`) — 32 gates
-- Community fit doc from X/Hermes builder demand (`docs/COMMUNITY.md`)
-- README production check + positioning for Hermes community
+- Production E2E script + community fit doc
 
 ## 0.5.0 — 2026-08-09
 
-- Agent/model field ontology (domains, kinds, links, synonyms)
-- Fabric indexes skills, plugins, profiles, tools, model routes
-- Briefs + forge language refocused on AI agents and multi-agent structure
-- docs/AGENT_FIELD.md
+- Agent/model field ontology; fabric indexes skills/plugins/profiles/tools/models
 
 ## 0.4.0 — 2026-08-09
 
-- **Pattern Forge** — forge new products from connections (map/predict/transfer/invent/playbooks/watch)
-- CLI `forge`, plugin `insight_forge`
-- Live forge on host fabric produced invention seeds + playbooks
+- Pattern Forge (map/predict/transfer/invent/playbooks/watch)
 
 ## 0.3.0 — 2026-08-09
 
-- Server fabric indexer: projects, files, Hermes metadata, listening connections, processes
-- Secret/fingerprint scrubbing before catalogue
-- CLI: index-server, index-path, index-connections, fabric-stats
-- Plugin tools: insight_index_server, insight_index_path, insight_index_connections, insight_fabric_stats
-- Fixed ss listen parsing (Netid State format)
-- Live host index: 48 projects, 383+ files, listen nodes, hermes runtime
+- Server fabric indexer + scrubbing
 
 ## 0.2.0 — 2026-08-09
 
@@ -45,4 +37,4 @@
 
 ## 0.1.0 — 2026-08-09
 
-- Initial Hermes Insight release
+- Initial release

@@ -45,7 +45,7 @@ pip install -e ".[dev]"
 python3 scripts/production_e2e.py
 ```
 
-Last full run (see `docs/E2E-PRODUCTION-LAST.json`): **32/32 gates PASS** on v0.5.0 — boot, seed, multi-agent isolation, fabric index (skills/plugins/models/listens), agent-field cycles, forge artifacts, feedback, scrub, plugin handlers, export.
+Last full run (see `docs/E2E-PRODUCTION-LAST.json`): production gates on latest tag — boot, seed, multi-agent isolation, fabric index, perceive/experience, agent-field cycles, forge artifacts, feedback, scrub, plugin handlers, export.
 
 ## 60-second community install
 
@@ -57,14 +57,14 @@ export HERMES_INSIGHT_DB="$HERMES_HOME/memories/hermes-insight/insight.db"
 cp -R hermes_plugin/hermes_insight_plugin "$HERMES_HOME/plugins/hermes-insight"
 # enable hermes-insight under plugins.enabled + restart Hermes
 
-hermes-insight index-server
+hermes-insight bootstrap
+hermes-insight perceive "how should profiles share a model without leaking client skills?"
 hermes-insight forge
-hermes-insight cycle "how should profiles share a model without leaking client skills?"
 ```
 
 ## Positioning one-liner (for X / Discord)
 
-> **Hermes Insight** — structural pattern graph for the AI agent field: index agents/models/tools/skills, link the fleet, distill the controlling variable, forge maps & invention seeds. Companion plugin for Hermes Agent.
+> **Hermes Insight** — pattern recognition ability for agents: perceive situations, distill the controlling variable, connect experience, forge maps. Companion plugin for Hermes Agent.
 
 ## Honest non-goals
 

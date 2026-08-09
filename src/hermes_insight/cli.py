@@ -176,6 +176,18 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--force", action="store_true")
     s.set_defaults(func=cmd_bootstrap)
 
+    s = sub.add_parser(
+        "perceive",
+        help="Pattern recognition ability — lever + priors + action hint (primary)",
+    )
+    s.add_argument("situation")
+    s.add_argument("-o", "--observation", action="append", default=[])
+    s.add_argument("--domain", default=None)
+    s.add_argument("-n", "--limit", type=int, default=8)
+    s.add_argument("--log", action="store_true", help="Also catalogue as experience")
+    s.add_argument("--deep", action="store_true", help="Force deep cycle if thin")
+    s.set_defaults(func=cmd_perceive)
+
     s = sub.add_parser("recall", help="Fast pre-action recall (priors + experiences + hops)")
     s.add_argument("query")
     s.add_argument("-n", "--limit", type=int, default=8)
@@ -392,6 +404,23 @@ def cmd_forge(args: argparse.Namespace) -> int:
 def cmd_bootstrap(args: argparse.Namespace) -> int:
     lat = _lattice(args)
     _print(lat.bootstrap(force=bool(args.force)), as_json=True)
+    return 0
+
+
+def cmd_perceive(args: argparse.Namespace) -> int:
+    lat = _lattice(args)
+    pack = lat.perceive(
+        args.situation,
+        observations=args.observation,
+        domain=args.domain,
+        limit=args.limit,
+        log_experience=bool(args.log),
+        deep=bool(args.deep),
+    )
+    if args.json:
+        _print(pack, as_json=True)
+    else:
+        print(pack.get("card") or pack.get("brief") or json.dumps(pack, indent=2))
     return 0
 
 

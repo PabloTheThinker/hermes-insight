@@ -457,6 +457,33 @@ class HermesInsight:
     # Experience — tasks, events, fast recall (any Hermes agent path)
     # ------------------------------------------------------------------
 
+    def perceive(
+        self,
+        situation: str,
+        *,
+        observations: Optional[Sequence[str]] = None,
+        domain: Optional[str] = None,
+        limit: int = 8,
+        log_experience: bool = False,
+        experience_title: Optional[str] = None,
+        task_id: Optional[str] = None,
+        deep: bool = False,
+    ) -> Dict[str, Any]:
+        """Pattern recognition ability — one call for lever + priors + action hint."""
+        from hermes_insight.ability import perceive as _perceive
+
+        return _perceive(
+            self,
+            situation,
+            observations=observations,
+            domain=domain,
+            limit=limit,
+            log_experience=log_experience,
+            experience_title=experience_title,
+            task_id=task_id,
+            deep=deep,
+        )
+
     def bootstrap(self, *, force: bool = False) -> Dict[str, Any]:
         """Seed starter agent-field patterns so a fresh lattice can match."""
         from hermes_insight.experience import seed_agent_starters
