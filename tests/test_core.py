@@ -194,3 +194,15 @@ def test_plugin_handlers_smoke(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
     assert out3["success"] is True
     assert "brief" in out3["data"]
+    out4 = json.loads(
+        mod.handle_insight_plan(
+            {
+                "situation": "timeouts amplify retry load",
+                "observations": ["clients lack jitter"],
+                "domain": "code",
+            }
+        )
+    )
+    assert out4["success"] is True
+    assert out4["data"]["ability"] == "experience_grounded_planning"
+    assert out4["data"]["workflow"]

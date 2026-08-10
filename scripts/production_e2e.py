@@ -244,11 +244,12 @@ def main() -> int:
     ]
     gate("scrub_no_private_keys", not any(bad))
     # ensure scrubber works on synthetic leak
-    dirty = "api_key=sk-abcdefghijklmnopqrstuv password=supersecret path=/Users/someone/x"
+    synthetic_key = "sk-" + "abcdefghijklmnopqrstuv"
+    dirty = f"api_key={synthetic_key} password=supersecret path=/Users/someone/x"
     clean = scrub_text(dirty)
     gate(
         "scrub_function",
-        "sk-abcdefghijklmnopqrstuv" not in clean and "supersecret" not in clean,
+        synthetic_key not in clean and "supersecret" not in clean,
         clean[:120],
     )
 
