@@ -24,6 +24,7 @@ Standalone Python library + CLI. **Zero cloud dependency.** Optional native plug
 
 <table>
 <tr><td><b>One-call ability</b></td><td><code>insight_perceive</code> — lever, top structures, lived echoes, action hint, <code>usable</code> flag.</td></tr>
+<tr><td><b>Experience-grounded plan</b></td><td><code>insight_plan</code> — rank rules, skills, and local affordances using explicit success/failure evidence.</td></tr>
 <tr><td><b>Lived time</b></td><td>Events, episodes, and tasks auto-link to structural rules so experience compounds across sessions.</td></tr>
 <tr><td><b>Structural priors</b></td><td>Rules and starters outrank random source-file noise; thin queries refuse instead of hallucinating.</td></tr>
 <tr><td><b>Any Hermes seat</b></td><td>Install script for default home or any profile — separate SQLite DB per trust boundary.</td></tr>
@@ -73,6 +74,8 @@ Then reload Hermes so `insight_*` tools appear. The installer **merges** `hermes
 hermes-insight bootstrap
 hermes-insight perceive "two workers share one bot token; long-poll conflicts" \
   -o "409 from getUpdates" --log
+hermes-insight plan "stabilize the duplicate-consumer failure" \
+  -o "409 from getUpdates"
 ```
 
 ```python
@@ -104,14 +107,15 @@ hinsight perceive "…"                 # short alias
 ### Default agent loop
 
 ```text
-insight_perceive  →  (optional) insight_task open  →  insight_experience*  →  insight_task close
-        │                         │
-        └──── act on lever + top rule + action_hint ────┘
+insight_perceive → insight_plan? → insight_task open → insight_experience* → insight_task close
+        │                │                  │                        │
+        └─ lever/rule ───┴─ ranked route ──┴─ act + observe ────────┴─ outcome credit
 ```
 
 | Tool | Role |
 |------|------|
 | **`insight_perceive`** | Primary ability — lever, structures, hint, `usable` |
+| **`insight_plan`** | Ranked rules/skills/affordances + auditable outcome evidence |
 | `insight_task` | Open/close multi-step episodes (`task_id`) |
 | `insight_experience` | Log events; auto-link to patterns |
 | `insight_recall` | Fast priors only |
@@ -156,6 +160,7 @@ encode → match → link → distill → perceive → reinforce
 5. **Experience layer** — events / episodes / tasks with `instance_of`, `experienced_as`, `next` links  
 6. **Starters** — bootstrap agent-field priors (credentials, cache, isolation, retry storms, skill routing, mesh/DNS, …)  
 7. **Hygiene** — decay unused fabric; densify links; weaken session-auto noise  
+8. **Experience-grounded planning** — rank workflows from relevance + explicitly attributed task outcomes
 
 ### Perceive card (what you act on)
 
@@ -215,6 +220,7 @@ Env overrides: `HERMES_INSIGHT_DB`, `HERMES_INSIGHT_AGENT_ID`, `HERMES_INSIGHT_A
 | Document | What’s covered |
 |----------|----------------|
 | **[Agent Guide](docs/AGENT-GUIDE.md)** | Deep manual for Hermes agents — ontology, pipeline, doctrine, install, examples |
+| **[Experience-grounded intuition](docs/INTUITION.md)** | Research, AgentDrive comparison, planner design, and roadmap |
 | [Ability](docs/ABILITY.md) | Short ability card |
 | [Experience](docs/EXPERIENCE.md) | Tasks, events, recall loop |
 | [Security](SECURITY.md) | Privacy, compartments, isolation |
@@ -249,9 +255,10 @@ Requires **Python 3.10+**. Core runtime dependencies: none beyond the standard l
 
 ## Status
 
-**0.7.x** — production-shaped alpha for companion use:
+**0.8.x** — production-shaped alpha for companion use:
 
 - `perceive` ability and experience layer  
+- `plan` ability with explicit applied-pattern outcome attribution
 - Structural match priors and candidate-pool performance  
 - Mesh/network starters and session-noise hygiene  
 - Any-agent install path and public isolation gate  

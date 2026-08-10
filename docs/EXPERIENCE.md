@@ -20,21 +20,24 @@ The experience layer adds:
 ## Agent loop
 
 ```text
-recall(query)  →  open_task  →  experience*  →  close_task
-                      │              │
-                      └──── connect ─┘
+recall(query) → plan(query)? → open_task → experience* → close_task(used patterns)
+                     │                         │                    │
+                     └──── ranked route ───────┴──── applied outcome
 ```
 
 1. **recall** — hybrid match + experience echoes + neighbor hops + lever brief  
 2. **open_task** — seeds starters if empty; returns priors + `task_id`  
 3. **experience** — catalogues body, auto-links top structural matches, chains `next` within task  
-4. **close_task** — outcome episode; reinforces matched patterns on success  
+4. **plan** — ranks applicable rules/skills and local affordances using explicit outcomes
+5. **close_task** — outcome episode; `used_pattern_ids` attributes evidence to what was
+   actually applied
 
 ## Tools (plugin)
 
 - `insight_recall`
 - `insight_experience`
 - `insight_task` (`open`|`close`)
+- `insight_plan`
 - `insight_connect`
 - `insight_bootstrap`
 - `insight_ingest_messages`

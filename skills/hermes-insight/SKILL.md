@@ -1,7 +1,7 @@
 ---
 name: hermes-insight
 description: "Use when an agent needs pattern recognition — perceive situations, distill levers, connect experience, match structures."
-version: "0.7.4"
+version: "0.8.0"
 author: Pablo Navarro
 license: MIT
 metadata:
@@ -57,12 +57,13 @@ Reload Hermes after enabling so `insight_*` tools appear.
 **Call `insight_perceive` first** with the situation (+ optional observations).
 
 ```text
-insight_perceive → (optional) insight_task open → insight_experience* → insight_task close
+insight_perceive → insight_plan? → insight_task open → insight_experience* → insight_task close
 ```
 
 | Tool | When |
 |------|------|
 | **insight_perceive** | Default — lever + structures + action hint + `usable` |
+| **insight_plan** | Consequential work — ranked patterns/skills/tools + outcome evidence |
 | insight_task | Multi-step work (`open` / `close`) |
 | insight_experience | After events/fixes |
 | insight_cycle | Explicit deep analysis |
@@ -70,6 +71,8 @@ insight_perceive → (optional) insight_task open → insight_experience* → in
 | insight_hygiene | Decay fabric noise; densify links |
 
 Set `log=true` on perceive (or use experience) so the **next** session is faster.
+When closing a planned task, pass only the `used_pattern_ids` actually applied so future
+plans learn from real success/failure rather than similarity.
 
 ### How to read a perceive card
 

@@ -460,6 +460,25 @@ class HermesInsight:
     # Experience — tasks, events, fast recall (any Hermes agent path)
     # ------------------------------------------------------------------
 
+    def plan(
+        self,
+        situation: str,
+        *,
+        observations: Optional[Sequence[str]] = None,
+        domain: Optional[str] = None,
+        limit: int = 5,
+    ) -> Dict[str, Any]:
+        """Rank applicable patterns and affordances using explicit task outcomes."""
+        from hermes_insight.planner import plan_task
+
+        return plan_task(
+            self,
+            situation,
+            observations=observations,
+            domain=domain,
+            limit=limit,
+        )
+
     def perceive(
         self,
         situation: str,
@@ -584,8 +603,9 @@ class HermesInsight:
         outcome: str = "done",
         summary: str = "",
         reinforce_connected: bool = True,
+        used_pattern_ids: Optional[Sequence[str]] = None,
     ) -> Dict[str, Any]:
-        """Close task episode and reinforce patterns that matched."""
+        """Close a task and optionally credit patterns that were actually applied."""
         from hermes_insight.experience import close_task as _close
 
         tid = task_id or self.store.get_meta("active_task_id", "")
@@ -597,6 +617,7 @@ class HermesInsight:
             outcome=outcome,
             summary=summary,
             reinforce_connected=reinforce_connected,
+            used_pattern_ids=used_pattern_ids,
         )
 
     def connect(

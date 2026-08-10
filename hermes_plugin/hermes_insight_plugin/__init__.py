@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 __plugin_name__ = "hermes-insight"
-__plugin_version__ = "0.7.4"
+__plugin_version__ = "0.8.0"
 
 
 def _cfg() -> dict:
@@ -341,6 +341,7 @@ def handle_insight_task(args: dict, **kwargs) -> str:
                     outcome=outcome,
                     summary=str(args.get("summary") or args.get("body") or ""),
                     reinforce_connected=bool(args.get("reinforce", True)),
+                    used_pattern_ids=args.get("used_pattern_ids"),
                 )
             )
         return _err("action must be open|close")
@@ -407,6 +408,25 @@ def handle_insight_perceive(args: dict, **kwargs) -> str:
         )
     except Exception as exc:  # noqa: BLE001
         logger.exception("insight_perceive failed")
+        return _err(str(exc))
+
+
+def handle_insight_plan(args: dict, **kwargs) -> str:
+    """Build a ranked plan from relevance, explicit outcomes, and local affordances."""
+    try:
+        obs = args.get("observations") or []
+        if isinstance(obs, str):
+            obs = [obs]
+        return _ok(
+            _lattice().plan(
+                str(args.get("situation") or args.get("query") or ""),
+                observations=list(obs),
+                domain=args.get("domain"),
+                limit=int(args.get("limit") or 5),
+            )
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("insight_plan failed")
         return _err(str(exc))
 
 
@@ -674,6 +694,14 @@ _TASK_SCHEMA = {
             "summary": {"type": "string"},
             "tags": {"type": "array", "items": {"type": "string"}},
             "reinforce": {"type": "boolean", "default": True},
+            "used_pattern_ids": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": (
+                    "Pattern/skill ids actually applied. Explicit credit lets future plans "
+                    "learn from this outcome; omit rather than guessing."
+                ),
+            },
         },
         "required": ["action"],
     },
@@ -768,6 +796,26 @@ _PERCEIVE_SCHEMA = {
     },
 }
 
+_PLAN_SCHEMA = {
+    "name": "insight_plan",
+    "description": (
+        "Turn pattern recognition into an auditable action plan. Ranks rules, skills, "
+        "and workflows by current relevance plus explicit success/failure history; also "
+        "returns matching local tools, models, and agents. Does not execute anything."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "situation": {"type": "string", "description": "Task, event, or decision to plan"},
+            "query": {"type": "string", "description": "Alias for situation"},
+            "observations": {"type": "array", "items": {"type": "string"}},
+            "domain": {"type": "string"},
+            "limit": {"type": "integer", "default": 5},
+        },
+        "required": ["situation"],
+    },
+}
+
 _INGEST_MSG_SCHEMA = {
     "name": "insight_ingest_messages",
     "description": (
@@ -798,12 +846,15 @@ You have structural pattern-processing tools (`insight_*`).
   Use before hard debugging, architecture choices, or recurring failures.
   Set log=true after a meaningful scene so the next session is faster.
   Set deep=true when the scene looks novel.
+- `insight_plan` — when work needs a route: ranked patterns/skills + local affordances +
+  explicit outcome evidence. It recommends; it does not execute.
 
 **Multi-step work:**
 1. insight_perceive (situation)
-2. insight_task open (keep task_id)
-3. insight_experience after events/fixes
-4. insight_task close with outcome (reinforces patterns)
+2. insight_plan (for consequential or multi-step work)
+3. insight_task open (keep task_id)
+4. insight_experience after events/fixes
+5. insight_task close with outcome + used_pattern_ids (only what was actually applied)
 
 **Also:** insight_recall (fast only), insight_cycle (deep only), fabric index + insight_forge.
 Distill the actual variable; do not force-fit novelty. Never paste raw credentials.
@@ -845,6 +896,7 @@ def register(ctx) -> None:
     _reg(_FORGE_SCHEMA, handle_insight_forge)
     # Primary ability + experience path
     _reg(_PERCEIVE_SCHEMA, handle_insight_perceive, emoji="◈")
+    _reg(_PLAN_SCHEMA, handle_insight_plan, emoji="◇")
     _reg(_RECALL_SCHEMA, handle_insight_recall, emoji="◎")
     _reg(_EXPERIENCE_SCHEMA, handle_insight_experience, emoji="◉")
     _reg(_TASK_SCHEMA, handle_insight_task, emoji="▣")
@@ -948,9 +1000,11 @@ def register(ctx) -> None:
                 return r.brief
             if sub == "perceive" and len(parts) > 1:
                 return lat.perceive(parts[1]).get("card", "")
+            if sub == "plan" and len(parts) > 1:
+                return lat.plan(parts[1]).get("card", "")
             if sub == "hygiene":
                 return json.dumps(lat.hygiene(), indent=2)
-            return "Usage: /insight stats|bootstrap|perceive <q>|recall <q>|cycle <q>|hygiene"
+            return "Usage: /insight stats|bootstrap|perceive <q>|plan <q>|recall <q>|cycle <q>|hygiene"
 
         try:
             ctx.register_command(

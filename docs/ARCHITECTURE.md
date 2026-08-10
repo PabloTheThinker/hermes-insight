@@ -27,11 +27,11 @@
                           │
                  ┌────────▼─────────┐
                  │ HermesInsight   │  harness.py
-                 │  cycle/ingest/…  │
+                 │ plan/cycle/ingest │
                  └────────┬─────────┘
           ┌───────────────┼────────────────┐
           ▼               ▼                ▼
-   features/match   distill/extrapolate  evolve/anomaly
+   features/match   distill/planner     evolve/anomaly
           │               │                │
           └───────────────┼────────────────┘
                           ▼
@@ -46,6 +46,7 @@
 - **Trajectory** — ephemeral or storable direction object from a cycle  
 - **Distillation** — actual variable + principle + action  
 - **CycleReport** — finished product for the agent  
+- **Plan** — ranked applicable patterns + environment affordances + outcome evidence
 
 Kinds: template, prototype, feature, sequence, relation, rule, trajectory, anomaly, synthesis.
 
@@ -59,6 +60,10 @@ score *= 0.7 + 0.3*confidence
 ```
 
 Cross-domain links boost **analogy** when feature overlap exists across different domains.
+
+Planner reliability is deliberately separate from similarity. Only an explicit
+`task close(..., used_pattern_ids=[...])` creates an `applied` edge used as success/failure
+evidence. See [INTUITION.md](INTUITION.md) for the calibrated score and roadmap.
 
 ## Evolution
 

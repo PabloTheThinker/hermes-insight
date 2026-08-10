@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.0 — 2026-08-10
+
+- **Experience-grounded planner** — `insight_plan` ranks rules, skills, workflows, and
+  local environment affordances with transparent score components
+- **Explicit outcome attribution** — task close accepts `used_pattern_ids` and records
+  `applied` edges, separating actual use from similarity
+- **Calibrated reliability** — successful and failed applications update a conservative,
+  sample-size-shrunk reliability score
+- **Research deep dive** — pattern recognition, agent memory/skill research, AgentDrive
+  comparison, integration boundary, and prioritized community roadmap
+- CLI, Python, Hermes plugin, skill, tests, and docs updated for the planning loop
+
 ## 0.7.4 — 2026-08-09
 
 - **Session auto-log dampened** — only failed/interrupted turns file episodes; completed turns bump a counter only

@@ -39,6 +39,7 @@ After `./scripts/install_for_hermes.sh` (and a Hermes reload), you typically get
 | Tool | Role | Use when |
 |------|------|----------|
 | **`insight_perceive`** | **Primary ability** | Almost always — situation → lever + matches + hint |
+| **`insight_plan`** | **Decision route** | Consequential/multi-step work → ranked patterns, skills, tools |
 | `insight_recall` | Fast priors only | Need speed, no log, no deep |
 | `insight_task` | Open/close episodes | Multi-step jobs; keep `task_id` |
 | `insight_experience` | Log event/episode | After fix, failure, decision |
@@ -184,14 +185,15 @@ situation (+ observations)
 ### 4.2 Experience / task arc
 
 ```text
-open_task  →  experience*  →  close_task
-     │              │              │
-   priors      auto-link      reinforce on success
+plan?  →  open_task  →  experience*  →  close_task(used_pattern_ids)
+ │           │              │                    │
+ranked     priors        auto-link        explicit outcome credit
 ```
 
 - **open** — creates task node, returns prior matches, `task_id`  
 - **experience** — files event/episode; links to structural matches; chains `next`  
-- **close** — outcome episode; can reinforce connected patterns  
+- **close** — outcome episode; `used_pattern_ids` attributes success/failure only to
+  patterns or skills actually applied
 
 This is how the lattice **learns in lived time**, not only from bulk code index.
 
@@ -243,10 +245,11 @@ Never paste raw credentials into titles/bodies.
 
 ```text
 1. insight_perceive(situation, observations?)
-2. If usable: act on action_hint + top rule
-3. If multi-step: insight_task open → work → insight_experience* → close
-4. If novel/weak: deep=true or insight_cycle
-5. After hard fix: log=true or insight_experience + skill_manage if procedure
+2. For consequential/multi-step work: insight_plan(situation, observations?)
+3. If usable: act on action_hint + primary recommendation
+4. insight_task open → work → insight_experience* → close with used_pattern_ids
+5. If novel/weak: deep=true or insight_cycle
+6. After hard fix: log=true or insight_experience + skill_manage if procedure
 ```
 
 ### 5.2 When to call perceive
@@ -294,8 +297,9 @@ Trust strong scores (≥ ~0.35–0.5 with a clear rule). Verify weak ones.
 | Action | Effect |
 |--------|--------|
 | `insight_perceive(..., log=true)` | Files event + auto-links |
+| `insight_plan` | Ranks routes; does not execute or claim they were used |
 | `insight_experience` | Explicit event/episode |
-| `insight_task` close with outcome | Reinforces what worked |
+| `insight_task` close + `used_pattern_ids` | Records applied-edge evidence and reinforces/weakens |
 | `insight_feedback` | Manual strengthen/weaken |
 | Plugin session end | Only failures/interrupts auto-file |
 
@@ -505,7 +509,18 @@ perceive(situation, observations?=, domain?=, log?=false, deep?=false)
 
 ```text
 open  name, goal?  → task_id, priors, brief
-close task_id?, outcome?, summary?  → connected[], reinforced?
+close task_id?, outcome?, summary?, used_pattern_ids?  → applied_patterns[], reinforced?
+```
+
+### plan
+
+```text
+plan(situation, observations?=, domain?=, limit=5)
+  → {
+      usable, lever, confidence, card,
+      recommendations[{score, relevance, reliability, outcome_evidence, action}],
+      environment_affordances[], lived_echoes[], workflow[]
+    }
 ```
 
 ### experience
@@ -532,7 +547,9 @@ experience(title, body, kind=event|episode, task_id?, outcome?, tags?)
 
 ## 15. Version note
 
-This guide targets the **0.7.x** line (perceive ability, experience layer, structural priors, session-noise hygiene, mesh starters). APIs evolve; tools and starter titles may grow. Trust `insight_stats.version` on the live lattice.
+This guide targets the **0.8.x** line (perceive + plan abilities, explicit applied-pattern
+outcomes, experience layer, structural priors, session-noise hygiene, mesh starters).
+APIs evolve; trust `insight_stats.version` on the live lattice.
 
 ---
 

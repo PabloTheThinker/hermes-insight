@@ -33,6 +33,7 @@ Restart Hermes / gateway after enabling.
 | Tool | Purpose |
 |------|---------|
 | **`insight_perceive`** | Pattern recognition ability — lever + matches + action hint |
+| **`insight_plan`** | Ranked patterns, skills, and local affordances with outcome evidence |
 | `insight_task` | Open/close task episodes |
 | `insight_experience` | Log event; auto-connect |
 | `insight_recall` | Fast recall only |
@@ -40,7 +41,8 @@ Restart Hermes / gateway after enabling.
 | `insight_forge` | Maps / playbooks / seeds |
 | `insight_bootstrap` | Seed starter patterns |
 
-Slash (when supported): `/insight stats` · `/insight recall <q>` · `/insight cycle <q>`
+Slash (when supported): `/insight stats` · `/insight perceive <q>` ·
+`/insight plan <q>` · `/insight recall <q>` · `/insight cycle <q>`
 
 ## Notes
 

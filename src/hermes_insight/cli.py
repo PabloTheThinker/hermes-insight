@@ -193,6 +193,16 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--deep", action="store_true", help="Force deep cycle if thin")
     s.set_defaults(func=cmd_perceive)
 
+    s = sub.add_parser(
+        "plan",
+        help="Experience-grounded plan — ranked patterns, skills, tools, and workflow",
+    )
+    s.add_argument("situation")
+    s.add_argument("-o", "--observation", action="append", default=[])
+    s.add_argument("--domain", default=None)
+    s.add_argument("-n", "--limit", type=int, default=5)
+    s.set_defaults(func=cmd_plan)
+
     s = sub.add_parser("recall", help="Fast pre-action recall (priors + experiences + hops)")
     s.add_argument("query")
     s.add_argument("-n", "--limit", type=int, default=8)
@@ -215,6 +225,12 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--task-id", default=None)
     s.add_argument("--outcome", default="done")
     s.add_argument("--summary", default="")
+    s.add_argument(
+        "--used-pattern",
+        action="append",
+        default=None,
+        help="Pattern/skill id actually applied (repeatable; enables outcome learning)",
+    )
     s.set_defaults(func=cmd_task)
 
     s = sub.add_parser("connect", help="Link two patterns or auto-connect free text")
@@ -438,6 +454,21 @@ def cmd_perceive(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_plan(args: argparse.Namespace) -> int:
+    lat = _lattice(args)
+    pack = lat.plan(
+        args.situation,
+        observations=args.observation,
+        domain=args.domain,
+        limit=args.limit,
+    )
+    if args.json:
+        _print(pack, as_json=True)
+    else:
+        print(pack.get("card") or json.dumps(pack, indent=2))
+    return 0
+
+
 def cmd_recall(args: argparse.Namespace) -> int:
     lat = _lattice(args)
     pack = lat.recall(args.query, limit=args.limit, domain=args.domain)
@@ -477,6 +508,7 @@ def cmd_task(args: argparse.Namespace) -> int:
                 args.task_id,
                 outcome=args.outcome,
                 summary=args.summary,
+                used_pattern_ids=args.used_pattern,
             ),
             as_json=True,
         )

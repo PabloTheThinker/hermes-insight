@@ -85,6 +85,7 @@ class LinkKind(str, Enum):
     # Experience / temporal
     TRIGGERED_BY = "triggered_by"
     RESOLVED_BY = "resolved_by"
+    APPLIED = "applied"  # task outcome explicitly credits use of this pattern/skill
     EXPERIENCED_AS = "experienced_as"  # episode/event instance of a pattern
     NEXT = "next"  # temporal successor within a task
 
