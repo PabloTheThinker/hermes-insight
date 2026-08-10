@@ -296,11 +296,37 @@ def plan_task(
             ]
         )
 
+    environment_state: Optional[Dict[str, Any]] = None
+    environment_id = lat.store.get_meta("last_environment_snapshot_id", "")
+    if environment_id:
+        environment_pattern = lat.store.get_pattern(environment_id)
+        if environment_pattern:
+            metadata = environment_pattern.metadata or {}
+            state = dict(metadata.get("snapshot") or {})
+            git_state = dict(state.get("git") or {})
+            environment_state = {
+                "snapshot_id": environment_pattern.id,
+                "fingerprint": str(metadata.get("fingerprint") or ""),
+                "root_name": str(state.get("root_name") or ""),
+                "branch": str(git_state.get("branch") or ""),
+                "revision": str(git_state.get("revision") or "")[:12],
+                "dirty_count": int(git_state.get("dirty_count") or 0),
+                "manifests": list(state.get("manifests") or []),
+                "delta": dict(metadata.get("delta") or {}),
+            }
+
     card_lines = [
         "## Experience-grounded plan",
         f"**Lever:** `{lever}` · **confidence:** {confidence:.2f}"
         + (" · **usable**" if usable else " · **needs more signal**"),
     ]
+    if environment_state:
+        branch = environment_state["branch"] or "no-git"
+        revision = environment_state["revision"] or "unversioned"
+        card_lines.append(
+            f"**Environment:** `{environment_state['root_name']}` · "
+            f"`{branch}@{revision}` · dirty={environment_state['dirty_count']}"
+        )
     if primary:
         ev = primary["outcome_evidence"]
         card_lines.append(
@@ -326,6 +352,7 @@ def plan_task(
         "confidence": round(confidence, 4),
         "recommendations": recommendations,
         "environment_affordances": affordances,
+        "environment_state": environment_state,
         "lived_echoes": list(recall_pack.get("experiences") or [])[:5],
         "workflow": workflow,
         "card": "\n".join(card_lines),

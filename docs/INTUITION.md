@@ -64,24 +64,24 @@ platform by the same maintainer. Its useful infrastructure ideas are:
 - a capability funnel from experience → memory → skill → governed package;
 - local compartments and context packs rather than one global prompt dump.
 
-Hermes Insight should not duplicate AgentDrive wholesale. AgentDrive is a Python 3.11+
-platform with MCP, web, orchestration, cryptography, and other runtime dependencies;
-Insight is intentionally a Python 3.10+, standard-library cognition component and native
-Hermes plugin. The useful boundary is:
+Hermes Insight should not duplicate or integrate AgentDrive wholesale. AgentDrive is a
+Python 3.11+ platform with MCP, web, orchestration, cryptography, and other runtime
+dependencies; Insight is intentionally a Python 3.10+, standard-library cognition
+component and native Hermes plugin. AgentDrive is research input only:
 
-| Hermes Insight owns | AgentDrive can own |
+| Recreate natively in Hermes Insight | Deliberately leave outside Insight |
 |---|---|
-| Situation encoding and structural match | Broad cross-harness memory substrate |
-| Local digital-environment graph | Learned/fused skill lifecycle |
-| Lever extraction and compact plan | Genome/DNA promotion and governance |
-| Explicit applied-pattern outcomes | MCP-wide execution and orchestration |
-| Hermes-native tool surface | Multi-client framework surfaces |
+| Typed events and provenance in Insight's SQLite graph | AgentDrive runtime/package dependency |
+| Local digital-environment snapshots and deltas | Shared AgentDrive databases or services |
+| Lever extraction and outcome-aware planning | AgentDrive Genome/DNA formats |
+| Conservative pattern/skill evidence lifecycle | AgentDrive MCP execution/orchestration |
+| Hermes-native tools, skills, and compartments | Automatic source-code or skill importing |
 
 As of this research pass, AgentDrive declares MIT in its README and `pyproject.toml`, but
 its repository root does not contain a standalone license text. This implementation uses
 the architectural ideas above and contains independently written code; it does not copy
-AgentDrive source. A future direct code import should first confirm a complete license
-artifact at the exact revision being used.
+AgentDrive source. Hermes Insight will reimplement selected concepts against its own data
+model and tests; it will not import AgentDrive code even if licensing is later clarified.
 
 ## Implemented slice: `insight_plan`
 
@@ -132,30 +132,24 @@ similarity does **not** receive causal credit. On failure, the same pattern gain
 evidence and is weakened. Omitting `used_pattern_ids` preserves legacy reinforcement but
 does not create planner reliability evidence.
 
+## Implemented slice: native observation
+
+`insight_observe` recreates the useful typed-history concept directly in Insight:
+
+- `mode=event` records trace/task/step identity, tool or skill, status, outcome, duration,
+  artifact references, provenance, trust class, sensitivity, and redaction version;
+- `mode=environment` captures metadata-only workspace state: Git revision/branch/dirty
+  paths, manifests, runtime, and available tools;
+- successive workspace states are joined by `precedes` and expose structural deltas;
+- events link to the exact environment through `observed_in`;
+- plans include the latest environment fingerprint and change state.
+
+All records use the existing SQLite pattern graph. Inputs are scrubbed recursively, remain
+inside the agent compartment, and require no AgentDrive package, service, or data format.
+
 ## What to build next
 
-### 1. Event adapter contract
-
-Add a normalized observation envelope for filesystem changes, service state, test runs,
-tool calls, calendars, queues, and messages:
-
-```json
-{
-  "source": "test_runner",
-  "event_type": "command.completed",
-  "subject": "tests/test_retry.py",
-  "before": {"failures": 3},
-  "after": {"failures": 0},
-  "at": "ISO-8601",
-  "privacy": "workspace",
-  "provenance": {"tool_call_id": "..."}
-}
-```
-
-Adapters must be opt-in, read-scoped, scrubbed, and compartment-aware. Insight should
-store structural deltas, not unrestricted raw telemetry.
-
-### 2. Workflow mining
+### 1. Workflow mining
 
 Mine repeated `next` chains only after enough comparable tasks exist:
 
@@ -167,25 +161,25 @@ Mine repeated `next` chains only after enough comparable tasks exist:
 
 Do not let an LLM turn one anecdote into a universal playbook.
 
-### 3. Skill execution ledger
+### 2. Skill execution ledger
 
 Map Hermes skill invocation hooks to task ids and pattern ids automatically. Track
 matched, loaded, executed, succeeded, failed, and user-corrected as distinct events.
 Selection is not execution, and execution is not success.
 
-### 4. Environment state and change detection
+### 3. Richer environment adapters
 
-Extend the fabric index from snapshots to deltas:
+Extend native snapshots with opt-in adapters for:
 
-- project/branch/test state;
+- test and CI state;
 - process and endpoint ownership;
-- available tools and skill versions;
+- skill versions and invocation hooks;
 - permission and trust-boundary constraints;
 - stale nodes when a capability disappears.
 
 Plans should state which affordances were observed recently and which are merely catalogued.
 
-### 5. Counterfactual and verification layer
+### 4. Counterfactual and verification layer
 
 For consequential changes, return:
 
@@ -198,18 +192,19 @@ For consequential changes, return:
 This is how fast pattern recognition remains calibrated rather than becoming confident
 overfitting.
 
-### 6. AgentDrive bridge
+### 5. Native reimplementation boundary
 
-Prefer an explicit interchange boundary over shared databases:
+Use AgentDrive as a comparison case, then implement the useful behavior directly:
 
-- export Insight pattern, applied-edge, and plan records as versioned JSON;
-- map AgentDrive learned/fused skills into read-only Insight `skill` nodes;
-- return Insight outcome evidence to AgentDrive as provenance-bearing observations;
-- optionally expose the bridge through MCP after the JSON contract stabilizes.
+- define a Hermes Insight event envelope with provenance, scope, and redaction metadata;
+- capture local environment snapshots and structural deltas in the existing lattice;
+- route Insight-native skills and patterns using explicitly attributed outcomes;
+- promote patterns only through Insight-owned evidence and review gates.
 
-Both systems should preserve source ids, scopes, timestamps, and trust boundaries.
+There is no runtime dependency, shared storage, automatic import, or required protocol
+connection between the projects.
 
-### 7. Evaluation
+### 6. Evaluation
 
 Create a public Hermes community benchmark containing recurring debugging, routing,
 multi-agent isolation, and environment-change tasks. Measure:
@@ -233,7 +228,7 @@ The most useful community additions are narrow and testable:
 - a starter rule with a counterexample;
 - a workflow-mining fixture from synthetic task chains;
 - a skill route benchmark with success and failure outcomes;
-- an AgentDrive interchange mapper;
+- a native event/environment adapter;
 - a contradiction or stale-affordance detector.
 
 Every contribution should answer: what evidence created this pattern, where does it apply,

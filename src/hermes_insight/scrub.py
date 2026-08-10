@@ -127,7 +127,14 @@ def scrub_metadata(meta: dict) -> dict:
         if isinstance(v, str):
             out[k] = scrub_text(v)
         elif isinstance(v, list):
-            out[k] = [scrub_text(str(x)) if isinstance(x, str) else x for x in v]
+            out[k] = [
+                scrub_text(x)
+                if isinstance(x, str)
+                else scrub_metadata(x)
+                if isinstance(x, dict)
+                else x
+                for x in v
+            ]
         elif isinstance(v, dict):
             out[k] = scrub_metadata(v)
         else:

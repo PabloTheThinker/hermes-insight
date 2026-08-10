@@ -206,3 +206,10 @@ def test_plugin_handlers_smoke(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     assert out4["success"] is True
     assert out4["data"]["ability"] == "experience_grounded_planning"
     assert out4["data"]["workflow"]
+    out5 = json.loads(
+        mod.handle_insight_observe(
+            {"mode": "environment", "root": str(tmp_path), "include_tools": False}
+        )
+    )
+    assert out5["success"] is True
+    assert out5["data"]["schema"] == "hermes-insight.environment.v1"

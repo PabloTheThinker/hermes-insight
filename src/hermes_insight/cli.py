@@ -203,6 +203,28 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("-n", "--limit", type=int, default=5)
     s.set_defaults(func=cmd_plan)
 
+    s = sub.add_parser(
+        "observe",
+        help="Record a typed event or capture a local environment snapshot",
+    )
+    s.add_argument("mode", choices=["event", "environment"])
+    s.add_argument("summary", nargs="?", default="")
+    s.add_argument("--event-type", default="observation")
+    s.add_argument("--root", default=".")
+    s.add_argument("--detail", action="append", default=[], help="Event detail as key=value")
+    s.add_argument("--task-id", default=None)
+    s.add_argument("--trace-id", default="")
+    s.add_argument("--parent-event-id", default="")
+    s.add_argument("--status", default="observed")
+    s.add_argument("--outcome", default="")
+    s.add_argument("--tool", default="")
+    s.add_argument("--skill-id", default="")
+    s.add_argument("--environment-snapshot-id", default="")
+    s.add_argument("--trust-class", default="local")
+    s.add_argument("--sensitivity", default="private")
+    s.add_argument("--no-tools", action="store_true", help="Skip tool availability in snapshots")
+    s.set_defaults(func=cmd_observe)
+
     s = sub.add_parser("recall", help="Fast pre-action recall (priors + experiences + hops)")
     s.add_argument("query")
     s.add_argument("-n", "--limit", type=int, default=8)
@@ -467,6 +489,37 @@ def cmd_plan(args: argparse.Namespace) -> int:
     else:
         print(pack.get("card") or json.dumps(pack, indent=2))
     return 0
+
+
+def cmd_observe(args: argparse.Namespace) -> int:
+    lat = _lattice(args)
+    if args.mode == "environment":
+        result = lat.snapshot_environment(args.root, include_tools=not args.no_tools)
+    else:
+        details = {}
+        for index, item in enumerate(args.detail):
+            if "=" in item:
+                key, value = item.split("=", 1)
+                details[key.strip() or f"detail_{index + 1}"] = value.strip()
+            else:
+                details[f"detail_{index + 1}"] = item
+        result = lat.record_event(
+            args.event_type,
+            args.summary,
+            details=details,
+            trace_id=args.trace_id,
+            parent_event_id=args.parent_event_id,
+            task_id=args.task_id,
+            status=args.status,
+            outcome=args.outcome,
+            tool=args.tool,
+            skill_id=args.skill_id,
+            environment_snapshot_id=args.environment_snapshot_id,
+            trust_class=args.trust_class,
+            sensitivity=args.sensitivity,
+        )
+    _print(result, as_json=True)
+    return 0 if result.get("success") else 1
 
 
 def cmd_recall(args: argparse.Namespace) -> int:

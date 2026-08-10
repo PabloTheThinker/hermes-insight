@@ -34,6 +34,7 @@ Restart Hermes / gateway after enabling.
 |------|---------|
 | **`insight_perceive`** | Pattern recognition ability — lever + matches + action hint |
 | **`insight_plan`** | Ranked patterns, skills, and local affordances with outcome evidence |
+| **`insight_observe`** | Typed events or scrubbed workspace snapshots and deltas |
 | `insight_task` | Open/close task episodes |
 | `insight_experience` | Log event; auto-connect |
 | `insight_recall` | Fast recall only |

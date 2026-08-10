@@ -8,6 +8,10 @@
   `applied` edges, separating actual use from similarity
 - **Calibrated reliability** — successful and failed applications update a conservative,
   sample-size-shrunk reliability score
+- **Native observation layer** — typed agent/tool/skill events plus scrubbed environment
+  snapshots and structural deltas, stored in the existing Insight lattice
+- **Environment-grounded plans** — plans identify the workspace snapshot that produced
+  their evidence, with no AgentDrive runtime or storage integration
 - **Research deep dive** — pattern recognition, agent memory/skill research, AgentDrive
   comparison, integration boundary, and prioritized community roadmap
 - CLI, Python, Hermes plugin, skill, tests, and docs updated for the planning loop

@@ -483,6 +483,28 @@ class HermesInsight:
             limit=limit,
         )
 
+    def snapshot_environment(
+        self,
+        root: PathLike = ".",
+        *,
+        include_tools: bool = True,
+    ) -> Dict[str, Any]:
+        """Capture scrubbed workspace state and a delta from its prior snapshot."""
+        from hermes_insight.observation import snapshot_environment
+
+        return snapshot_environment(self, root, include_tools=include_tools)
+
+    def record_event(
+        self,
+        event_type: str,
+        summary: str,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        """Record a typed, provenance-rich event in the existing Insight lattice."""
+        from hermes_insight.observation import record_event
+
+        return record_event(self, event_type, summary, **kwargs)
+
     def perceive(
         self,
         situation: str,

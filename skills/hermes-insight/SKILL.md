@@ -64,6 +64,7 @@ insight_perceive → insight_plan? → insight_task open → insight_experience*
 |------|------|
 | **insight_perceive** | Default — lever + structures + action hint + `usable` |
 | **insight_plan** | Consequential work — ranked patterns/skills/tools + outcome evidence |
+| **insight_observe** | Record typed events or capture the current workspace snapshot |
 | insight_task | Multi-step work (`open` / `close`) |
 | insight_experience | After events/fixes |
 | insight_cycle | Explicit deep analysis |
@@ -73,6 +74,8 @@ insight_perceive → insight_plan? → insight_task open → insight_experience*
 Set `log=true` on perceive (or use experience) so the **next** session is faster.
 When closing a planned task, pass only the `used_pattern_ids` actually applied so future
 plans learn from real success/failure rather than similarity.
+Capture `insight_observe(mode=environment)` when workspace state materially changes; use
+event mode for tool/skill outcomes that need trace, provenance, or environment identity.
 
 ### How to read a perceive card
 

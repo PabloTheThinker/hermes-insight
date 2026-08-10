@@ -430,6 +430,51 @@ def handle_insight_plan(args: dict, **kwargs) -> str:
         return _err(str(exc))
 
 
+def handle_insight_observe(args: dict, **kwargs) -> str:
+    """Record a typed event or capture a metadata-only environment snapshot."""
+    try:
+        lat = _lattice()
+        mode = str(args.get("mode") or "event").strip().lower()
+        if mode == "environment":
+            result = lat.snapshot_environment(
+                str(args.get("root") or "."),
+                include_tools=bool(args.get("include_tools", True)),
+            )
+        elif mode == "event":
+            result = lat.record_event(
+                str(args.get("event_type") or "observation"),
+                str(args.get("summary") or ""),
+                details=dict(args.get("details") or {}),
+                trace_id=str(args.get("trace_id") or ""),
+                parent_event_id=str(args.get("parent_event_id") or ""),
+                session_id=str(args.get("session_id") or ""),
+                task_id=args.get("task_id"),
+                step_id=str(args.get("step_id") or ""),
+                attempt=int(args.get("attempt") or 1),
+                status=str(args.get("status") or "observed"),
+                outcome=str(args.get("outcome") or ""),
+                model=str(args.get("model") or ""),
+                tool=str(args.get("tool") or ""),
+                skill_id=str(args.get("skill_id") or ""),
+                environment_snapshot_id=str(args.get("environment_snapshot_id") or ""),
+                duration_ms=args.get("duration_ms"),
+                cost=args.get("cost"),
+                input_artifact_refs=list(args.get("input_artifact_refs") or []),
+                output_artifact_refs=list(args.get("output_artifact_refs") or []),
+                provenance=dict(args.get("provenance") or {}),
+                trust_class=str(args.get("trust_class") or "local"),
+                sensitivity=str(args.get("sensitivity") or "private"),
+            )
+        else:
+            return _err("mode must be event|environment")
+        if not result.get("success"):
+            return _err(str(result.get("error") or "observation failed"))
+        return _ok(result)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("insight_observe failed")
+        return _err(str(exc))
+
+
 def handle_insight_ingest_messages(args: dict, **kwargs) -> str:
     try:
         msgs = args.get("messages") or []
@@ -816,6 +861,52 @@ _PLAN_SCHEMA = {
     },
 }
 
+_OBSERVE_SCHEMA = {
+    "name": "insight_observe",
+    "description": (
+        "Hermes Insight native observation layer. mode=event records a typed, "
+        "provenance-rich agent/tool/skill event. mode=environment captures scrubbed "
+        "workspace metadata and a delta from its previous snapshot. No AgentDrive runtime."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "mode": {"type": "string", "description": "event | environment"},
+            "root": {"type": "string", "description": "Workspace root for environment mode"},
+            "include_tools": {"type": "boolean", "default": True},
+            "event_type": {"type": "string"},
+            "summary": {"type": "string"},
+            "details": {"type": "object"},
+            "trace_id": {"type": "string"},
+            "parent_event_id": {"type": "string"},
+            "session_id": {"type": "string"},
+            "task_id": {"type": "string"},
+            "step_id": {"type": "string"},
+            "attempt": {"type": "integer", "default": 1},
+            "status": {"type": "string"},
+            "outcome": {"type": "string"},
+            "model": {"type": "string"},
+            "tool": {"type": "string"},
+            "skill_id": {"type": "string"},
+            "environment_snapshot_id": {"type": "string"},
+            "duration_ms": {"type": "number"},
+            "cost": {"type": "number"},
+            "input_artifact_refs": {"type": "array", "items": {"type": "string"}},
+            "output_artifact_refs": {"type": "array", "items": {"type": "string"}},
+            "provenance": {"type": "object"},
+            "trust_class": {
+                "type": "string",
+                "description": "local | workspace | imported | community",
+            },
+            "sensitivity": {
+                "type": "string",
+                "description": "public | internal | private | restricted",
+            },
+        },
+        "required": ["mode"],
+    },
+}
+
 _INGEST_MSG_SCHEMA = {
     "name": "insight_ingest_messages",
     "description": (
@@ -848,6 +939,7 @@ You have structural pattern-processing tools (`insight_*`).
   Set deep=true when the scene looks novel.
 - `insight_plan` — when work needs a route: ranked patterns/skills + local affordances +
   explicit outcome evidence. It recommends; it does not execute.
+- `insight_observe` — record typed events or capture a scrubbed environment snapshot.
 
 **Multi-step work:**
 1. insight_perceive (situation)
@@ -897,6 +989,7 @@ def register(ctx) -> None:
     # Primary ability + experience path
     _reg(_PERCEIVE_SCHEMA, handle_insight_perceive, emoji="◈")
     _reg(_PLAN_SCHEMA, handle_insight_plan, emoji="◇")
+    _reg(_OBSERVE_SCHEMA, handle_insight_observe, emoji="◉")
     _reg(_RECALL_SCHEMA, handle_insight_recall, emoji="◎")
     _reg(_EXPERIENCE_SCHEMA, handle_insight_experience, emoji="◉")
     _reg(_TASK_SCHEMA, handle_insight_task, emoji="▣")

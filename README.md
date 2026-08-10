@@ -74,6 +74,7 @@ Then reload Hermes so `insight_*` tools appear. The installer **merges** `hermes
 hermes-insight bootstrap
 hermes-insight perceive "two workers share one bot token; long-poll conflicts" \
   -o "409 from getUpdates" --log
+hermes-insight observe environment --root .
 hermes-insight plan "stabilize the duplicate-consumer failure" \
   -o "409 from getUpdates"
 ```
@@ -116,6 +117,7 @@ insight_perceive → insight_plan? → insight_task open → insight_experience*
 |------|------|
 | **`insight_perceive`** | Primary ability — lever, structures, hint, `usable` |
 | **`insight_plan`** | Ranked rules/skills/affordances + auditable outcome evidence |
+| **`insight_observe`** | Typed agent/tool events or scrubbed environment snapshots + deltas |
 | `insight_task` | Open/close multi-step episodes (`task_id`) |
 | `insight_experience` | Log events; auto-link to patterns |
 | `insight_recall` | Fast priors only |
@@ -161,6 +163,7 @@ encode → match → link → distill → perceive → reinforce
 6. **Starters** — bootstrap agent-field priors (credentials, cache, isolation, retry storms, skill routing, mesh/DNS, …)  
 7. **Hygiene** — decay unused fabric; densify links; weaken session-auto noise  
 8. **Experience-grounded planning** — rank workflows from relevance + explicitly attributed task outcomes
+9. **Native observation layer** — provenance-rich events and metadata-only workspace snapshots, with no AgentDrive dependency
 
 ### Perceive card (what you act on)
 
@@ -259,6 +262,7 @@ Requires **Python 3.10+**. Core runtime dependencies: none beyond the standard l
 
 - `perceive` ability and experience layer  
 - `plan` ability with explicit applied-pattern outcome attribution
+- typed events and environment snapshots that ground plans in current workspace state
 - Structural match priors and candidate-pool performance  
 - Mesh/network starters and session-noise hygiene  
 - Any-agent install path and public isolation gate  

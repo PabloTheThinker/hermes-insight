@@ -40,6 +40,7 @@ After `./scripts/install_for_hermes.sh` (and a Hermes reload), you typically get
 |------|------|----------|
 | **`insight_perceive`** | **Primary ability** | Almost always — situation → lever + matches + hint |
 | **`insight_plan`** | **Decision route** | Consequential/multi-step work → ranked patterns, skills, tools |
+| **`insight_observe`** | **Grounding** | Typed event or workspace snapshot/delta |
 | `insight_recall` | Fast priors only | Need speed, no log, no deep |
 | `insight_task` | Open/close episodes | Multi-step jobs; keep `task_id` |
 | `insight_experience` | Log event/episode | After fix, failure, decision |
@@ -197,15 +198,23 @@ ranked     priors        auto-link        explicit outcome credit
 
 This is how the lattice **learns in lived time**, not only from bulk code index.
 
-### 4.3 Cycle
+### 4.3 Native observation
+
+`insight_observe(mode=environment)` captures scrubbed Git/manifests/runtime/tool metadata
+and links each changed snapshot with `precedes`. `mode=event` records a typed event with
+task/trace identity, tool or skill, outcome, provenance, trust, and sensitivity. Events
+link to the current snapshot through `observed_in`, so plans know which digital
+environment produced an outcome. This is native Insight storage—no AgentDrive dependency.
+
+### 4.4 Cycle
 
 Longer multi-lens pass for architecture / novel scenes. Use when perceive is weak or the problem is strategic. Produces a structured brief.
 
-### 4.4 Forge
+### 4.5 Forge
 
 Turns the lattice into **human/agent products**: orientation maps, playbooks, prediction boards, etc. under a run directory. Use after the lattice has substance.
 
-### 4.5 Hygiene
+### 4.6 Hygiene
 
 - **Decay** weakens unused fabric/code dumps so they stop drowning rules  
 - **Densify** links structural nodes so hops work  
@@ -213,7 +222,7 @@ Turns the lattice into **human/agent products**: orientation maps, playbooks, pr
 
 Run periodically or after bulk `index_*`.
 
-### 4.6 Starters (bootstrap)
+### 4.7 Starters (bootstrap)
 
 Empty or incomplete lattices get **starter rules** — agent-field priors such as:
 
@@ -228,7 +237,7 @@ Empty or incomplete lattices get **starter rules** — agent-field priors such a
 
 Bootstrap **fills missing titles** without blindly duplicating everything.
 
-### 4.7 Privacy / compartments
+### 4.8 Privacy / compartments
 
 - Scrubber redacts secret-shaped strings  
 - **One DB per trust boundary** (house ≠ client)  

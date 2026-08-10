@@ -9,6 +9,7 @@
 5. Self-evolution: reinforce, decay, synthesize higher-order nodes  
 6. Zero required cloud; zero coupling to any single agent host  
 7. Hermes-friendly packaging (skill now, plugin later)
+8. Native typed events + environment state without another agent-memory runtime
 
 ## Non-goals (v0.1)
 
@@ -47,6 +48,8 @@
 - **Distillation** — actual variable + principle + action  
 - **CycleReport** — finished product for the agent  
 - **Plan** — ranked applicable patterns + environment affordances + outcome evidence
+- **Environment snapshot** — scrubbed Git/manifests/runtime/tool state + structural delta
+- **Typed event** — trace/task/tool/skill/outcome/provenance record linked to its snapshot
 
 Kinds: template, prototype, feature, sequence, relation, rule, trajectory, anomaly, synthesis.
 
