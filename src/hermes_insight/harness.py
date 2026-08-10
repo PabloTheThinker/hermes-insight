@@ -116,13 +116,17 @@ class HermesInsight:
             evidence=[Evidence(source=source, kind="observation", confidence=confidence)],
             metadata=meta,
         )
-        for existing in self.store.list_patterns(limit=800):
-            if existing.content_hash == pat.content_hash:
-                existing.touch(0.01)
-                self.store.upsert_pattern(existing)
-                if link:
-                    auto_link(self.store, existing, min_score=auto_link_min, limit=8)
-                return existing
+        # Lived events are occurrences, not reusable catalogue entries. Two tasks may
+        # produce identical text and still need distinct timestamps, task links, and
+        # outcome evidence. Structural nodes retain content deduplication.
+        if pat.kind not in {PatternKind.EVENT, PatternKind.EPISODE, PatternKind.TASK}:
+            for existing in self.store.list_patterns(limit=800):
+                if existing.content_hash == pat.content_hash:
+                    existing.touch(0.01)
+                    self.store.upsert_pattern(existing)
+                    if link:
+                        auto_link(self.store, existing, min_score=auto_link_min, limit=8)
+                    return existing
         self.store.upsert_pattern(pat)
         if link:
             auto_link(self.store, pat, min_score=auto_link_min, limit=8)
