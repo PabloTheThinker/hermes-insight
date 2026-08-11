@@ -182,6 +182,37 @@ def main() -> int:
         ),
         str((perc.get("matches") or [{}])[0].get("title")),
     )
+    # typed recurrence must count distinct task ids and remain review-gated
+    for i in range(3):
+        learn_tid = f"e2e-learn-{i}"
+        boot.open_task("focused regression", task_id=learn_tid)
+        started = boot.record_event(
+            "tool.started",
+            "focused regression started",
+            task_id=learn_tid,
+            tool="pytest",
+        )
+        boot.record_event(
+            "tool.completed",
+            "focused regression completed",
+            task_id=learn_tid,
+            parent_event_id=started.get("event_id", ""),
+            tool="pytest",
+            status="success",
+            outcome="passed",
+        )
+        boot.close_task(learn_tid, outcome="success", summary="focused regression passed")
+    learned = boot.learn(min_support=3, min_steps=2, max_steps=2, materialize=True)
+    gate(
+        "workflow_induction",
+        bool(learned.get("candidates")) and bool(learned.get("materialized")),
+        f"candidates={len(learned.get('candidates') or [])}",
+    )
+    gate(
+        "workflow_induction_safety",
+        (learned.get("safety") or {}).get("automatic_skill_write") is False,
+        str(learned.get("safety") or {}),
+    )
     # plugin experience handlers
     try:
         import importlib.util
@@ -201,9 +232,16 @@ def main() -> int:
             )
         )
         gate("plugin_perceive", pr.get("success") is True and "card" in (pr.get("data") or {}))
+        lr = json.loads(mod.handle_insight_learn({"min_support": 3}))
+        gate(
+            "plugin_learn",
+            lr.get("success") is True
+            and (lr.get("data") or {}).get("ability") == "workflow_induction",
+        )
     except Exception as exc:  # noqa: BLE001
         gate("plugin_recall", False, str(exc))
         gate("plugin_perceive", False, str(exc))
+        gate("plugin_learn", False, str(exc))
 
     # --- 6 forge products ---
     fr = lat.forge(out_dir=str(out), write_synthesis=True)

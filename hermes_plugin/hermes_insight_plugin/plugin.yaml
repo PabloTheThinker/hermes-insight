@@ -22,6 +22,7 @@ provides_tools:
   - insight_perceive
   - insight_plan
   - insight_observe
+  - insight_learn
   - insight_recall
   - insight_experience
   - insight_task

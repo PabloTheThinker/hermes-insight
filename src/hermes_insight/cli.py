@@ -225,6 +225,21 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--no-tools", action="store_true", help="Skip tool availability in snapshots")
     s.set_defaults(func=cmd_observe)
 
+    s = sub.add_parser(
+        "learn",
+        help="Induce recurring workflows from distinct typed task traces",
+    )
+    s.add_argument("--min-support", type=int, default=3)
+    s.add_argument("--min-steps", type=int, default=2)
+    s.add_argument("--max-steps", type=int, default=4)
+    s.add_argument("-n", "--limit", type=int, default=12)
+    s.add_argument(
+        "--materialize",
+        action="store_true",
+        help="Write reviewable sequence patterns; never writes or executes skills",
+    )
+    s.set_defaults(func=cmd_learn)
+
     s = sub.add_parser("recall", help="Fast pre-action recall (priors + experiences + hops)")
     s.add_argument("query")
     s.add_argument("-n", "--limit", type=int, default=8)
@@ -520,6 +535,18 @@ def cmd_observe(args: argparse.Namespace) -> int:
         )
     _print(result, as_json=True)
     return 0 if result.get("success") else 1
+
+
+def cmd_learn(args: argparse.Namespace) -> int:
+    result = _lattice(args).learn(
+        min_support=args.min_support,
+        min_steps=args.min_steps,
+        max_steps=args.max_steps,
+        limit=args.limit,
+        materialize=bool(args.materialize),
+    )
+    _print(result, as_json=True)
+    return 0
 
 
 def cmd_recall(args: argparse.Namespace) -> int:

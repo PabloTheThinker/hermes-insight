@@ -483,6 +483,27 @@ class HermesInsight:
             limit=limit,
         )
 
+    def learn(
+        self,
+        *,
+        min_support: int = 3,
+        min_steps: int = 2,
+        max_steps: int = 4,
+        limit: int = 12,
+        materialize: bool = False,
+    ) -> Dict[str, Any]:
+        """Induce recurring workflows from independent typed task traces."""
+        from hermes_insight.induction import induce_workflows
+
+        return induce_workflows(
+            self,
+            min_support=min_support,
+            min_steps=min_steps,
+            max_steps=max_steps,
+            limit=limit,
+            materialize=materialize,
+        )
+
     def snapshot_environment(
         self,
         root: PathLike = ".",

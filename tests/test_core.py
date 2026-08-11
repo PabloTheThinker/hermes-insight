@@ -213,3 +213,7 @@ def test_plugin_handlers_smoke(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
     assert out5["success"] is True
     assert out5["data"]["schema"] == "hermes-insight.environment.v1"
+    out6 = json.loads(mod.handle_insight_learn({"min_support": 3}))
+    assert out6["success"] is True
+    assert out6["data"]["ability"] == "workflow_induction"
+    assert out6["data"]["safety"]["automatic_skill_write"] is False

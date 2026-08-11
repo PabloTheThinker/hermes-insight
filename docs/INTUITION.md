@@ -147,27 +147,34 @@ does not create planner reliability evidence.
 All records use the existing SQLite pattern graph. Inputs are scrubbed recursively, remain
 inside the agent compartment, and require no AgentDrive package, service, or data format.
 
+## Implemented slice: recurring workflow induction
+
+`insight_learn` recognizes ordered recurrence rather than text resemblance:
+
+- canonical tool/skill/event steps form contiguous subsequences;
+- support is counted by distinct `task_id`, never event count;
+- successes, failures, neutral outcomes, environment count, and counterexample task ids
+  remain attached;
+- a Beta posterior and 95% Wilson lower bound prevent small perfect samples from looking
+  certain;
+- `candidate` begins at three tasks;
+- `verified_local` requires at least five distinct tasks, five labeled outcomes, at most
+  one failure, and Wilson lower bound ≥ 0.55;
+- optional materialization writes only a local `sequence` node.
+
+It never writes, installs, publishes, or executes a Hermes skill. Promotion remains a
+reviewed Hermes `skill_manage` operation with applicability, verification, rollback, and
+counterexamples.
+
 ## What to build next
 
-### 1. Workflow mining
-
-Mine repeated `next` chains only after enough comparable tasks exist:
-
-- canonicalize event verbs and resource types;
-- discover frequent subsequences;
-- preserve failure branches and rollback steps;
-- propose a `sequence` pattern with support count and applicability boundary;
-- require review before exporting it as a Hermes skill.
-
-Do not let an LLM turn one anecdote into a universal playbook.
-
-### 2. Skill execution ledger
+### 1. Skill execution hooks
 
 Map Hermes skill invocation hooks to task ids and pattern ids automatically. Track
 matched, loaded, executed, succeeded, failed, and user-corrected as distinct events.
 Selection is not execution, and execution is not success.
 
-### 3. Richer environment adapters
+### 2. Richer environment adapters
 
 Extend native snapshots with opt-in adapters for:
 
@@ -179,7 +186,7 @@ Extend native snapshots with opt-in adapters for:
 
 Plans should state which affordances were observed recently and which are merely catalogued.
 
-### 4. Counterfactual and verification layer
+### 3. Counterfactual and verification layer
 
 For consequential changes, return:
 
@@ -192,7 +199,7 @@ For consequential changes, return:
 This is how fast pattern recognition remains calibrated rather than becoming confident
 overfitting.
 
-### 5. Native reimplementation boundary
+### 4. Native reimplementation boundary
 
 Use AgentDrive as a comparison case, then implement the useful behavior directly:
 
@@ -204,7 +211,7 @@ Use AgentDrive as a comparison case, then implement the useful behavior directly
 There is no runtime dependency, shared storage, automatic import, or required protocol
 connection between the projects.
 
-### 6. Evaluation
+### 5. Evaluation
 
 Create a public Hermes community benchmark containing recurring debugging, routing,
 multi-agent isolation, and environment-change tasks. Measure:

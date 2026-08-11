@@ -475,6 +475,23 @@ def handle_insight_observe(args: dict, **kwargs) -> str:
         return _err(str(exc))
 
 
+def handle_insight_learn(args: dict, **kwargs) -> str:
+    """Induce recurring workflows from independent typed task traces."""
+    try:
+        return _ok(
+            _lattice().learn(
+                min_support=int(args.get("min_support") or 3),
+                min_steps=int(args.get("min_steps") or 2),
+                max_steps=int(args.get("max_steps") or 4),
+                limit=int(args.get("limit") or 12),
+                materialize=bool(args.get("materialize", False)),
+            )
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("insight_learn failed")
+        return _err(str(exc))
+
+
 def handle_insight_ingest_messages(args: dict, **kwargs) -> str:
     try:
         msgs = args.get("messages") or []
@@ -907,6 +924,34 @@ _OBSERVE_SCHEMA = {
     },
 }
 
+_LEARN_SCHEMA = {
+    "name": "insight_learn",
+    "description": (
+        "Find recurring ordered workflows across distinct typed task traces. Preserves "
+        "successes, failures, counterexamples, environment count, and conservative "
+        "lifecycle gates. materialize=true writes reviewable sequence patterns only; "
+        "it never writes or executes Hermes skills."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "min_support": {
+                "type": "integer",
+                "default": 3,
+                "description": "Minimum distinct task ids; values below 2 are raised to 2",
+            },
+            "min_steps": {"type": "integer", "default": 2},
+            "max_steps": {"type": "integer", "default": 4},
+            "limit": {"type": "integer", "default": 12},
+            "materialize": {
+                "type": "boolean",
+                "default": False,
+                "description": "Write local sequence candidates for review",
+            },
+        },
+    },
+}
+
 _INGEST_MSG_SCHEMA = {
     "name": "insight_ingest_messages",
     "description": (
@@ -940,6 +985,8 @@ You have structural pattern-processing tools (`insight_*`).
 - `insight_plan` — when work needs a route: ranked patterns/skills + local affordances +
   explicit outcome evidence. It recommends; it does not execute.
 - `insight_observe` — record typed events or capture a scrubbed environment snapshot.
+- `insight_learn` — mine repeated typed task workflows; materialize candidates only
+  after inspecting support, failures, and counterexamples.
 
 **Multi-step work:**
 1. insight_perceive (situation)
@@ -990,6 +1037,7 @@ def register(ctx) -> None:
     _reg(_PERCEIVE_SCHEMA, handle_insight_perceive, emoji="◈")
     _reg(_PLAN_SCHEMA, handle_insight_plan, emoji="◇")
     _reg(_OBSERVE_SCHEMA, handle_insight_observe, emoji="◉")
+    _reg(_LEARN_SCHEMA, handle_insight_learn, emoji="⌁")
     _reg(_RECALL_SCHEMA, handle_insight_recall, emoji="◎")
     _reg(_EXPERIENCE_SCHEMA, handle_insight_experience, emoji="◉")
     _reg(_TASK_SCHEMA, handle_insight_task, emoji="▣")

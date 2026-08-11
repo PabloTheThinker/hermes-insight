@@ -107,6 +107,18 @@ def _outcome_evidence(lat: "HermesInsight", pattern: Pattern) -> Dict[str, Any]:
 def _action_for(pattern: Pattern) -> str:
     body = " ".join(pattern.body.strip().split())
     action = body[:280] + ("…" if len(body) > 280 else "")
+    lifecycle = str((pattern.metadata or {}).get("lifecycle") or "")
+    if (pattern.metadata or {}).get("induced") and lifecycle != "verified_local":
+        return (
+            f"Review-only `{lifecycle or 'observed'}` workflow candidate. "
+            "Check applicability and counterexamples before use. "
+            + action
+        ).strip()
+    if lifecycle == "verified_local":
+        return (
+            "Locally verified workflow; confirm the current environment still matches. "
+            + action
+        ).strip()
     if pattern.kind == PatternKind.SKILL:
         name = str((pattern.metadata or {}).get("skill_name") or pattern.title.removeprefix("skill:"))
         return f"Load skill `{name}` and follow its playbook. {action}".strip()
@@ -216,6 +228,13 @@ def plan_task(
             PatternKind.SYNTHESIS: 0.02,
         }.get(pattern.kind, 0.0)
         score = min(1.0, score + structural_bonus)
+        lifecycle = str((pattern.metadata or {}).get("lifecycle") or "")
+        if lifecycle == "verified_local":
+            score = min(1.0, score + 0.05)
+        elif lifecycle == "candidate":
+            score *= 0.90
+        elif (pattern.metadata or {}).get("induced"):
+            score *= 0.80
         recommendations.append(
             {
                 "pattern_id": pattern.id,
@@ -227,6 +246,9 @@ def plan_task(
                 "reliability": round(reliability, 4),
                 "strength": round(float(pattern.strength), 4),
                 "confidence": round(float(pattern.confidence), 4),
+                "lifecycle": lifecycle or None,
+                "actionable": not (pattern.metadata or {}).get("induced")
+                or lifecycle == "verified_local",
                 "shared_features": hit.shared_features[:12],
                 "action": _action_for(pattern),
                 "outcome_evidence": evidence,
@@ -234,6 +256,7 @@ def plan_task(
                     f"relevance={relevance:.2f}; "
                     f"applied outcomes={evidence['successes']} success/"
                     f"{evidence['failures']} failure; kind={pattern.kind.value}"
+                    + (f"; lifecycle={lifecycle}" if lifecycle else "")
                 ),
             }
         )

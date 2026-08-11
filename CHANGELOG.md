@@ -12,6 +12,12 @@
   snapshots and structural deltas, stored in the existing Insight lattice
 - **Environment-grounded plans** — plans identify the workspace snapshot that produced
   their evidence, with no AgentDrive runtime or storage integration
+- **Evidence-gated workflow induction** — `insight_learn` mines ordered typed-event
+  sequences across distinct tasks, retains counterexamples, and assigns candidate or
+  verified-local lifecycle using conservative outcome bounds
+- **Hermes-native skill rewrite** — progressive-disclosure frontmatter, acquisition
+  procedure, pitfalls, verification, and reviewed pattern-to-skill promotion guidance
+- **SQLite production hardening** — bounded lock wait, WAL, and normal synchronous mode
 - **Research deep dive** — pattern recognition, agent memory/skill research, AgentDrive
   comparison, integration boundary, and prioritized community roadmap
 - CLI, Python, Hermes plugin, skill, tests, and docs updated for the planning loop

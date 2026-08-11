@@ -32,7 +32,7 @@
                  └────────┬─────────┘
           ┌───────────────┼────────────────┐
           ▼               ▼                ▼
-   features/match   distill/planner     evolve/anomaly
+   features/match   distill/planner     induction/evolve
           │               │                │
           └───────────────┼────────────────┘
                           ▼
@@ -50,6 +50,8 @@
 - **Plan** — ranked applicable patterns + environment affordances + outcome evidence
 - **Environment snapshot** — scrubbed Git/manifests/runtime/tool state + structural delta
 - **Typed event** — trace/task/tool/skill/outcome/provenance record linked to its snapshot
+- **Induced workflow** — ordered event subsequence supported by distinct task traces,
+  labeled outcomes, environment count, and retained counterexamples
 
 Kinds: template, prototype, feature, sequence, relation, rule, trajectory, anomaly, synthesis.
 
@@ -67,6 +69,12 @@ Cross-domain links boost **analogy** when feature overlap exists across differen
 Planner reliability is deliberately separate from similarity. Only an explicit
 `task close(..., used_pattern_ids=[...])` creates an `applied` edge used as success/failure
 evidence. See [INTUITION.md](INTUITION.md) for the calibrated score and roadmap.
+
+Workflow induction is also separate from lexical recognition. `insight_learn` mines
+contiguous typed-event sequences, counts each `task_id` once, and materializes only
+reviewable `sequence` nodes. `verified_local` requires at least five distinct tasks,
+five labeled outcomes, no more than one failure, and a 95% Wilson success lower bound of
+at least 0.55. It never writes or executes Hermes skills.
 
 ## Evolution
 
