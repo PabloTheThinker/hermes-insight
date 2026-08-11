@@ -129,8 +129,8 @@ insight.close_task(
 
 This creates an `applied` edge from the outcome episode to the pattern. Auto-linked
 similarity does **not** receive causal credit. On failure, the same pattern gains negative
-evidence and is weakened. Omitting `used_pattern_ids` preserves legacy reinforcement but
-does not create planner reliability evidence.
+evidence and is weakened. Omitting `used_pattern_ids` records the outcome episode but
+credits no pattern; retrieval and auto-link activity do not count as successful use.
 
 ## Implemented slice: native observation
 

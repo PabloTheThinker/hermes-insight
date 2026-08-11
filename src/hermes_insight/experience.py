@@ -395,8 +395,6 @@ def log_experience(
                 note=f"auto experience link score={h.score:.3f}",
             )
             lat.store.upsert_link(link)
-            h.pattern.touch(0.025)
-            lat.store.upsert_pattern(h.pattern)
             connected.append(
                 {
                     "pattern_id": h.pattern.id,
@@ -434,24 +432,26 @@ def log_experience(
 def _chain_task_event(store: "PatternStore", pat: Pattern, task_id: str) -> None:
     """Link this event as NEXT after the previous event in the same task."""
     tag = _task_tag(task_id)
-    # find recent experiences with same task tag
-    recent = [
-        p
-        for p in store.list_patterns(domain=Domain.EXPERIENCE.value, limit=40)
-        if tag in (p.tags or []) and p.id != pat.id
-    ]
-    if not recent:
-        # also scan general list
+    meta_key = f"task_chain_last:{tag.removeprefix('task:')}"
+    previous_id = store.get_meta(meta_key, "")
+    prev = store.get_pattern(previous_id) if previous_id else None
+    if not prev or prev.id == pat.id or tag not in (prev.tags or []):
+        # Backward-compatible recovery for tasks created before the chain cursor existed.
         recent = [
             p
-            for p in store.list_patterns(limit=80)
+            for p in store.list_patterns(domain=Domain.EXPERIENCE.value, limit=80)
             if tag in (p.tags or []) and p.id != pat.id and p.kind in {
                 PatternKind.EVENT, PatternKind.EPISODE, PatternKind.TASK, PatternKind.SEQUENCE
             }
         ]
-    if not recent:
+        prev = (
+            max(recent, key=lambda p: (p.created_at, p.updated_at, p.id))
+            if recent
+            else None
+        )
+    if not prev:
+        store.set_meta(meta_key, pat.id)
         return
-    prev = max(recent, key=lambda p: p.updated_at or p.created_at)
     link = Link(
         id=f"l_{uuid.uuid4().hex[:12]}",
         source_id=prev.id,
@@ -462,6 +462,7 @@ def _chain_task_event(store: "PatternStore", pat: Pattern, task_id: str) -> None
         metadata={"task_id": task_id},
     )
     store.upsert_link(link)
+    store.set_meta(meta_key, pat.id)
 
 
 def open_task(
@@ -564,11 +565,9 @@ def close_task(
             lat.store.upsert_pattern(close_pattern)
 
     reinforced: List[str] = []
-    credited_ids = (
-        applied
-        if used_pattern_ids is not None
-        else [c["pattern_id"] for c in res.get("connected") or []]
-    )
+    # Similarity links are evidence of resemblance, not proof that a pattern was
+    # applied. Outcome credit is therefore explicit-only.
+    credited_ids = applied
     if reinforce_connected and outcome.lower() in {"done", "success", "fixed", "shipped", "resolved"}:
         if credited_ids:
             from hermes_insight.evolve import reinforce
@@ -594,6 +593,7 @@ def close_task(
         "experience": res.get("experience"),
         "connected": res.get("connected", []),
         "applied_patterns": applied,
+        "credit_mode": "explicit" if used_pattern_ids is not None else "none",
         "reinforced": reinforced,
         "one_liner": res.get("one_liner"),
     }

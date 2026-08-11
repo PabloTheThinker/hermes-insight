@@ -18,6 +18,10 @@
 - **Hermes-native skill rewrite** — progressive-disclosure frontmatter, acquisition
   procedure, pitfalls, verification, and reviewed pattern-to-skill promotion guidance
 - **SQLite production hardening** — bounded lock wait, WAL, and normal synchronous mode
+- **Explicit-only outcome credit** — retrieval and similarity links never receive task
+  success/failure reinforcement unless listed in `used_pattern_ids`
+- **Deterministic task chains** — per-task last-event cursors preserve sequential `next`
+  links without ranking events by mutable strength timestamps
 - **Research deep dive** — pattern recognition, agent memory/skill research, AgentDrive
   comparison, integration boundary, and prioritized community roadmap
 - CLI, Python, Hermes plugin, skill, tests, and docs updated for the planning loop

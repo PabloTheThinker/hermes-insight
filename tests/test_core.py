@@ -217,3 +217,20 @@ def test_plugin_handlers_smoke(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     assert out6["success"] is True
     assert out6["data"]["ability"] == "workflow_induction"
     assert out6["data"]["safety"]["automatic_skill_write"] is False
+    opened = json.loads(
+        mod.handle_insight_task(
+            {"action": "open", "name": "plugin attribution", "goal": "apply t1"}
+        )
+    )
+    closed = json.loads(
+        mod.handle_insight_task(
+            {
+                "action": "close",
+                "task_id": opened["data"]["task_id"],
+                "outcome": "success",
+                "used_pattern_ids": [out2["data"]["id"]],
+            }
+        )
+    )
+    assert closed["success"] is True
+    assert closed["data"]["applied_patterns"] == [out2["data"]["id"]]
