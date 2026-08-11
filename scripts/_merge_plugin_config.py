@@ -52,7 +52,7 @@ def _enabled_plugins(text: str) -> set[str] | None:
 
 
 def _ensure_enabled(text: str) -> str:
-    plugin_key = re.search(r"(?m)^plugins:\s*(.*)$", text)
+    plugin_key = re.search(r"(?m)^plugins:[ \t]*(.*)$", text)
     if plugin_key and plugin_key.group(1).strip() not in {"", "{}"}:
         raise ValueError(
             "unsupported inline plugins mapping; expand `plugins:` to a YAML block"
@@ -60,14 +60,14 @@ def _ensure_enabled(text: str) -> str:
     enabled = _enabled_plugins(text)
     if enabled is not None and "hermes-insight" in enabled:
         return text
-    if re.search(r"(?m)^plugins:\s*\{\}\s*$", text):
+    if re.search(r"(?m)^plugins:[ \t]*\{\}[ \t]*$", text):
         return re.sub(
-            r"(?m)^plugins:\s*\{\}\s*$",
+            r"(?m)^plugins:[ \t]*\{\}[ \t]*$",
             "plugins:\n  enabled:\n    - hermes-insight\n  entries: {}",
             text,
             count=1,
         )
-    if not re.search(r"(?m)^plugins:\s*(?:#.*)?$", text):
+    if not re.search(r"(?m)^plugins:[ \t]*(?:#.*)?$", text):
         return text.rstrip() + "\n\nplugins:\n  enabled:\n    - hermes-insight\n  entries: {}\n"
 
     inline = re.search(r"(?m)^  enabled:\s*\[([^\]]*)\]\s*(?:#.*)?$", text)
@@ -82,7 +82,7 @@ def _ensure_enabled(text: str) -> str:
         insert_at = len(text) if line_end < 0 else line_end + 1
         return text[:insert_at] + "    - hermes-insight\n" + text[insert_at:]
 
-    plugin_line = re.search(r"(?m)^plugins:\s*(?:#.*)?$", text)
+    plugin_line = re.search(r"(?m)^plugins:[ \t]*(?:#.*)?$", text)
     assert plugin_line is not None
     line_end = text.find("\n", plugin_line.end())
     insert_at = len(text) if line_end < 0 else line_end + 1
@@ -127,7 +127,7 @@ def merge_config(text: str, home: Path, agent: str = "") -> str:
             count=1,
         )
     else:
-        plugin_line = re.search(r"(?m)^plugins:\s*(?:#.*)?$", text)
+        plugin_line = re.search(r"(?m)^plugins:[ \t]*(?:#.*)?$", text)
         if plugin_line:
             line_end = text.find("\n", plugin_line.end())
             insert_at = len(text) if line_end < 0 else line_end + 1
