@@ -1,94 +1,83 @@
-## Status
-
-Plugin + multi-agent + IDF match ship in **0.2.0**.
-
 # Hermes Agent integration
 
-Hermes Insight is **standalone first**. Hermes integration is layered so any
-agent host can use the library; Hermes gets a skill pack and an optional plugin.
+Hermes Insight ships a native plugin plus a progressively disclosed Hermes skill. The
+plugin owns precise execution and local SQLite state; the skill teaches the agent when
+and how to use that capability.
 
-## Principles (aligned with Hermes contribution norms)
-
-- Prefer **skills** over core tools when instructions + CLI suffice  
-- Ship host integrations as **standalone plugins**, not Hermes core PRs  
-- Use `$HERMES_HOME` / profile paths — never hardcode machine homes  
-- JSON tool boundaries; durable state under the active profile  
-
-## Phase 1 — Skill (available now)
-
-Install the skill markdown into the active Hermes skills tree:
+## Install
 
 ```bash
-# HERMES_HOME is your profile root (default ~/.hermes)
-mkdir -p "$HERMES_HOME/skills/cognition/hermes-insight"
-cp skills/hermes-insight/SKILL.md \
-  "$HERMES_HOME/skills/cognition/hermes-insight/SKILL.md"
+./scripts/install_for_hermes.sh
+
+# Named profile / trust compartment:
+HERMES_HOME=~/.hermes/profiles/myagent \
+  ./scripts/install_for_hermes.sh --agent myagent --tier worker
 ```
 
-Install the Python package into the same environment Hermes uses:
+The installer:
 
-```bash
-pip install -e /path/to/hermes-insight
-# or: pip install hermes-insight  # once published to PyPI
+1. installs the Python package into the selected Hermes environment;
+2. copies the complete skill bundle (`SKILL.md` plus `references/`);
+3. copies and enables the `hermes-insight` plugin without replacing other plugins;
+4. creates a profile-scoped database and bootstraps starter patterns.
+
+Restart Hermes after installation. Skill discovery is session-cached, so start a new
+session (or explicitly invalidate the cache) before checking `/hermes-insight`.
+
+## Hermes skill acquisition
+
+Hermes sees the frontmatter name and short description in its session skill index. It
+offers the skill only when the plugin's `hermes_insight` toolset is present, then loads
+the full procedure with:
+
+```text
+skill_view(name="hermes-insight")
 ```
 
-Point the lattice at profile-scoped storage:
+The deep reference remains unloaded until needed:
 
-```bash
-export HERMES_INSIGHT_DB="$HERMES_HOME/memories/hermes-insight.db"
+```text
+skill_view(name="hermes-insight", file_path="references/AGENT-GUIDE.md")
 ```
 
-In-session, Hermes can load the skill (`/skill hermes-insight` or auto-discovery)
-and shell out to:
+The skill follows current Hermes Agent conventions: concise routing description,
+cross-platform declaration, `When to Use`, prerequisites, procedure, pitfalls, and
+verification. It teaches:
 
-```bash
-hermes-insight cycle "..." -o "observation one" -o "observation two"
-hermes-insight ingest "title" "body" --domain code --tag x
-hermes-insight feedback p_xxx
+```text
+observe → perceive → plan → task/events → attributed outcome → learn
 ```
-
-Or use the Python API inside `execute_code` if preferred.
-
-## Phase 2 — Optional plugin skeleton
-
-Directory: `hermes_plugin/hermes_insight_plugin/`
-
-Intended install:
-
-```bash
-cp -R hermes_plugin/hermes_insight_plugin \
-  "$HERMES_HOME/plugins/hermes_insight"
-# restart Hermes / reload plugins per current Hermes docs
-```
-
-The skeleton documents hooks for:
-
-- `register_tool` — `pattern_cycle`, `pattern_ingest`, `pattern_feedback`  
-- optional `system_prompt_block` — short stance from `prompts.SYSTEM_PATTERN_OFFICER`  
-
-Implement against the live Hermes plugin API on your installed version
-(`hermes version` → docs → “Build a Hermes Plugin”). APIs move; keep the
-**library** stable and the plugin thin.
 
 ## Profile isolation
 
-| Profile | DB path example |
-|---------|-----------------|
-| default | `$HERMES_HOME/memories/hermes-insight.db` |
-| named | `~/.hermes/profiles/<name>/memories/hermes-insight.db` |
+| Profile | Default database |
+|---|---|
+| default | `$HERMES_HOME/memories/hermes-insight/insight.db` |
+| named | `$HERMES_HOME/memories/hermes-insight/agents/<agent>.insight.db` |
 
-Do not share lattices across clients or trust boundaries.
+Never share a writable lattice across clients or trust boundaries. Imported/community
+content is not equivalent to local evidence.
 
-## What not to do
+## Production checks
 
-- Do not vendor operator machine paths into this repo  
-- Do not open a Hermes core PR just to add this capability  
-- Do not put secrets or personal data into example DBs committed to git  
+```bash
+python3 -m pytest -q
+bash scripts/check_isolation.sh
+python3 -m compileall -q src hermes_plugin
+```
 
-## Verification checklist
+Then verify in a fresh Hermes session:
 
-- [ ] `hermes-insight demo` works in a clean venv  
-- [ ] `pytest` green  
-- [ ] `scripts/check_isolation.sh` green  
-- [ ] Skill visible to Hermes after copy + reload  
-- [ ] DB path under `$HERMES_HOME` for real use  
+1. `insight_stats` reports the intended profile and database.
+2. `insight_observe(mode="environment", root="<workspace>")` returns a snapshot.
+3. A concrete `insight_perceive` is usable and a vague one abstains.
+4. A task can record typed events and close with honest `used_pattern_ids`.
+5. Repeated traces across distinct tasks appear in `insight_learn`; repeated events in one
+   task do not fake support.
+
+## Boundaries
+
+- No AgentDrive package, runtime, database, code import, or protocol dependency.
+- No automatic Hermes skill writing, installation, execution, or publication.
+- No raw credentials or unrestricted transcript ingestion.
+- No cross-profile evidence sharing without a future explicit policy surface.

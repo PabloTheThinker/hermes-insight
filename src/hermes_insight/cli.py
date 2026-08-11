@@ -193,6 +193,53 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--deep", action="store_true", help="Force deep cycle if thin")
     s.set_defaults(func=cmd_perceive)
 
+    s = sub.add_parser(
+        "plan",
+        help="Experience-grounded plan — ranked patterns, skills, tools, and workflow",
+    )
+    s.add_argument("situation")
+    s.add_argument("-o", "--observation", action="append", default=[])
+    s.add_argument("--domain", default=None)
+    s.add_argument("-n", "--limit", type=int, default=5)
+    s.set_defaults(func=cmd_plan)
+
+    s = sub.add_parser(
+        "observe",
+        help="Record a typed event or capture a local environment snapshot",
+    )
+    s.add_argument("mode", choices=["event", "environment"])
+    s.add_argument("summary", nargs="?", default="")
+    s.add_argument("--event-type", default="observation")
+    s.add_argument("--root", default=".")
+    s.add_argument("--detail", action="append", default=[], help="Event detail as key=value")
+    s.add_argument("--task-id", default=None)
+    s.add_argument("--trace-id", default="")
+    s.add_argument("--parent-event-id", default="")
+    s.add_argument("--status", default="observed")
+    s.add_argument("--outcome", default="")
+    s.add_argument("--tool", default="")
+    s.add_argument("--skill-id", default="")
+    s.add_argument("--environment-snapshot-id", default="")
+    s.add_argument("--trust-class", default="local")
+    s.add_argument("--sensitivity", default="private")
+    s.add_argument("--no-tools", action="store_true", help="Skip tool availability in snapshots")
+    s.set_defaults(func=cmd_observe)
+
+    s = sub.add_parser(
+        "learn",
+        help="Induce recurring workflows from distinct typed task traces",
+    )
+    s.add_argument("--min-support", type=int, default=3)
+    s.add_argument("--min-steps", type=int, default=2)
+    s.add_argument("--max-steps", type=int, default=4)
+    s.add_argument("-n", "--limit", type=int, default=12)
+    s.add_argument(
+        "--materialize",
+        action="store_true",
+        help="Write reviewable sequence patterns; never writes or executes skills",
+    )
+    s.set_defaults(func=cmd_learn)
+
     s = sub.add_parser("recall", help="Fast pre-action recall (priors + experiences + hops)")
     s.add_argument("query")
     s.add_argument("-n", "--limit", type=int, default=8)
@@ -215,6 +262,12 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--task-id", default=None)
     s.add_argument("--outcome", default="done")
     s.add_argument("--summary", default="")
+    s.add_argument(
+        "--used-pattern",
+        action="append",
+        default=None,
+        help="Pattern/skill id actually applied (repeatable; enables outcome learning)",
+    )
     s.set_defaults(func=cmd_task)
 
     s = sub.add_parser("connect", help="Link two patterns or auto-connect free text")
@@ -438,6 +491,64 @@ def cmd_perceive(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_plan(args: argparse.Namespace) -> int:
+    lat = _lattice(args)
+    pack = lat.plan(
+        args.situation,
+        observations=args.observation,
+        domain=args.domain,
+        limit=args.limit,
+    )
+    if args.json:
+        _print(pack, as_json=True)
+    else:
+        print(pack.get("card") or json.dumps(pack, indent=2))
+    return 0
+
+
+def cmd_observe(args: argparse.Namespace) -> int:
+    lat = _lattice(args)
+    if args.mode == "environment":
+        result = lat.snapshot_environment(args.root, include_tools=not args.no_tools)
+    else:
+        details = {}
+        for index, item in enumerate(args.detail):
+            if "=" in item:
+                key, value = item.split("=", 1)
+                details[key.strip() or f"detail_{index + 1}"] = value.strip()
+            else:
+                details[f"detail_{index + 1}"] = item
+        result = lat.record_event(
+            args.event_type,
+            args.summary,
+            details=details,
+            trace_id=args.trace_id,
+            parent_event_id=args.parent_event_id,
+            task_id=args.task_id,
+            status=args.status,
+            outcome=args.outcome,
+            tool=args.tool,
+            skill_id=args.skill_id,
+            environment_snapshot_id=args.environment_snapshot_id,
+            trust_class=args.trust_class,
+            sensitivity=args.sensitivity,
+        )
+    _print(result, as_json=True)
+    return 0 if result.get("success") else 1
+
+
+def cmd_learn(args: argparse.Namespace) -> int:
+    result = _lattice(args).learn(
+        min_support=args.min_support,
+        min_steps=args.min_steps,
+        max_steps=args.max_steps,
+        limit=args.limit,
+        materialize=bool(args.materialize),
+    )
+    _print(result, as_json=True)
+    return 0
+
+
 def cmd_recall(args: argparse.Namespace) -> int:
     lat = _lattice(args)
     pack = lat.recall(args.query, limit=args.limit, domain=args.domain)
@@ -477,6 +588,7 @@ def cmd_task(args: argparse.Namespace) -> int:
                 args.task_id,
                 outcome=args.outcome,
                 summary=args.summary,
+                used_pattern_ids=args.used_pattern,
             ),
             as_json=True,
         )

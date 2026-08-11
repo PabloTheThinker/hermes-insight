@@ -116,13 +116,17 @@ class HermesInsight:
             evidence=[Evidence(source=source, kind="observation", confidence=confidence)],
             metadata=meta,
         )
-        for existing in self.store.list_patterns(limit=800):
-            if existing.content_hash == pat.content_hash:
-                existing.touch(0.01)
-                self.store.upsert_pattern(existing)
-                if link:
-                    auto_link(self.store, existing, min_score=auto_link_min, limit=8)
-                return existing
+        # Lived events are occurrences, not reusable catalogue entries. Two tasks may
+        # produce identical text and still need distinct timestamps, task links, and
+        # outcome evidence. Structural nodes retain content deduplication.
+        if pat.kind not in {PatternKind.EVENT, PatternKind.EPISODE, PatternKind.TASK}:
+            for existing in self.store.list_patterns(limit=800):
+                if existing.content_hash == pat.content_hash:
+                    existing.touch(0.01)
+                    self.store.upsert_pattern(existing)
+                    if link:
+                        auto_link(self.store, existing, min_score=auto_link_min, limit=8)
+                    return existing
         self.store.upsert_pattern(pat)
         if link:
             auto_link(self.store, pat, min_score=auto_link_min, limit=8)
@@ -460,6 +464,68 @@ class HermesInsight:
     # Experience — tasks, events, fast recall (any Hermes agent path)
     # ------------------------------------------------------------------
 
+    def plan(
+        self,
+        situation: str,
+        *,
+        observations: Optional[Sequence[str]] = None,
+        domain: Optional[str] = None,
+        limit: int = 5,
+    ) -> Dict[str, Any]:
+        """Rank applicable patterns and affordances using explicit task outcomes."""
+        from hermes_insight.planner import plan_task
+
+        return plan_task(
+            self,
+            situation,
+            observations=observations,
+            domain=domain,
+            limit=limit,
+        )
+
+    def learn(
+        self,
+        *,
+        min_support: int = 3,
+        min_steps: int = 2,
+        max_steps: int = 4,
+        limit: int = 12,
+        materialize: bool = False,
+    ) -> Dict[str, Any]:
+        """Induce recurring workflows from independent typed task traces."""
+        from hermes_insight.induction import induce_workflows
+
+        return induce_workflows(
+            self,
+            min_support=min_support,
+            min_steps=min_steps,
+            max_steps=max_steps,
+            limit=limit,
+            materialize=materialize,
+        )
+
+    def snapshot_environment(
+        self,
+        root: PathLike = ".",
+        *,
+        include_tools: bool = True,
+    ) -> Dict[str, Any]:
+        """Capture scrubbed workspace state and a delta from its prior snapshot."""
+        from hermes_insight.observation import snapshot_environment
+
+        return snapshot_environment(self, root, include_tools=include_tools)
+
+    def record_event(
+        self,
+        event_type: str,
+        summary: str,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        """Record a typed, provenance-rich event in the existing Insight lattice."""
+        from hermes_insight.observation import record_event
+
+        return record_event(self, event_type, summary, **kwargs)
+
     def perceive(
         self,
         situation: str,
@@ -584,8 +650,9 @@ class HermesInsight:
         outcome: str = "done",
         summary: str = "",
         reinforce_connected: bool = True,
+        used_pattern_ids: Optional[Sequence[str]] = None,
     ) -> Dict[str, Any]:
-        """Close task episode and reinforce patterns that matched."""
+        """Close a task and optionally credit patterns that were actually applied."""
         from hermes_insight.experience import close_task as _close
 
         tid = task_id or self.store.get_meta("active_task_id", "")
@@ -597,6 +664,7 @@ class HermesInsight:
             outcome=outcome,
             summary=summary,
             reinforce_connected=reinforce_connected,
+            used_pattern_ids=used_pattern_ids,
         )
 
     def connect(

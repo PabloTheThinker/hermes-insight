@@ -39,6 +39,9 @@ After `./scripts/install_for_hermes.sh` (and a Hermes reload), you typically get
 | Tool | Role | Use when |
 |------|------|----------|
 | **`insight_perceive`** | **Primary ability** | Almost always — situation → lever + matches + hint |
+| **`insight_plan`** | **Decision route** | Consequential/multi-step work → ranked patterns, skills, tools |
+| **`insight_observe`** | **Grounding** | Typed event or workspace snapshot/delta |
+| **`insight_learn`** | **Induction** | Recurring ordered workflows across distinct tasks |
 | `insight_recall` | Fast priors only | Need speed, no log, no deep |
 | `insight_task` | Open/close episodes | Multi-step jobs; keep `task_id` |
 | `insight_experience` | Log event/episode | After fix, failure, decision |
@@ -184,26 +187,44 @@ situation (+ observations)
 ### 4.2 Experience / task arc
 
 ```text
-open_task  →  experience*  →  close_task
-     │              │              │
-   priors      auto-link      reinforce on success
+plan?  →  open_task  →  experience*  →  close_task(used_pattern_ids)
+ │           │              │                    │
+ranked     priors        auto-link        explicit outcome credit
 ```
 
 - **open** — creates task node, returns prior matches, `task_id`  
 - **experience** — files event/episode; links to structural matches; chains `next`  
-- **close** — outcome episode; can reinforce connected patterns  
+- **close** — outcome episode; `used_pattern_ids` attributes success/failure only to
+  patterns or skills actually applied
 
 This is how the lattice **learns in lived time**, not only from bulk code index.
 
-### 4.3 Cycle
+### 4.3 Native observation
+
+`insight_observe(mode=environment)` captures scrubbed Git/manifests/runtime/tool metadata
+and links each changed snapshot with `precedes`. `mode=event` records a typed event with
+task/trace identity, tool or skill, outcome, provenance, trust, and sensitivity. Events
+link to the current snapshot through `observed_in`, so plans know which digital
+environment produced an outcome. This is native Insight storage—no AgentDrive dependency.
+
+### 4.4 Workflow induction
+
+`insight_learn` mines contiguous typed-event sequences and counts support by distinct
+`task_id`, not event frequency. Every result retains success, failure, neutral outcomes,
+environment count, and counterexamples. Three tasks can create a `candidate`;
+`verified_local` requires at least five independently labeled tasks and a conservative
+Wilson success lower bound. `materialize=true` writes a reviewable `sequence` node only.
+It never writes or executes a Hermes skill.
+
+### 4.5 Cycle
 
 Longer multi-lens pass for architecture / novel scenes. Use when perceive is weak or the problem is strategic. Produces a structured brief.
 
-### 4.4 Forge
+### 4.6 Forge
 
 Turns the lattice into **human/agent products**: orientation maps, playbooks, prediction boards, etc. under a run directory. Use after the lattice has substance.
 
-### 4.5 Hygiene
+### 4.7 Hygiene
 
 - **Decay** weakens unused fabric/code dumps so they stop drowning rules  
 - **Densify** links structural nodes so hops work  
@@ -211,7 +232,7 @@ Turns the lattice into **human/agent products**: orientation maps, playbooks, pr
 
 Run periodically or after bulk `index_*`.
 
-### 4.6 Starters (bootstrap)
+### 4.8 Starters (bootstrap)
 
 Empty or incomplete lattices get **starter rules** — agent-field priors such as:
 
@@ -226,7 +247,7 @@ Empty or incomplete lattices get **starter rules** — agent-field priors such a
 
 Bootstrap **fills missing titles** without blindly duplicating everything.
 
-### 4.7 Privacy / compartments
+### 4.9 Privacy / compartments
 
 - Scrubber redacts secret-shaped strings  
 - **One DB per trust boundary** (house ≠ client)  
@@ -242,11 +263,13 @@ Never paste raw credentials into titles/bodies.
 ### 5.1 Default loop (memorize this)
 
 ```text
-1. insight_perceive(situation, observations?)
-2. If usable: act on action_hint + top rule
-3. If multi-step: insight_task open → work → insight_experience* → close
-4. If novel/weak: deep=true or insight_cycle
-5. After hard fix: log=true or insight_experience + skill_manage if procedure
+1. insight_observe(mode=environment) when state materially changed
+2. insight_perceive(situation, observations?)
+3. For consequential/multi-step work: insight_plan(situation, observations?)
+4. If usable: open task → typed events/work → close with used_pattern_ids
+5. After ≥3 comparable tasks: insight_learn(materialize=false), inspect counterexamples
+6. If novel/weak: deep=true or insight_cycle
+7. Promote only verified-local procedure through reviewed skill_manage
 ```
 
 ### 5.2 When to call perceive
@@ -294,8 +317,11 @@ Trust strong scores (≥ ~0.35–0.5 with a clear rule). Verify weak ones.
 | Action | Effect |
 |--------|--------|
 | `insight_perceive(..., log=true)` | Files event + auto-links |
+| `insight_plan` | Ranks routes; does not execute or claim they were used |
+| `insight_observe` | Records environment identity or a typed task/tool/skill event |
 | `insight_experience` | Explicit event/episode |
-| `insight_task` close with outcome | Reinforces what worked |
+| `insight_task` close + `used_pattern_ids` | Records applied-edge evidence and reinforces/weakens |
+| `insight_learn` | Mines distinct-task recurrence; never auto-writes a skill |
 | `insight_feedback` | Manual strengthen/weaken |
 | Plugin session end | Only failures/interrupts auto-file |
 
@@ -505,7 +531,33 @@ perceive(situation, observations?=, domain?=, log?=false, deep?=false)
 
 ```text
 open  name, goal?  → task_id, priors, brief
-close task_id?, outcome?, summary?  → connected[], reinforced?
+close task_id?, outcome?, summary?, used_pattern_ids?  → applied_patterns[], reinforced?
+```
+
+### plan
+
+```text
+plan(situation, observations?=, domain?=, limit=5)
+  → {
+      usable, lever, confidence, card,
+      recommendations[{score, relevance, reliability, outcome_evidence, action}],
+      environment_affordances[], lived_echoes[], workflow[]
+    }
+```
+
+### learn
+
+```text
+learn(min_support=3, min_steps=2, max_steps=4, materialize=false)
+  → {
+      candidates[{
+        steps[], support, lifecycle, score,
+        evidence{distinct_tasks, distinct_environments, successes, failures,
+                 counterexample_task_ids, success_lower_bound}
+      }],
+      materialized[],
+      safety{automatic_skill_write=false, automatic_execution=false}
+    }
 ```
 
 ### experience
@@ -532,7 +584,9 @@ experience(title, body, kind=event|episode, task_id?, outcome?, tags?)
 
 ## 15. Version note
 
-This guide targets the **0.7.x** line (perceive ability, experience layer, structural priors, session-noise hygiene, mesh starters). APIs evolve; tools and starter titles may grow. Trust `insight_stats.version` on the live lattice.
+This guide targets the **0.8.x** line (perceive + plan, native observation, explicit
+applied-pattern outcomes, evidence-gated workflow induction, structural priors, and
+session-noise hygiene). APIs evolve; trust `insight_stats.version` on the live lattice.
 
 ---
 

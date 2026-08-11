@@ -1,121 +1,159 @@
 ---
 name: hermes-insight
-description: "Use when an agent needs pattern recognition — perceive situations, distill levers, connect experience, match structures."
-version: "0.7.4"
-author: Pablo Navarro
+description: Recognize recurring structures and learn from outcomes.
+version: 0.8.0
+author: Pablo Navarro (PabloTheThinker), Hermes Agent
 license: MIT
+platforms: [linux, macos, windows]
 metadata:
   hermes:
-    tags: [cognition, pattern-recognition, memory, harness, spp, multi-agent, experience]
-    requires_binaries: []
+    tags: [cognition, pattern-recognition, experience, planning, learning]
+    category: cognition
+    related_skills: []
+    requires_toolsets: [hermes_insight]
 ---
 
-# Hermes Insight (Hermes skill)
+# Hermes Insight Skill
 
-**Pattern recognition ability** for agents: encode → match → link → distill → perceive → reinforce.
+Hermes Insight gives an agent durable structural recognition across sessions. It matches
+current situations to rules and lived outcomes, names the controlling lever, grounds
+plans in the current digital environment, and learns recurring workflows. It does not
+replace reasoning, prove causality from similarity, or import AgentDrive.
 
-Standalone package + native plugin (`insight_*`).
+## When to Use
 
-## Deep manual (read when new to Insight)
+- Before difficult debugging, architecture, operations, or tool-routing decisions.
+- When a failure, correction, or workflow appears to repeat.
+- When a multi-step task should teach future Hermes sessions.
+- When the workspace, available tools, or service state materially changed.
+- When at least three independent task traces may contain a reusable workflow.
 
-**[references/AGENT-GUIDE.md](references/AGENT-GUIDE.md)** — full ontology, pipeline, doctrine, install, examples, anti-patterns.
+Don't use for trivia, one-step deterministic actions, bulk chat logging, or as evidence
+that a weak analogy is true.
 
-Also in repo: `docs/AGENT-GUIDE.md` ·  
-https://github.com/PabloTheThinker/hermes-insight/blob/main/docs/AGENT-GUIDE.md
+## Prerequisites
 
-Load that document (skill_view file_path `references/AGENT-GUIDE.md`, or open the file) the first time you gain this skill. Daily work only needs the loop below.
+- The `hermes-insight` plugin is enabled for the active Hermes profile.
+- `insight_stats` returns the intended agent id, database path, and version.
+- Each client or trust boundary uses a separate Insight database.
+- No credential value, private key, or unrestricted transcript is supplied to Insight.
 
-## When to load
+If the tools are missing, tell the user the plugin must be installed and Hermes restarted.
+Load `references/AGENT-GUIDE.md` for platform-specific installation instructions. Do not
+invent tool results or silently fall back to a different memory store.
 
-- Before hard debugging / architecture / recurring failures  
-- Multi-step tasks that should leave structural memory  
-- “Same shape as X” / cross-domain rhyme  
-- After failures and fixes  
-- Teaching a new agent what Insight is  
+## How to Run
 
-## Install (any Hermes agent)
+Invoke `/hermes-insight <situation>` to load this doctrine explicitly. Once loaded, call
+`insight_perceive` with the concrete situation and observations. Use `insight_plan` before
+consequential multi-step work, and keep all subsequent events under one `task_id`.
 
-```bash
-./scripts/install_for_hermes.sh
-# or profile:
-HERMES_HOME=~/.hermes/profiles/myagent ./scripts/install_for_hermes.sh --agent myagent
-```
-
-```yaml
-plugins:
-  enabled: […existing…, hermes-insight]   # merge — never replace the list
-  entries:
-    hermes-insight:
-      agent_id: default
-      agent_tier: worker
-```
-
-Reload Hermes after enabling so `insight_*` tools appear.
-
-## Default ability
-
-**Call `insight_perceive` first** with the situation (+ optional observations).
+## How It Works
 
 ```text
-insight_perceive → (optional) insight_task open → insight_experience* → insight_task close
+observe environment → perceive → plan → task/events → attributed outcome → learn
+        state           shape      route      evidence          credit        recurrence
 ```
 
-| Tool | When |
-|------|------|
-| **insight_perceive** | Default — lever + structures + action hint + `usable` |
-| insight_task | Multi-step work (`open` / `close`) |
-| insight_experience | After events/fixes |
-| insight_cycle | Explicit deep analysis |
-| insight_forge | Lattice → maps/playbooks |
-| insight_hygiene | Decay fabric noise; densify links |
+The lattice contains typed patterns and links in local SQLite:
 
-Set `log=true` on perceive (or use experience) so the **next** session is faster.
+- rules, skills, tools, agents, events, tasks, environments, and induced sequences;
+- `instance_of`, `next`, `applied`, `observed_in`, and other explicit relations;
+- hybrid template/prototype/feature matching with structural priors;
+- conservative reliability from patterns explicitly applied to completed tasks;
+- recurring workflow induction across distinct task ids, including failures.
 
-### How to read a perceive card
+Similarity proposes a candidate. Explicit task outcomes and repeated independent traces
+determine whether that candidate earns trust.
 
-1. `usable` — if false, gather concrete observations; do not invent root cause  
-2. `lever` — variable to measure/intervene on  
-3. Top **rule** match + `action_hint` — act here first  
-4. Lived echoes + hops — prior events/tasks  
+For ontology, scoring, privacy, and advanced examples, load
+`skill_view(name="hermes-insight", file_path="references/AGENT-GUIDE.md")`.
 
-## Stance
+## Quick Reference
 
-1. Recall before rediscovery  
-2. Name the **actual variable**  
-3. Prefer structural rules over scenic detail  
-4. Observation ≠ inference  
-5. Separate DBs per trust boundary  
-6. Never paste raw credentials  
+| Tool | Use |
+|---|---|
+| `insight_perceive` | Situation → lever, matching structures, echoes, `usable` |
+| `insight_plan` | Ranked route with reliability and environment state |
+| `insight_observe` | Typed event or scrubbed workspace snapshot/delta |
+| `insight_task` | Open/close a task and attribute its outcome |
+| `insight_experience` | Record a meaningful event or episode |
+| `insight_learn` | Mine repeated workflows across distinct tasks |
+| `insight_feedback` | Explicitly strengthen or weaken known patterns |
+| `insight_hygiene` | Decay noise and repair structural links |
+| `insight_cycle` | Deeper recognition for novel, substantive situations |
 
-## SOUL fragment (optional)
+## Procedure
 
-```markdown
-## Pattern recognition (Hermes Insight)
-Default tool: insight_perceive. Before hard debugging or architecture, perceive.
-If usable, act on lever + top rule + action_hint. Log meaningful scenes (log=true).
-Use insight_task for multi-step work. If usable is false, gather observations first.
-```
+1. **Ground the environment when it matters.** Call
+   `insight_observe(mode="environment", root="<workspace>")` after changing repository,
+   branch, dependency state, or available tools. Continue when the returned snapshot and
+   delta describe the intended workspace.
+2. **Perceive the concrete situation.** Call `insight_perceive` with component names,
+   symptoms, exact errors, observations, and an optional domain. Continue only after
+   checking `usable`, `lever`, top score, and the top rule.
+3. **Refuse weak structure.** If `usable=false`, gather two or three new observations and
+   perceive again. Do not turn a weak match into a root-cause claim.
+4. **Plan consequential work.** Call `insight_plan` and inspect the primary route,
+   alternatives, explicit success/failure counts, environment fingerprint, verification
+   step, and rollback condition. Continue when the route fits current permissions and
+   state.
+5. **Open a task.** Call `insight_task(action="open", name=..., goal=...)` and retain its
+   `task_id`. The task boundary is the unit of independent workflow evidence.
+6. **Leave typed evidence.** For important tool or skill transitions, call
+   `insight_observe(mode="event", event_type=..., task_id=..., tool=... or skill_id=...,
+   status=..., outcome=..., provenance=...)`. Use `insight_experience` for a concise
+   human-readable decision, failure, correction, or discovery.
+7. **Execute and verify.** Follow the chosen route, measure the expected result, and stop
+   or roll back when its stated condition is met. Completion requires observable evidence,
+   not the absence of an exception.
+8. **Close with honest credit.** Call `insight_task(action="close", task_id=...,
+   outcome=..., summary=..., used_pattern_ids=[...])`. Include only patterns or skills
+   actually applied. A recommendation that was merely viewed receives no credit.
+9. **Induce recurrence after enough tasks.** Call `insight_learn(materialize=false)` after
+   at least three comparable typed tasks. Inspect distinct-task support, labeled outcomes,
+   counterexamples, environment count, Wilson lower bound, and lifecycle.
+10. **Materialize cautiously.** Use `insight_learn(materialize=true)` only when the
+    candidate is understandable and its counterexamples are retained. This writes a local
+    `sequence` pattern for review; it never writes or executes a Hermes skill.
 
-## CLI / Python
+## From a Verified Pattern to a Hermes Skill
 
-```bash
-hermes-insight bootstrap
-hermes-insight perceive "situation" -o "fact" --log
-```
+Promote procedure only when `insight_learn` reports `verified_local` and the evidence
+matches the intended environment:
 
-```python
-from hermes_insight import HermesInsight
-lat = HermesInsight()
-print(lat.perceive("…", log_experience=True)["card"])
-```
+1. Define applicability and excluded conditions.
+2. Include required tools, ordered steps, verification, rollback, and known failures.
+3. Cite aggregate support and counterexamples without copying private task bodies.
+4. Ask for user review before calling `skill_manage(action="create", ...)` or patching an
+   existing skill. Respect the Hermes skill write-approval gate.
+5. Start a new Hermes session before expecting discovery; the skill index is session-cached.
 
-## Docs
+Never auto-publish or auto-install a learned procedure. Private evidence remains in its
+profile compartment.
 
-| Doc | Use |
-|-----|-----|
-| **[references/AGENT-GUIDE.md](references/AGENT-GUIDE.md)** | Deep agent manual |
-| [docs/ABILITY.md](../../docs/ABILITY.md) | Short ability card |
-| [docs/EXPERIENCE.md](../../docs/EXPERIENCE.md) | Experience layer |
-| [SECURITY.md](../../SECURITY.md) | Privacy |
+## Pitfalls
 
-https://github.com/PabloTheThinker/hermes-insight
+- **Similarity is not causality.** A high match score still requires observation.
+- **Selection is not application.** Do not place untried ids in `used_pattern_ids`.
+- **One task is not recurrence.** Repeated events inside one task count once.
+- **Success-only memory overfits.** Retain failed tasks and counterexamples.
+- **Materialized is not verified.** `candidate` sequences remain review-only.
+- **Environment drift invalidates precedent.** Capture a new snapshot after material change.
+- **Shared databases cross trust boundaries.** Use one database per profile/client.
+- **Raw telemetry becomes a liability.** Store concise structure and artifact references.
+- **Completed-session spam hides signal.** Record meaningful transitions, not every turn.
+
+## Verification
+
+- `insight_stats` reports the expected profile and a writable local database.
+- A concrete `insight_perceive` returns a meaningful lever; a vague query returns
+  `usable=false`.
+- `insight_plan` displays the current environment snapshot and separates relevance from
+  reliability.
+- Closing a task with actual `used_pattern_ids` changes explicit outcome evidence.
+- Three identical traces inside one task produce no recurring-workflow candidate.
+- Three or more distinct tasks can produce a `candidate`; only the documented evidence
+  gate can produce `verified_local`.
+- `insight_learn` always reports `automatic_skill_write=false` and
+  `automatic_execution=false`.

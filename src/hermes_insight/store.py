@@ -79,10 +79,12 @@ class PatternStore:
         self._init_db()
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(str(self.db_path))
+        conn = sqlite3.connect(str(self.db_path), timeout=10.0)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
         conn.execute("PRAGMA journal_mode = WAL")
+        conn.execute("PRAGMA synchronous = NORMAL")
+        conn.execute("PRAGMA busy_timeout = 10000")
         return conn
 
     @contextmanager
@@ -223,7 +225,18 @@ class PatternStore:
 
     def structural_patterns(self, *, limit: int = 200) -> List[Pattern]:
         """High-value nodes for recognition shortlist (rules/skills/events first)."""
-        kinds = ("rule", "skill", "synthesis", "event", "episode", "task", "agent", "model", "tool")
+        kinds = (
+            "rule",
+            "skill",
+            "sequence",
+            "synthesis",
+            "event",
+            "episode",
+            "task",
+            "agent",
+            "model",
+            "tool",
+        )
         out: List[Pattern] = []
         seen: set[str] = set()
         with self._db() as conn:

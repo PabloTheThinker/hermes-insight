@@ -60,7 +60,7 @@ def test_ingest_match_cycle(lat: HermesInsight):
     assert "agent-field" in report.brief or "brief" in report.brief
     st = lat.stats()
     assert st["patterns"] >= 2
-    assert st["version"] == "0.7.4"
+    assert st["version"] == "0.8.0"
 
 
 def test_distill_prefers_structural_lever(lat: HermesInsight):
@@ -194,3 +194,43 @@ def test_plugin_handlers_smoke(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
     assert out3["success"] is True
     assert "brief" in out3["data"]
+    out4 = json.loads(
+        mod.handle_insight_plan(
+            {
+                "situation": "timeouts amplify retry load",
+                "observations": ["clients lack jitter"],
+                "domain": "code",
+            }
+        )
+    )
+    assert out4["success"] is True
+    assert out4["data"]["ability"] == "experience_grounded_planning"
+    assert out4["data"]["workflow"]
+    out5 = json.loads(
+        mod.handle_insight_observe(
+            {"mode": "environment", "root": str(tmp_path), "include_tools": False}
+        )
+    )
+    assert out5["success"] is True
+    assert out5["data"]["schema"] == "hermes-insight.environment.v1"
+    out6 = json.loads(mod.handle_insight_learn({"min_support": 3}))
+    assert out6["success"] is True
+    assert out6["data"]["ability"] == "workflow_induction"
+    assert out6["data"]["safety"]["automatic_skill_write"] is False
+    opened = json.loads(
+        mod.handle_insight_task(
+            {"action": "open", "name": "plugin attribution", "goal": "apply t1"}
+        )
+    )
+    closed = json.loads(
+        mod.handle_insight_task(
+            {
+                "action": "close",
+                "task_id": opened["data"]["task_id"],
+                "outcome": "success",
+                "used_pattern_ids": [out2["data"]["id"]],
+            }
+        )
+    )
+    assert closed["success"] is True
+    assert closed["data"]["applied_patterns"] == [out2["data"]["id"]]

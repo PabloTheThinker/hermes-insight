@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.8.0 — 2026-08-10
+
+- **Experience-grounded planner** — `insight_plan` ranks rules, skills, workflows, and
+  local environment affordances with transparent score components
+- **Explicit outcome attribution** — task close accepts `used_pattern_ids` and records
+  `applied` edges, separating actual use from similarity
+- **Calibrated reliability** — successful and failed applications update a conservative,
+  sample-size-shrunk reliability score
+- **Native observation layer** — typed agent/tool/skill events plus scrubbed environment
+  snapshots and structural deltas, stored in the existing Insight lattice
+- **Environment-grounded plans** — plans identify the workspace snapshot that produced
+  their evidence, with no AgentDrive runtime or storage integration
+- **Evidence-gated workflow induction** — `insight_learn` mines ordered typed-event
+  sequences across distinct tasks, retains counterexamples, and assigns candidate or
+  verified-local lifecycle using conservative outcome bounds
+- **Hermes-native skill rewrite** — progressive-disclosure frontmatter, acquisition
+  procedure, pitfalls, verification, and reviewed pattern-to-skill promotion guidance
+- **SQLite production hardening** — bounded lock wait, WAL, and normal synchronous mode
+- **Explicit-only outcome credit** — retrieval and similarity links never receive task
+  success/failure reinforcement unless listed in `used_pattern_ids`
+- **Deterministic task chains** — per-task last-event cursors preserve sequential `next`
+  links without ranking events by mutable strength timestamps
+- **Reliable Hermes skill routing** — skill visibility now requires the plugin's
+  `hermes_insight` toolset and includes the canonical slash-command acquisition path
+- **Safe plugin setup** — config merge parses actual `plugins.enabled`, preserves unrelated
+  configuration, sanitizes agent ids, and creates a minimal config for fresh profiles
+- **Supported teaching surface** — removed obsolete plugin prompt-injection hooks; the
+  progressively disclosed filesystem skill is authoritative
+- **Research deep dive** — pattern recognition, agent memory/skill research, AgentDrive
+  comparison, integration boundary, and prioritized community roadmap
+- CLI, Python, Hermes plugin, skill, tests, and docs updated for the planning loop
+
 ## 0.7.4 — 2026-08-09
 
 - **Session auto-log dampened** — only failed/interrupted turns file episodes; completed turns bump a counter only

@@ -207,6 +207,8 @@ def hybrid_score(
         score = min(1.0, score + 0.10)
     elif kind == PatternKind.SYNTHESIS:
         score = min(1.0, score + 0.08)
+    elif kind == PatternKind.SEQUENCE:
+        score = min(1.0, score + 0.08)
     elif kind == PatternKind.SKILL:
         score = min(1.0, score + 0.07)
     elif kind in (PatternKind.EVENT, PatternKind.EPISODE, PatternKind.TASK):

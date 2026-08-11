@@ -9,6 +9,7 @@
 5. Self-evolution: reinforce, decay, synthesize higher-order nodes  
 6. Zero required cloud; zero coupling to any single agent host  
 7. Hermes-friendly packaging (skill now, plugin later)
+8. Native typed events + environment state without another agent-memory runtime
 
 ## Non-goals (v0.1)
 
@@ -27,11 +28,11 @@
                           │
                  ┌────────▼─────────┐
                  │ HermesInsight   │  harness.py
-                 │  cycle/ingest/…  │
+                 │ plan/cycle/ingest │
                  └────────┬─────────┘
           ┌───────────────┼────────────────┐
           ▼               ▼                ▼
-   features/match   distill/extrapolate  evolve/anomaly
+   features/match   distill/planner     induction/evolve
           │               │                │
           └───────────────┼────────────────┘
                           ▼
@@ -46,6 +47,11 @@
 - **Trajectory** — ephemeral or storable direction object from a cycle  
 - **Distillation** — actual variable + principle + action  
 - **CycleReport** — finished product for the agent  
+- **Plan** — ranked applicable patterns + environment affordances + outcome evidence
+- **Environment snapshot** — scrubbed Git/manifests/runtime/tool state + structural delta
+- **Typed event** — trace/task/tool/skill/outcome/provenance record linked to its snapshot
+- **Induced workflow** — ordered event subsequence supported by distinct task traces,
+  labeled outcomes, environment count, and retained counterexamples
 
 Kinds: template, prototype, feature, sequence, relation, rule, trajectory, anomaly, synthesis.
 
@@ -59,6 +65,16 @@ score *= 0.7 + 0.3*confidence
 ```
 
 Cross-domain links boost **analogy** when feature overlap exists across different domains.
+
+Planner reliability is deliberately separate from similarity. Only an explicit
+`task close(..., used_pattern_ids=[...])` creates an `applied` edge used as success/failure
+evidence. See [INTUITION.md](INTUITION.md) for the calibrated score and roadmap.
+
+Workflow induction is also separate from lexical recognition. `insight_learn` mines
+contiguous typed-event sequences, counts each `task_id` once, and materializes only
+reviewable `sequence` nodes. `verified_local` requires at least five distinct tasks,
+five labeled outcomes, no more than one failure, and a 95% Wilson success lower bound of
+at least 0.55. It never writes or executes Hermes skills.
 
 ## Evolution
 

@@ -8,6 +8,7 @@ import pytest
 
 from hermes_insight import __version__
 from hermes_insight.harness import HermesInsight
+from hermes_insight.models import LinkKind
 
 
 @pytest.fixture()
@@ -16,7 +17,7 @@ def lat(tmp_path: Path) -> HermesInsight:
 
 
 def test_version():
-    assert __version__ == "0.7.4"
+    assert __version__ == "0.8.0"
 
 
 def test_bootstrap_and_recall(lat: HermesInsight):
@@ -79,7 +80,7 @@ def test_task_arc_connects_experience(lat: HermesInsight):
     st = lat.stats()
     assert st["patterns"] >= 10
     assert st["links"] >= 1
-    assert st["version"] == "0.7.4"
+    assert st["version"] == "0.8.0"
     assert st.get("active_task_id") in {"", None}
 
 
@@ -124,3 +125,60 @@ def test_second_recall_finds_lived_echo(lat: HermesInsight):
     # either structural match (retry storm starter) or lived experience
     blob = (pack.get("brief") or "").lower()
     assert "retry" in blob or "storm" in blob or "alert" in blob or pack.get("lever")
+
+
+def test_close_without_explicit_usage_does_not_credit_similarity(lat: HermesInsight):
+    lat.bootstrap()
+    opened = lat.open_task("retry incident", goal="retry amplification without jitter")
+    retry = next(
+        pattern
+        for pattern in lat.store.list_patterns(kind="rule", limit=100)
+        if pattern.title == "retry storm amplifies load"
+    )
+    before = retry.strength
+    closed = lat.close_task(
+        opened["task_id"],
+        outcome="success",
+        summary="bounded jitter stopped retry amplification",
+    )
+    after = lat.get(retry.id)
+    assert closed["credit_mode"] == "none"
+    assert closed["applied_patterns"] == []
+    assert closed["reinforced"] == []
+    assert after is not None and after.strength == before
+    close_id = closed["experience"]["id"]
+    assert not any(
+        link.kind == LinkKind.APPLIED
+        for link in lat.store.links_for(close_id, limit=50)
+    )
+
+
+def test_explicit_empty_usage_is_honest_no_credit(lat: HermesInsight):
+    opened = lat.open_task("unattributed task")
+    closed = lat.close_task(
+        opened["task_id"],
+        outcome="success",
+        used_pattern_ids=[],
+    )
+    assert closed["credit_mode"] == "explicit"
+    assert closed["applied_patterns"] == []
+    assert closed["reinforced"] == []
+
+
+def test_task_next_chain_preserves_sequential_order(lat: HermesInsight):
+    opened = lat.open_task("ordered task", task_id="ordered")
+    first = lat.experience("first event", "first ordered observation", task_id="ordered")
+    second = lat.experience("second event", "second ordered observation", task_id="ordered")
+    closed = lat.close_task("ordered", outcome="done", summary="ordered task complete")
+    expected = [
+        (opened["experience"]["id"], first["experience"]["id"]),
+        (first["experience"]["id"], second["experience"]["id"]),
+        (second["experience"]["id"], closed["experience"]["id"]),
+    ]
+    for source_id, target_id in expected:
+        assert any(
+            link.kind == LinkKind.NEXT
+            and link.source_id == source_id
+            and link.target_id == target_id
+            for link in lat.store.links_for(source_id, limit=50)
+        )

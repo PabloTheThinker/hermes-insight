@@ -298,7 +298,7 @@ def seed_agent_starters(lat: "HermesInsight", *, force: bool = False) -> Dict[st
         )
         ids.append(pat.id)
     dens = densify_structural_links(lat, min_score=0.10, limit_per=12)
-    lat.store.set_meta("bootstrap_version", "0.7.4")
+    lat.store.set_meta("bootstrap_version", "0.8.0")
     lat.store.set_meta("last_densify_at", str(_time.time()))
     return {
         "seeded": len(ids),
@@ -395,8 +395,6 @@ def log_experience(
                 note=f"auto experience link score={h.score:.3f}",
             )
             lat.store.upsert_link(link)
-            h.pattern.touch(0.025)
-            lat.store.upsert_pattern(h.pattern)
             connected.append(
                 {
                     "pattern_id": h.pattern.id,
@@ -434,24 +432,26 @@ def log_experience(
 def _chain_task_event(store: "PatternStore", pat: Pattern, task_id: str) -> None:
     """Link this event as NEXT after the previous event in the same task."""
     tag = _task_tag(task_id)
-    # find recent experiences with same task tag
-    recent = [
-        p
-        for p in store.list_patterns(domain=Domain.EXPERIENCE.value, limit=40)
-        if tag in (p.tags or []) and p.id != pat.id
-    ]
-    if not recent:
-        # also scan general list
+    meta_key = f"task_chain_last:{tag.removeprefix('task:')}"
+    previous_id = store.get_meta(meta_key, "")
+    prev = store.get_pattern(previous_id) if previous_id else None
+    if not prev or prev.id == pat.id or tag not in (prev.tags or []):
+        # Backward-compatible recovery for tasks created before the chain cursor existed.
         recent = [
             p
-            for p in store.list_patterns(limit=80)
+            for p in store.list_patterns(domain=Domain.EXPERIENCE.value, limit=80)
             if tag in (p.tags or []) and p.id != pat.id and p.kind in {
                 PatternKind.EVENT, PatternKind.EPISODE, PatternKind.TASK, PatternKind.SEQUENCE
             }
         ]
-    if not recent:
+        prev = (
+            max(recent, key=lambda p: (p.created_at, p.updated_at, p.id))
+            if recent
+            else None
+        )
+    if not prev:
+        store.set_meta(meta_key, pat.id)
         return
-    prev = max(recent, key=lambda p: p.updated_at or p.created_at)
     link = Link(
         id=f"l_{uuid.uuid4().hex[:12]}",
         source_id=prev.id,
@@ -462,6 +462,7 @@ def _chain_task_event(store: "PatternStore", pat: Pattern, task_id: str) -> None
         metadata={"task_id": task_id},
     )
     store.upsert_link(link)
+    store.set_meta(meta_key, pat.id)
 
 
 def open_task(
@@ -520,8 +521,9 @@ def close_task(
     outcome: str = "done",
     summary: str = "",
     reinforce_connected: bool = True,
+    used_pattern_ids: Optional[Sequence[str]] = None,
 ) -> Dict[str, Any]:
-    """Close a task: log outcome episode, reinforce helpful patterns."""
+    """Close a task and attribute outcomes to patterns explicitly applied."""
     summary = scrub_text(summary or f"Task {task_id} closed with outcome={outcome}")
     res = log_experience(
         lat,
@@ -534,20 +536,49 @@ def close_task(
         confidence=0.75,
         auto_connect=True,
     )
+    applied: List[str] = []
+    close_row = res.get("experience") or {}
+    close_id = str(close_row.get("id") or "")
+    if used_pattern_ids is not None and close_id:
+        close_pattern = lat.store.get_pattern(close_id)
+        for pattern_id in dict.fromkeys(str(x) for x in used_pattern_ids if str(x).strip()):
+            pattern = lat.store.get_pattern(pattern_id)
+            if not pattern or pattern.kind in {
+                PatternKind.EVENT,
+                PatternKind.EPISODE,
+                PatternKind.TASK,
+            }:
+                continue
+            lat.store.upsert_link(
+                Link.create(
+                    close_id,
+                    pattern.id,
+                    LinkKind.APPLIED,
+                    weight=0.9,
+                    note=f"explicitly applied in task {task_id}",
+                    metadata={"task_id": task_id, "outcome": outcome},
+                )
+            )
+            applied.append(pattern.id)
+        if close_pattern:
+            close_pattern.metadata["used_pattern_ids"] = applied
+            lat.store.upsert_pattern(close_pattern)
+
     reinforced: List[str] = []
+    # Similarity links are evidence of resemblance, not proof that a pattern was
+    # applied. Outcome credit is therefore explicit-only.
+    credited_ids = applied
     if reinforce_connected and outcome.lower() in {"done", "success", "fixed", "shipped", "resolved"}:
-        ids = [c["pattern_id"] for c in res.get("connected") or []]
-        if ids:
+        if credited_ids:
             from hermes_insight.evolve import reinforce
 
-            updated = reinforce(lat.store, ids, helpful=True)
+            updated = reinforce(lat.store, credited_ids, helpful=True)
             reinforced = [p.id for p in updated]
     elif reinforce_connected and outcome.lower() in {"failed", "blocked", "wrong"}:
-        ids = [c["pattern_id"] for c in res.get("connected") or []]
-        if ids:
+        if credited_ids:
             from hermes_insight.evolve import reinforce
 
-            reinforce(lat.store, ids[:3], helpful=False)
+            reinforce(lat.store, credited_ids[:3], helpful=False)
 
     active = lat.store.get_meta("active_task_id", "")
     if active == task_id:
@@ -561,6 +592,8 @@ def close_task(
         "outcome": outcome,
         "experience": res.get("experience"),
         "connected": res.get("connected", []),
+        "applied_patterns": applied,
+        "credit_mode": "explicit" if used_pattern_ids is not None else "none",
         "reinforced": reinforced,
         "one_liner": res.get("one_liner"),
     }

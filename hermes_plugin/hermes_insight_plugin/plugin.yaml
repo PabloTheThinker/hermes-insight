@@ -1,5 +1,5 @@
 name: hermes-insight
-version: "0.5.1"
+version: "0.8.0"
 description: >
   AI agent/model field pattern harness — agents, models, tools, skills, multi-agent
   compartments, fabric index, and Pattern Forge. Independent companion (not official Nous).
@@ -19,3 +19,14 @@ provides_tools:
   - insight_index_connections
   - insight_fabric_stats
   - insight_forge
+  - insight_perceive
+  - insight_plan
+  - insight_observe
+  - insight_learn
+  - insight_recall
+  - insight_experience
+  - insight_task
+  - insight_connect
+  - insight_bootstrap
+  - insight_hygiene
+  - insight_ingest_messages

@@ -104,6 +104,13 @@ metaphors* for agent design.
 - Lived-experience synthesis on autistic pattern recognition — e.g. weirdlysuccessful.org “pattern recognition in autism” (2026)  
 - Crespi, B. (2021). *Pattern Unifies Autism* (theoretical framework; treat as hypothesis-generating)  
 - General definitions: pattern recognition as matching stimulus information to memory (cognitive neuroscience primers)
+- Park et al. (2023). *Generative Agents* — observation, retrieval, reflection, and planning: https://arxiv.org/abs/2304.03442
+- Packer et al. (2023). *MemGPT* — tiered context and external memory: https://arxiv.org/abs/2310.08560
+- Axelsen et al. (2026). *MemSkill* — learnable memory-skill selection and evolution: https://arxiv.org/abs/2602.02474
+- *Agentic Episodic Control* (ACL Findings 2026) — selective decision-critical recall: https://aclanthology.org/2026.findings-acl.654/
+
+The engineering deep dive, AgentDrive comparison, scoring design, and prioritized build
+roadmap are in **[INTUITION.md](INTUITION.md)**.
 
 ## 8. Ethics
 

@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 __plugin_name__ = "hermes-insight"
-__plugin_version__ = "0.7.4"
+__plugin_version__ = "0.8.0"
 
 
 def _cfg() -> dict:
@@ -341,6 +341,7 @@ def handle_insight_task(args: dict, **kwargs) -> str:
                     outcome=outcome,
                     summary=str(args.get("summary") or args.get("body") or ""),
                     reinforce_connected=bool(args.get("reinforce", True)),
+                    used_pattern_ids=args.get("used_pattern_ids"),
                 )
             )
         return _err("action must be open|close")
@@ -407,6 +408,87 @@ def handle_insight_perceive(args: dict, **kwargs) -> str:
         )
     except Exception as exc:  # noqa: BLE001
         logger.exception("insight_perceive failed")
+        return _err(str(exc))
+
+
+def handle_insight_plan(args: dict, **kwargs) -> str:
+    """Build a ranked plan from relevance, explicit outcomes, and local affordances."""
+    try:
+        obs = args.get("observations") or []
+        if isinstance(obs, str):
+            obs = [obs]
+        return _ok(
+            _lattice().plan(
+                str(args.get("situation") or args.get("query") or ""),
+                observations=list(obs),
+                domain=args.get("domain"),
+                limit=int(args.get("limit") or 5),
+            )
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("insight_plan failed")
+        return _err(str(exc))
+
+
+def handle_insight_observe(args: dict, **kwargs) -> str:
+    """Record a typed event or capture a metadata-only environment snapshot."""
+    try:
+        lat = _lattice()
+        mode = str(args.get("mode") or "event").strip().lower()
+        if mode == "environment":
+            result = lat.snapshot_environment(
+                str(args.get("root") or "."),
+                include_tools=bool(args.get("include_tools", True)),
+            )
+        elif mode == "event":
+            result = lat.record_event(
+                str(args.get("event_type") or "observation"),
+                str(args.get("summary") or ""),
+                details=dict(args.get("details") or {}),
+                trace_id=str(args.get("trace_id") or ""),
+                parent_event_id=str(args.get("parent_event_id") or ""),
+                session_id=str(args.get("session_id") or ""),
+                task_id=args.get("task_id"),
+                step_id=str(args.get("step_id") or ""),
+                attempt=int(args.get("attempt") or 1),
+                status=str(args.get("status") or "observed"),
+                outcome=str(args.get("outcome") or ""),
+                model=str(args.get("model") or ""),
+                tool=str(args.get("tool") or ""),
+                skill_id=str(args.get("skill_id") or ""),
+                environment_snapshot_id=str(args.get("environment_snapshot_id") or ""),
+                duration_ms=args.get("duration_ms"),
+                cost=args.get("cost"),
+                input_artifact_refs=list(args.get("input_artifact_refs") or []),
+                output_artifact_refs=list(args.get("output_artifact_refs") or []),
+                provenance=dict(args.get("provenance") or {}),
+                trust_class=str(args.get("trust_class") or "local"),
+                sensitivity=str(args.get("sensitivity") or "private"),
+            )
+        else:
+            return _err("mode must be event|environment")
+        if not result.get("success"):
+            return _err(str(result.get("error") or "observation failed"))
+        return _ok(result)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("insight_observe failed")
+        return _err(str(exc))
+
+
+def handle_insight_learn(args: dict, **kwargs) -> str:
+    """Induce recurring workflows from independent typed task traces."""
+    try:
+        return _ok(
+            _lattice().learn(
+                min_support=int(args.get("min_support") or 3),
+                min_steps=int(args.get("min_steps") or 2),
+                max_steps=int(args.get("max_steps") or 4),
+                limit=int(args.get("limit") or 12),
+                materialize=bool(args.get("materialize", False)),
+            )
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("insight_learn failed")
         return _err(str(exc))
 
 
@@ -674,6 +756,14 @@ _TASK_SCHEMA = {
             "summary": {"type": "string"},
             "tags": {"type": "array", "items": {"type": "string"}},
             "reinforce": {"type": "boolean", "default": True},
+            "used_pattern_ids": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": (
+                    "Pattern/skill ids actually applied. Explicit credit lets future plans "
+                    "learn from this outcome; omit rather than guessing."
+                ),
+            },
         },
         "required": ["action"],
     },
@@ -768,6 +858,100 @@ _PERCEIVE_SCHEMA = {
     },
 }
 
+_PLAN_SCHEMA = {
+    "name": "insight_plan",
+    "description": (
+        "Turn pattern recognition into an auditable action plan. Ranks rules, skills, "
+        "and workflows by current relevance plus explicit success/failure history; also "
+        "returns matching local tools, models, and agents. Does not execute anything."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "situation": {"type": "string", "description": "Task, event, or decision to plan"},
+            "query": {"type": "string", "description": "Alias for situation"},
+            "observations": {"type": "array", "items": {"type": "string"}},
+            "domain": {"type": "string"},
+            "limit": {"type": "integer", "default": 5},
+        },
+        "required": ["situation"],
+    },
+}
+
+_OBSERVE_SCHEMA = {
+    "name": "insight_observe",
+    "description": (
+        "Hermes Insight native observation layer. mode=event records a typed, "
+        "provenance-rich agent/tool/skill event. mode=environment captures scrubbed "
+        "workspace metadata and a delta from its previous snapshot. No AgentDrive runtime."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "mode": {"type": "string", "description": "event | environment"},
+            "root": {"type": "string", "description": "Workspace root for environment mode"},
+            "include_tools": {"type": "boolean", "default": True},
+            "event_type": {"type": "string"},
+            "summary": {"type": "string"},
+            "details": {"type": "object"},
+            "trace_id": {"type": "string"},
+            "parent_event_id": {"type": "string"},
+            "session_id": {"type": "string"},
+            "task_id": {"type": "string"},
+            "step_id": {"type": "string"},
+            "attempt": {"type": "integer", "default": 1},
+            "status": {"type": "string"},
+            "outcome": {"type": "string"},
+            "model": {"type": "string"},
+            "tool": {"type": "string"},
+            "skill_id": {"type": "string"},
+            "environment_snapshot_id": {"type": "string"},
+            "duration_ms": {"type": "number"},
+            "cost": {"type": "number"},
+            "input_artifact_refs": {"type": "array", "items": {"type": "string"}},
+            "output_artifact_refs": {"type": "array", "items": {"type": "string"}},
+            "provenance": {"type": "object"},
+            "trust_class": {
+                "type": "string",
+                "description": "local | workspace | imported | community",
+            },
+            "sensitivity": {
+                "type": "string",
+                "description": "public | internal | private | restricted",
+            },
+        },
+        "required": ["mode"],
+    },
+}
+
+_LEARN_SCHEMA = {
+    "name": "insight_learn",
+    "description": (
+        "Find recurring ordered workflows across distinct typed task traces. Preserves "
+        "successes, failures, counterexamples, environment count, and conservative "
+        "lifecycle gates. materialize=true writes reviewable sequence patterns only; "
+        "it never writes or executes Hermes skills."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "min_support": {
+                "type": "integer",
+                "default": 3,
+                "description": "Minimum distinct task ids; values below 2 are raised to 2",
+            },
+            "min_steps": {"type": "integer", "default": 2},
+            "max_steps": {"type": "integer", "default": 4},
+            "limit": {"type": "integer", "default": 12},
+            "materialize": {
+                "type": "boolean",
+                "default": False,
+                "description": "Write local sequence candidates for review",
+            },
+        },
+    },
+}
+
 _INGEST_MSG_SCHEMA = {
     "name": "insight_ingest_messages",
     "description": (
@@ -788,27 +972,6 @@ _INGEST_MSG_SCHEMA = {
         "required": ["messages"],
     },
 }
-
-
-_SYSTEM_BLOCK = """## Hermes Insight — pattern recognition ability
-You have structural pattern-processing tools (`insight_*`).
-
-**Default ability (use this):**
-- `insight_perceive` — ONE call: lever + matching structures + lived echoes + action hint.
-  Use before hard debugging, architecture choices, or recurring failures.
-  Set log=true after a meaningful scene so the next session is faster.
-  Set deep=true when the scene looks novel.
-
-**Multi-step work:**
-1. insight_perceive (situation)
-2. insight_task open (keep task_id)
-3. insight_experience after events/fixes
-4. insight_task close with outcome (reinforces patterns)
-
-**Also:** insight_recall (fast only), insight_cycle (deep only), fabric index + insight_forge.
-Distill the actual variable; do not force-fit novelty. Never paste raw credentials.
-"""
-
 
 def register(ctx) -> None:
     """Hermes plugin entrypoint."""
@@ -845,6 +1008,9 @@ def register(ctx) -> None:
     _reg(_FORGE_SCHEMA, handle_insight_forge)
     # Primary ability + experience path
     _reg(_PERCEIVE_SCHEMA, handle_insight_perceive, emoji="◈")
+    _reg(_PLAN_SCHEMA, handle_insight_plan, emoji="◇")
+    _reg(_OBSERVE_SCHEMA, handle_insight_observe, emoji="◉")
+    _reg(_LEARN_SCHEMA, handle_insight_learn, emoji="⌁")
     _reg(_RECALL_SCHEMA, handle_insight_recall, emoji="◎")
     _reg(_EXPERIENCE_SCHEMA, handle_insight_experience, emoji="◉")
     _reg(_TASK_SCHEMA, handle_insight_task, emoji="▣")
@@ -853,18 +1019,7 @@ def register(ctx) -> None:
     _reg(_HYGIENE_SCHEMA, handle_insight_hygiene, emoji="🧹")
     _reg(_INGEST_MSG_SCHEMA, handle_insight_ingest_messages, emoji="☰")
 
-    # optional prompt injection if host supports it
-    if hasattr(ctx, "on_session_start_prompt") or hasattr(ctx, "register_system_prompt"):
-        try:
-            if hasattr(ctx, "register_system_prompt"):
-                ctx.register_system_prompt(_SYSTEM_BLOCK)
-        except Exception:
-            logger.debug("system prompt register skipped", exc_info=True)
-
     if hasattr(ctx, "register_hook"):
-        def _on_session_start(**_kwargs):
-            return {"system_prompt_append": _SYSTEM_BLOCK}
-
         def _on_session_end(**kwargs):
             """Log only material session endings — not every completed chat turn."""
             try:
@@ -922,8 +1077,6 @@ def register(ctx) -> None:
             return None
 
         for hook, fn in (
-            ("on_session_start", _on_session_start),
-            ("session_start", _on_session_start),
             ("on_session_end", _on_session_end),
             ("session_end", _on_session_end),
         ):
@@ -948,9 +1101,11 @@ def register(ctx) -> None:
                 return r.brief
             if sub == "perceive" and len(parts) > 1:
                 return lat.perceive(parts[1]).get("card", "")
+            if sub == "plan" and len(parts) > 1:
+                return lat.plan(parts[1]).get("card", "")
             if sub == "hygiene":
                 return json.dumps(lat.hygiene(), indent=2)
-            return "Usage: /insight stats|bootstrap|perceive <q>|recall <q>|cycle <q>|hygiene"
+            return "Usage: /insight stats|bootstrap|perceive <q>|plan <q>|recall <q>|cycle <q>|hygiene"
 
         try:
             ctx.register_command(

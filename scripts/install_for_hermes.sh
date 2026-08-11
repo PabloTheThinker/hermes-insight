@@ -60,9 +60,10 @@ echo "-- pip install hermes-insight (editable)"
 
 if [[ "$SKIP_SKILL" -eq 0 ]]; then
   SKILL_DST="$HERMES_HOME/skills/cognition/hermes-insight"
-  mkdir -p "$SKILL_DST"
-  cp -f "$ROOT/skills/hermes-insight/SKILL.md" "$SKILL_DST/SKILL.md"
-  echo "-- skill → $SKILL_DST/SKILL.md"
+  rm -rf "$SKILL_DST"
+  mkdir -p "$(dirname "$SKILL_DST")"
+  cp -a "$ROOT/skills/hermes-insight" "$SKILL_DST"
+  echo "-- skill bundle → $SKILL_DST (SKILL.md + references)"
 fi
 
 if [[ "$SKIP_PLUGIN" -eq 0 ]]; then
@@ -103,11 +104,11 @@ cat <<EOF
 
 == Done ==
 Any Hermes agent workflow:
-  1. insight_recall   — before hard work
-  2. insight_task open — multi-step jobs
-  3. insight_experience — after events/fixes
-  4. insight_task close — reinforce patterns
-  5. insight_cycle — deep novel root-cause
+  1. insight_observe environment — ground current workspace state
+  2. insight_perceive — recognize lever + prior structure
+  3. insight_plan — rank routes with explicit outcome evidence
+  4. insight_task open → typed events → close with used_pattern_ids
+  5. insight_learn — mine recurrence across distinct completed tasks
 
 CLI:
   hermes-insight --db "$DB" recall "gateway credential conflict"

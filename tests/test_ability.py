@@ -15,7 +15,7 @@ def lat(tmp_path: Path) -> HermesInsight:
 
 
 def test_version():
-    assert __version__ == "0.7.4"
+    assert __version__ == "0.8.0"
 
 
 def test_perceive_prefers_structural_rule(lat: HermesInsight):

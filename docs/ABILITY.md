@@ -51,6 +51,8 @@ hermes-insight perceive "retries stampede origin after cache expiry" --log
 | Lever focus | distill actual variable with prior vocabulary |
 | Transfer | analogy / hops via graph neighbors |
 | Reinforcement | task close + feedback strengthens useful nodes |
+| Environment grounding | typed snapshots and `observed_in` event links |
+| Recurrence | ordered workflows supported by distinct tasks and counterexamples |
 
 ## Agent doctrine (paste into SOUL or skill)
 
@@ -58,8 +60,9 @@ hermes-insight perceive "retries stampede origin after cache expiry" --log
 ## Pattern recognition
 Before hard debugging or architecture choices, call `insight_perceive`.
 Trust the lever + top structural match when score ≥ 0.35; verify when weaker.
-Log meaningful scenes (log=true or insight_experience) so next session is faster.
-Use insight_task open/close around multi-step work.
+Use `insight_observe` for material environment/tool/skill transitions.
+Use insight_task open/close around multi-step work and credit only applied patterns.
+After at least three comparable tasks, inspect `insight_learn` without auto-promoting.
 ```
 
 ## Related tools
@@ -67,6 +70,9 @@ Use insight_task open/close around multi-step work.
 | Tool | When |
 |------|------|
 | **insight_perceive** | Default ability |
+| insight_plan | Outcome-aware route grounded in the current environment |
+| insight_observe | Typed event or environment snapshot |
+| insight_learn | Evidence-gated recurring workflow induction |
 | insight_recall | Fast-only (no deep, no log) |
 | insight_cycle | Explicit deep analysis |
 | insight_experience / task | Bind time |
