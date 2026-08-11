@@ -973,33 +973,6 @@ _INGEST_MSG_SCHEMA = {
     },
 }
 
-
-_SYSTEM_BLOCK = """## Hermes Insight — pattern recognition ability
-You have structural pattern-processing tools (`insight_*`).
-
-**Default ability (use this):**
-- `insight_perceive` — ONE call: lever + matching structures + lived echoes + action hint.
-  Use before hard debugging, architecture choices, or recurring failures.
-  Set log=true after a meaningful scene so the next session is faster.
-  Set deep=true when the scene looks novel.
-- `insight_plan` — when work needs a route: ranked patterns/skills + local affordances +
-  explicit outcome evidence. It recommends; it does not execute.
-- `insight_observe` — record typed events or capture a scrubbed environment snapshot.
-- `insight_learn` — mine repeated typed task workflows; materialize candidates only
-  after inspecting support, failures, and counterexamples.
-
-**Multi-step work:**
-1. insight_perceive (situation)
-2. insight_plan (for consequential or multi-step work)
-3. insight_task open (keep task_id)
-4. insight_experience after events/fixes
-5. insight_task close with outcome + used_pattern_ids (only what was actually applied)
-
-**Also:** insight_recall (fast only), insight_cycle (deep only), fabric index + insight_forge.
-Distill the actual variable; do not force-fit novelty. Never paste raw credentials.
-"""
-
-
 def register(ctx) -> None:
     """Hermes plugin entrypoint."""
     try:
@@ -1046,18 +1019,7 @@ def register(ctx) -> None:
     _reg(_HYGIENE_SCHEMA, handle_insight_hygiene, emoji="🧹")
     _reg(_INGEST_MSG_SCHEMA, handle_insight_ingest_messages, emoji="☰")
 
-    # optional prompt injection if host supports it
-    if hasattr(ctx, "on_session_start_prompt") or hasattr(ctx, "register_system_prompt"):
-        try:
-            if hasattr(ctx, "register_system_prompt"):
-                ctx.register_system_prompt(_SYSTEM_BLOCK)
-        except Exception:
-            logger.debug("system prompt register skipped", exc_info=True)
-
     if hasattr(ctx, "register_hook"):
-        def _on_session_start(**_kwargs):
-            return {"system_prompt_append": _SYSTEM_BLOCK}
-
         def _on_session_end(**kwargs):
             """Log only material session endings — not every completed chat turn."""
             try:
@@ -1115,8 +1077,6 @@ def register(ctx) -> None:
             return None
 
         for hook, fn in (
-            ("on_session_start", _on_session_start),
-            ("session_start", _on_session_start),
             ("on_session_end", _on_session_end),
             ("session_end", _on_session_end),
         ):

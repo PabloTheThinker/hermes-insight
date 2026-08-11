@@ -36,6 +36,7 @@ def test_skill_matches_hermes_progressive_disclosure_conventions():
     assert "metadata:" in frontmatter
     assert "tags:" in frontmatter
     assert "related_skills:" in frontmatter
+    assert "requires_toolsets: [hermes_insight]" in frontmatter
     assert body
 
     positions = [
@@ -43,6 +44,7 @@ def test_skill_matches_hermes_progressive_disclosure_conventions():
         for section in (
             "When to Use",
             "Prerequisites",
+            "How to Run",
             "How It Works",
             "Quick Reference",
             "Procedure",
@@ -52,6 +54,7 @@ def test_skill_matches_hermes_progressive_disclosure_conventions():
     ]
     assert positions == sorted(positions)
     assert "/home/" not in text
+    assert "../" not in text
     assert "automatic_skill_write=false" in body
 
 
@@ -64,3 +67,12 @@ def test_skill_reference_and_installer_bundle_are_complete():
     installer = (ROOT / "scripts" / "install_for_hermes.sh").read_text(encoding="utf-8")
     assert 'cp -a "$ROOT/skills/hermes-insight" "$SKILL_DST"' in installer
     assert "SKILL.md + references" in installer
+
+
+def test_filesystem_skill_is_the_supported_teaching_surface():
+    plugin = (
+        ROOT / "hermes_plugin" / "hermes_insight_plugin" / "__init__.py"
+    ).read_text(encoding="utf-8")
+    assert 'toolset="hermes_insight"' in plugin
+    assert "register_system_prompt" not in plugin
+    assert "system_prompt_append" not in plugin

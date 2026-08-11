@@ -10,6 +10,7 @@ metadata:
     tags: [cognition, pattern-recognition, experience, planning, learning]
     category: cognition
     related_skills: []
+    requires_toolsets: [hermes_insight]
 ---
 
 # Hermes Insight Skill
@@ -40,6 +41,12 @@ that a weak analogy is true.
 If the tools are missing, tell the user the plugin must be installed and Hermes restarted.
 Load `references/AGENT-GUIDE.md` for platform-specific installation instructions. Do not
 invent tool results or silently fall back to a different memory store.
+
+## How to Run
+
+Invoke `/hermes-insight <situation>` to load this doctrine explicitly. Once loaded, call
+`insight_perceive` with the concrete situation and observations. Use `insight_plan` before
+consequential multi-step work, and keep all subsequent events under one `task_id`.
 
 ## How It Works
 

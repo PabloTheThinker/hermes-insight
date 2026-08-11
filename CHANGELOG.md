@@ -22,6 +22,12 @@
   success/failure reinforcement unless listed in `used_pattern_ids`
 - **Deterministic task chains** — per-task last-event cursors preserve sequential `next`
   links without ranking events by mutable strength timestamps
+- **Reliable Hermes skill routing** — skill visibility now requires the plugin's
+  `hermes_insight` toolset and includes the canonical slash-command acquisition path
+- **Safe plugin setup** — config merge parses actual `plugins.enabled`, preserves unrelated
+  configuration, sanitizes agent ids, and creates a minimal config for fresh profiles
+- **Supported teaching surface** — removed obsolete plugin prompt-injection hooks; the
+  progressively disclosed filesystem skill is authoritative
 - **Research deep dive** — pattern recognition, agent memory/skill research, AgentDrive
   comparison, integration boundary, and prioritized community roadmap
 - CLI, Python, Hermes plugin, skill, tests, and docs updated for the planning loop

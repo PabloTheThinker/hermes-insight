@@ -27,7 +27,8 @@ session (or explicitly invalidate the cache) before checking `/hermes-insight`.
 ## Hermes skill acquisition
 
 Hermes sees the frontmatter name and short description in its session skill index. It
-loads the full procedure with:
+offers the skill only when the plugin's `hermes_insight` toolset is present, then loads
+the full procedure with:
 
 ```text
 skill_view(name="hermes-insight")
