@@ -193,6 +193,7 @@ encode → match → link → distill → perceive → reinforce
 | Skill | `skills/hermes-insight/` (+ `references/AGENT-GUIDE.md`) |
 | Installer | `scripts/install_for_hermes.sh` |
 | Primary tool | `insight_perceive` |
+| Hermespace organ | `perceive_card(query, load=...)` — soft-import, not a MemoryProvider |
 
 Optional SOUL / system fragment:
 
@@ -242,6 +243,8 @@ Env overrides: `HERMES_INSIGHT_DB`, `HERMES_INSIGHT_AGENT_ID`, `HERMES_INSIGHT_A
 pip install -e ".[dev]"
 pytest -q
 bash scripts/check_isolation.sh
+python3 -m compileall -q src hermes_plugin
+# optional local-only (indexes ~/.hermes — not in CI):
 python3 scripts/production_e2e.py
 ```
 
