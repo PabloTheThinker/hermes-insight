@@ -51,5 +51,5 @@ Slash (when supported): `/insight stats` · `/insight perceive <q>` ·
 - Independent companion — **not** an official Nous product  
 - Separate DB per agent compartment  
 - Hook: `on_session_end` only (`session_end` is not a Hermes hook)
-- Hermespace may soft-import `perceive_card` — Insight is not a MemoryProvider
+- Hermespace feature-detects `HermesInsight.perceive_card` — Insight is not a MemoryProvider
 - See `docs/ABILITY.md` and `SECURITY.md`

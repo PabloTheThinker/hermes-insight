@@ -1,4 +1,4 @@
-"""Bounded perceive-card organ — Space feature-detect surface."""
+"""Locked HermesInsight.perceive_card Space-cable contract."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from hermes_insight import HermesInsight, perceive_card
-from hermes_insight.card import CARD_API_VERSION, perceive_card as card_fn
+from hermes_insight import HermesInsight
+from hermes_insight.card import CARD_KEYS
 
 
 @pytest.fixture()
@@ -15,83 +15,106 @@ def lat(tmp_path: Path) -> HermesInsight:
     return HermesInsight(db_path=tmp_path / "card.db")
 
 
-def test_feature_detect_public_export():
-    assert callable(perceive_card)
-    assert perceive_card is card_fn
-    assert CARD_API_VERSION == "1.0"
+def test_feature_detect_is_method_on_harness():
+    assert hasattr(HermesInsight, "perceive_card")
+    assert callable(getattr(HermesInsight, "perceive_card"))
 
 
-def test_empty_query_fail_soft(lat: HermesInsight):
-    out = perceive_card("", lattice=lat)
-    assert out["ok"] is False
+@pytest.mark.parametrize("load", ["high", "protect"])
+def test_high_protect_returns_empty_card(lat: HermesInsight, load: str):
+    def boom(*args, **kwargs):
+        raise AssertionError("perceive must not run under high/protect load")
+
+    lat.perceive = boom  # type: ignore[method-assign]
+    out = lat.perceive_card("two workers share one bot credential", load=load)
+    assert set(out) == set(CARD_KEYS)
+    assert out["skipped"] is True
+    assert out["reason"] == "high_load"
+    assert out["card"] == ""
     assert out["usable"] is False
     assert out["lever"] == ""
-    assert out["top_rule"] == ""
+    assert out["rule"] == ""
     assert out["action_hint"] == ""
-    assert out["error"] == "empty_query"
+    assert "matches" not in out
+    assert "hops" not in out
+    assert "brief" not in out
 
 
-def test_broken_lattice_fail_soft():
-    class Broken:
-        def perceive(self, *args, **kwargs):
-            raise RuntimeError("db locked")
+def test_mid_card_is_bounded_and_has_no_lattice_dump(lat: HermesInsight):
+    lat.bootstrap()
+    out = lat.perceive_card(
+        "two workers share one bot credential and long-poll conflicts fire",
+        load="mid",
+        observations=["409 conflict", "duplicate getUpdates consumers"],
+    )
+    assert set(out) == set(CARD_KEYS)
+    assert out["skipped"] is False
+    assert out["ok"] is True
+    assert len(out["card"]) <= 400
+    assert "matches" not in out
+    assert "hops" not in out
+    assert "brief" not in out
+    assert "experiences" not in out
 
-    out = perceive_card("retries stampede origin", lattice=Broken())
-    assert out["ok"] is False
-    assert out["usable"] is False
-    assert "db locked" in out.get("error", "")
+
+def test_card_formats_fields_not_unbounded_perceive_card(lat: HermesInsight):
+    def fake_perceive(goal, **kwargs):
+        assert kwargs.get("deep") is False
+        assert kwargs.get("log_experience") is False
+        assert kwargs.get("limit") == 1
+        return {
+            "usable": True,
+            "lever": "retry",
+            "action_hint": "add jitter",
+            "matches": [
+                {"title": "skill: inventory", "kind": "skill"},
+                {"title": "retry with jitter", "kind": "rule"},
+            ],
+            "card": "UNBOUNDED " * 80,
+            "brief": "do not leak",
+            "hops": [{"title": "nope"}],
+            "experiences": [{"title": "nope"}],
+        }
+
+    lat.perceive = fake_perceive  # type: ignore[method-assign]
+    out = lat.perceive_card("retries stampede origin", load="mid")
+    assert set(out) == set(CARD_KEYS)
+    assert out["rule"] == "retry with jitter"
+    assert out["lever"] == "retry"
+    assert out["usable"] is True
+    assert out["action_hint"] == "add jitter"
+    assert "UNBOUNDED" not in out["card"]
+    assert "do not leak" not in out["card"]
+    assert "lever=retry" in out["card"]
+    assert "rule=retry with jitter" in out["card"]
+    assert len(out["card"]) <= 400
 
 
-def test_perceive_card_does_not_call_plan(lat: HermesInsight):
+def test_rule_falls_back_to_top_title(lat: HermesInsight):
+    def fake_perceive(goal, **kwargs):
+        return {
+            "usable": True,
+            "lever": "token",
+            "action_hint": "one consumer",
+            "matches": [{"title": "credential single-consumer", "kind": "prototype"}],
+        }
+
+    lat.perceive = fake_perceive  # type: ignore[method-assign]
+    out = lat.perceive_card("shared bot token", load="mid")
+    assert out["rule"] == "credential single-consumer"
+
+
+def test_mid_does_not_call_plan(lat: HermesInsight):
     lat.bootstrap()
 
     def boom(*args, **kwargs):
         raise AssertionError("plan must not be called")
 
     lat.plan = boom  # type: ignore[method-assign]
-    out = perceive_card(
+    out = lat.perceive_card(
         "two workers share one bot credential and long-poll conflicts fire",
-        observations=["409 conflict"],
-        lattice=lat,
+        load="mid",
     )
-    assert out["ok"] is True
-    assert set(out) >= {"lever", "top_rule", "usable", "action_hint", "text"}
     assert "matches" not in out
-    assert "card" not in out
     assert "hops" not in out
     assert "brief" not in out
-
-
-def test_usable_card_is_bounded(lat: HermesInsight):
-    lat.bootstrap()
-    out = perceive_card(
-        "two workers share one bot credential and long-poll conflicts fire",
-        observations=["409 conflict", "duplicate getUpdates consumers"],
-        lattice=lat,
-        load="protect",
-    )
-    assert out["ok"] is True
-    assert out["usable"] is True
-    assert out["lever"]
-    assert out["top_rule"]
-    assert out["action_hint"]
-    assert out["load"] == "protect"
-    assert len(out["action_hint"]) <= 80
-    assert len(out["text"]) <= 160
-    assert len(out["top_rule"]) <= 80
-
-
-def test_thin_query_not_usable(lat: HermesInsight):
-    lat.bootstrap()
-    out = perceive_card("something is wrong", lattice=lat)
-    assert out["ok"] is True
-    assert out["usable"] is False
-    assert out["lever"] in {"insufficient_signal", "system"}
-
-
-def test_db_path_constructs_lattice(tmp_path: Path):
-    db = tmp_path / "via-path.db"
-    out = perceive_card("x", db_path=str(db))
-    assert out["ok"] is True
-    assert "usable" in out
-    assert db.exists()

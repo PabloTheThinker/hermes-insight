@@ -82,16 +82,16 @@ the bounded helper — do not vendor this repo, and do not treat Insight as a
 `MemoryProvider`:
 
 ```python
-try:
-    from hermes_insight import perceive_card
-except ImportError:
-    perceive_card = None
+from hermes_insight import HermesInsight
 
-if perceive_card:
-    card = perceive_card(query, load="mid")  # lever, top_rule, usable, action_hint
+if hasattr(HermesInsight, "perceive_card"):
+    card = HermesInsight(db_path=db).perceive_card(goal, load="mid")
+    # keys: ok, usable, lever, rule, action_hint, card, skipped, reason
 ```
 
-`perceive_card` never dumps the lattice and never calls `insight_plan`.
+High/protect load returns an empty card (`skipped=True`, `reason=high_load`).
+The cable never dumps the lattice, never injects `perceive()["card"]`, and never
+calls `insight_plan`.
 
 ## Boundaries
 

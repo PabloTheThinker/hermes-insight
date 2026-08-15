@@ -193,7 +193,7 @@ encode → match → link → distill → perceive → reinforce
 | Skill | `skills/hermes-insight/` (+ `references/AGENT-GUIDE.md`) |
 | Installer | `scripts/install_for_hermes.sh` |
 | Primary tool | `insight_perceive` |
-| Hermespace organ | `perceive_card(query, load=...)` — soft-import, not a MemoryProvider |
+| Hermespace organ | `HermesInsight.perceive_card(goal, load="mid")` — soft-import, not a MemoryProvider |
 
 Optional SOUL / system fragment:
 

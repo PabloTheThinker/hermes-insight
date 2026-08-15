@@ -553,6 +553,28 @@ class HermesInsight:
             deep=deep,
         )
 
+    def perceive_card(
+        self,
+        goal: str,
+        *,
+        load: str = "mid",
+        observations: Optional[Sequence[str]] = None,
+    ) -> Dict[str, Any]:
+        """Bounded Space-cable card — lever + rule + usable + action_hint only.
+
+        Feature-detect::
+
+            from hermes_insight import HermesInsight
+            if hasattr(HermesInsight, "perceive_card"):
+                card = HermesInsight(...).perceive_card(goal, load="mid")
+
+        High/protect load returns an empty card immediately. Never dumps the
+        lattice, never injects ``perceive()["card"]``, never calls ``plan()``.
+        """
+        from hermes_insight.card import build_perceive_card
+
+        return build_perceive_card(self, goal, load=load, observations=observations)
+
     def hygiene(self, *, decay: bool = True, densify: bool = True, prune_session_auto: bool = True) -> Dict[str, Any]:
         """Decay fabric noise + densify structural links (periodic maintenance)."""
         out: Dict[str, Any] = {}
