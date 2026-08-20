@@ -75,9 +75,28 @@ Then verify in a fresh Hermes session:
 5. Repeated traces across distinct tasks appear in `insight_learn`; repeated events in one
    task do not fake support.
 
+## Hermespace organ
+
+Hermespace may soft-import Insight the way it soft-imports Cube. Feature-detect
+the bounded helper — do not vendor this repo, and do not treat Insight as a
+`MemoryProvider`:
+
+```python
+from hermes_insight import HermesInsight
+
+if hasattr(HermesInsight, "perceive_card"):
+    card = HermesInsight(db_path=db).perceive_card(goal, load="mid")
+    # keys: ok, usable, lever, rule, action_hint, card, skipped, reason
+```
+
+High/protect load returns an empty card (`skipped=True`, `reason=high_load`).
+The cable never dumps the lattice, never injects `perceive()["card"]`, and never
+calls `insight_plan`.
+
 ## Boundaries
 
 - No AgentDrive package, runtime, database, code import, or protocol dependency.
 - No automatic Hermes skill writing, installation, execution, or publication.
 - No raw credentials or unrestricted transcript ingestion.
 - No cross-profile evidence sharing without a future explicit policy surface.
+- Not a Hermes `MemoryProvider`. Hermespace must soft-import, not vendor.

@@ -3,7 +3,9 @@
 Neurodivergent-inspired connecting-the-dots cognition as software:
 encode → match → link → distill → extrapolate → generate → reinforce.
 
-Standalone. Zero host coupling. Optional Hermes Agent skill/plugin later.
+Standalone. Zero host coupling. Optional Hermes Agent plugin/skill.
+Optional bounded perceive-card organ for Hermespace (soft-import;
+not a MemoryProvider).
 """
 
 from __future__ import annotations

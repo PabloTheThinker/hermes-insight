@@ -1076,14 +1076,10 @@ def register(ctx) -> None:
                 logger.debug("insight on_session_end auto-log failed", exc_info=True)
             return None
 
-        for hook, fn in (
-            ("on_session_end", _on_session_end),
-            ("session_end", _on_session_end),
-        ):
-            try:
-                ctx.register_hook(hook, fn)
-            except Exception:
-                pass
+        try:
+            ctx.register_hook("on_session_end", _on_session_end)
+        except Exception:
+            pass
 
     if hasattr(ctx, "register_command"):
         def _slash(args_str: str = "") -> str:

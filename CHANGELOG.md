@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Drop invalid Hermes hook `session_end`; keep `on_session_end` only
+- `plugin.yaml` declares `provides_hooks`, advisory `python_dependencies`, and
+  `config_schema` for `agent_id` / `db_path` / `agent_tier`
+- Locked Space cable: `HermesInsight.perceive_card(goal, load="mid")` returns only
+  `ok, usable, lever, rule, action_hint, card, skipped, reason` (high/protect skips)
+- CI: `pytest -q`, isolation gate, `compileall` (not `production_e2e.py`)
+- Package docstring: optional organ, not “skill/plugin later”
+
 ## 0.8.0 — 2026-08-10
 
 - **Experience-grounded planner** — `insight_plan` ranks rules, skills, workflows, and

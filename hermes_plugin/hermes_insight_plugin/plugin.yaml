@@ -5,6 +5,23 @@ description: >
   compartments, fabric index, and Pattern Forge. Independent companion (not official Nous).
 author: "Pablo Navarro"
 kind: standalone
+license: MIT
+homepage: https://github.com/PabloTheThinker/hermes-insight
+provides_hooks:
+  - on_session_end
+python_dependencies:
+  - "hermes-insight>=0.8.0,<0.9"
+config_schema:
+  agent_id:
+    type: str
+    description: Multi-agent compartment id (installer writes this when --agent is set)
+  db_path:
+    type: str
+    description: SQLite lattice path (installer writes the profile-scoped default)
+  agent_tier:
+    type: str
+    default: worker
+    description: Agent seat tier (worker | conductor | client | …)
 provides_tools:
   - insight_cycle
   - insight_ingest
