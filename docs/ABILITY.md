@@ -74,6 +74,7 @@ After at least three comparable tasks, inspect `insight_learn` without auto-prom
 | insight_observe | Typed event or environment snapshot |
 | insight_learn | Evidence-gated recurring workflow induction |
 | **insight_recall** | Associative retrieve — working set + `usable` |
+| insight_attune | Set the active cognitive plate (trait mindset, not a diagnosis) |
 | insight_remember | Compact durable fact / engram |
 | insight_cycle | Explicit deep analysis |
 | insight_experience / task | Bind time |

@@ -608,6 +608,7 @@ def recall(
     observations: Optional[Sequence[str]] = None,
     environment_id: Optional[str] = None,
     task_id: Optional[str] = None,
+    mindset: Any = None,
 ) -> Dict[str, Any]:
     """Associative pre-action recall — delegates to the recall engine."""
     from hermes_insight.recall import recall as _recall
@@ -622,6 +623,7 @@ def recall(
         observations=observations,
         environment_id=environment_id,
         task_id=task_id,
+        mindset=mindset,
     )
 
 

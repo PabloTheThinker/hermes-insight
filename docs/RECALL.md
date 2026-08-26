@@ -40,6 +40,10 @@ cue (query + optional environment / task / observations)
 `insight_perceive` answers “what shape is this?”.
 `insight_recall` answers “what do we already know that matters here?”.
 
+Optional `mindset=` (or a persisted plate from `insight_attune`) changes
+spread, inhibition, lane weights, and the thin-query bar. Defaults reproduce
+these 0.9 constants. See [MINDSET.md](MINDSET.md).
+
 ## How to call
 
 ```python
@@ -70,6 +74,7 @@ hermes-insight remember "prefer jitter on retries" --pointer "user.md#retry-pref
    SYNAPSE “bridge”: lexically distant but causally linked).
 7. **`contradictions`** — `contradicts` neighbors of activated nodes.
 8. **`working_set`** — the same lanes, already budgeted by `limit`.
+9. **`mindset`** — name + axes of the plate that produced this set.
 
 Backward-compatible keys (`matches`, `experiences`, `hops`, `brief`, `lever`)
 remain so `insight_plan` and older tests keep working.
@@ -109,6 +114,7 @@ This is the hippocampal-index idea: store the binding, not the episode dump.
 ## Related
 
 - [RESEARCH.md](RESEARCH.md) — cognitive and agent-memory sources
+- [MINDSET.md](MINDSET.md) — cognitive plates (Wise 2024)
 - [INTUITION.md](INTUITION.md) — planner, observation, induction
 - [EXPERIENCE.md](EXPERIENCE.md) — task/event write path
 - [ABILITY.md](ABILITY.md) — perceive card

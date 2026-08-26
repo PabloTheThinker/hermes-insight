@@ -26,6 +26,7 @@ def test_plugin_yaml_declares_organ_hygiene():
     assert 'python_dependencies:' in text
     assert '"hermes-insight>=0.9.0,<0.10"' in text
     assert "  - insight_remember" in text
+    assert "  - insight_attune" in text
     assert "config_schema:" in text
     assert "  agent_id:" in text
     assert "  db_path:" in text

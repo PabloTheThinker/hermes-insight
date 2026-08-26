@@ -446,6 +446,7 @@ class HermesInsight:
     def stats(self) -> Dict[str, Any]:
         c = self.store.count()
         from hermes_insight import __version__
+        from hermes_insight.mindset import resolve_plate
 
         return {
             "db_path": str(self.db_path),
@@ -457,8 +458,15 @@ class HermesInsight:
             "last_experience_line": self.store.get_meta("last_experience_line", ""),
             "last_recall_line": self.store.get_meta("last_recall_line", ""),
             "active_task_id": self.store.get_meta("active_task_id", ""),
+            "mindset": resolve_plate(self).to_dict(),
             "version": __version__,
         }
+
+    def attune(self, mindset: Any = "balanced", **axes: Any) -> Dict[str, Any]:
+        """Set the active cognitive plate. The plate can change at any time."""
+        from hermes_insight.mindset import attune as _attune
+
+        return _attune(self, mindset, **axes)
 
     # ------------------------------------------------------------------
     # Experience — tasks, events, fast recall (any Hermes agent path)
@@ -471,6 +479,7 @@ class HermesInsight:
         observations: Optional[Sequence[str]] = None,
         domain: Optional[str] = None,
         limit: int = 5,
+        mindset: Any = None,
     ) -> Dict[str, Any]:
         """Rank applicable patterns and affordances using explicit task outcomes."""
         from hermes_insight.planner import plan_task
@@ -481,6 +490,7 @@ class HermesInsight:
             observations=observations,
             domain=domain,
             limit=limit,
+            mindset=mindset,
         )
 
     def learn(
@@ -537,6 +547,7 @@ class HermesInsight:
         experience_title: Optional[str] = None,
         task_id: Optional[str] = None,
         deep: bool = False,
+        mindset: Any = None,
     ) -> Dict[str, Any]:
         """Pattern recognition ability — one call for lever + priors + action hint."""
         from hermes_insight.ability import perceive as _perceive
@@ -551,6 +562,7 @@ class HermesInsight:
             experience_title=experience_title,
             task_id=task_id,
             deep=deep,
+            mindset=mindset,
         )
 
     def perceive_card(
@@ -642,6 +654,7 @@ class HermesInsight:
         observations: Optional[Sequence[str]] = None,
         environment_id: Optional[str] = None,
         task_id: Optional[str] = None,
+        mindset: Any = None,
     ) -> Dict[str, Any]:
         """Associative pre-action recall: dual-process working set + usable flag."""
         from hermes_insight.recall import recall as _recall
@@ -656,6 +669,7 @@ class HermesInsight:
             observations=observations,
             environment_id=environment_id,
             task_id=task_id,
+            mindset=mindset,
         )
 
     def remember(

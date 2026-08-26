@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 0.9.1 — 2026-08-26
+
+- **Cognitive plates** — swappable, non-diagnostic mindsets (`balanced`,
+  `monotropic`, `polytropic`, `catalogue`, or custom axes) overlay recall
+  spread/inhibition, lane weights, recency, and the thin-query bar
+- `insight_attune` / `hermes-insight attune` persist the active plate;
+  per-call `mindset=` overrides it. `stats()` and every recall pack include
+  `mindset`
+- Light perceive usable-bar and plan ranking bias from the same plate;
+  `applied` credit is unchanged
+- Docs: [MINDSET.md](docs/MINDSET.md) credits Sonny Jane Wise’s Neurodiversity
+  Smorgasbord (2024) and forbids diagnostic language
+
 ## 0.9.0 — 2026-08-26
 
 - **Associative recall layer** — `insight_recall` returns a budgeted working set

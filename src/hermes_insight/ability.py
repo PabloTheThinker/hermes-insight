@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Sequence, TYPE_CHECKING
 
 from hermes_insight.features import extract_features
+from hermes_insight.mindset import MindsetArg, apply_to_recall, is_thin_query, resolve_plate
 from hermes_insight.scrub import scrub_text
 
 if TYPE_CHECKING:
@@ -81,20 +82,23 @@ def perceive(
     experience_title: Optional[str] = None,
     task_id: Optional[str] = None,
     deep: bool = False,
+    mindset: MindsetArg = None,
 ) -> Dict[str, Any]:
     """Run pattern recognition on a live situation."""
     situation = scrub_text(situation or "").strip()
     obs = [scrub_text(o).strip() for o in (observations or []) if o and str(o).strip()]
     blob = situation if not obs else situation + "\n" + "\n".join(obs)
 
-    from hermes_insight.experience import densify_structural_links, seed_agent_starters
+    from hermes_insight.experience import seed_agent_starters
 
     seed_agent_starters(lat)
 
+    plate = resolve_plate(lat, mindset)
+    knobs = apply_to_recall(plate)
     feats = extract_features(blob)
-    thin_query = len(feats) < 3 and len(blob.split()) < 8
+    thin_query = is_thin_query(blob, knobs, feats)
 
-    pack = lat.recall(blob, limit=limit, domain=domain, write_meta=False)
+    pack = lat.recall(blob, limit=limit, domain=domain, write_meta=False, mindset=mindset)
     matches: List[Dict[str, Any]] = list(pack.get("matches") or [])
     # Prefer structural rules over bulk-indexed skill inventory rows
     rules = [m for m in matches if m.get("kind") == "rule" or not str(m.get("title") or "").startswith("skill:")]
@@ -226,6 +230,7 @@ def perceive(
             "logged_experience": None,
             "active_task_id": lat.store.get_meta("active_task_id", ""),
             "pattern_ids": [],
+            "mindset": plate.to_dict(),
         }
 
     if not hops:
@@ -245,7 +250,8 @@ def perceive(
             auto_connect=True,
         )
 
-    usable = bool(matches) and top_score >= 0.18 and lever not in {"insufficient_signal", "unknown", ""}
+    usable_bar = 0.18 * (knobs.usable_activation / 0.12)
+    usable = bool(matches) and top_score >= usable_bar and lever not in {"insufficient_signal", "unknown", ""}
 
     card_lines = [
         "## Pattern recognition",
@@ -306,4 +312,5 @@ def perceive(
         "logged_experience": logged,
         "active_task_id": lat.store.get_meta("active_task_id", ""),
         "pattern_ids": [m.get("id") for m in matches if m.get("id")],
+        "mindset": plate.to_dict(),
     }

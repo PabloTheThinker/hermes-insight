@@ -22,6 +22,14 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, TYPE_CHEC
 from hermes_insight.distill import distill
 from hermes_insight.features import extract_features
 from hermes_insight.match import build_idf, expand_query_features, match_patterns
+from hermes_insight.mindset import (
+    CognitivePlate,
+    MindsetArg,
+    RecallKnobs,
+    apply_to_recall,
+    is_thin_query,
+    resolve_plate,
+)
 from hermes_insight.models import Domain, Link, LinkKind, MatchResult, Pattern, PatternKind
 from hermes_insight.scrub import scrub_text
 
@@ -73,8 +81,8 @@ _FAMILIAR_KINDS = {
 _RECOLLECT_KINDS = {PatternKind.EVENT, PatternKind.EPISODE, PatternKind.TASK}
 
 
-def _is_thin(query: str, features: Sequence[str]) -> bool:
-    return len(features) < 3 and len(query.split()) < 8
+def _is_thin(query: str, features: Sequence[str], knobs: Optional[RecallKnobs] = None) -> bool:
+    return is_thin_query(query, knobs or RecallKnobs(), features)
 
 
 def _is_experience(pattern: Pattern) -> bool:
@@ -101,12 +109,13 @@ def _session_noise(pattern: Pattern, *, want_session: bool) -> bool:
     )
 
 
-def _recency_factor(pattern: Pattern, *, now: float) -> float:
+def _recency_factor(pattern: Pattern, *, now: float, knobs: Optional[RecallKnobs] = None) -> float:
+    half = (knobs.recency_half_life_days if knobs else _RECENCY_HALF_LIFE_DAYS)
     ref = float(pattern.last_used_at or pattern.updated_at or pattern.created_at or now)
     age_days = max(0.0, (now - ref) / 86400.0)
     if pattern.kind in _FAMILIAR_KINDS and "starter" in set(pattern.tags or []):
-        return 0.85 + 0.15 * math.exp(-age_days / (_RECENCY_HALF_LIFE_DAYS * 2))
-    return 0.55 + 0.45 * math.exp(-age_days / _RECENCY_HALF_LIFE_DAYS)
+        return 0.85 + 0.15 * math.exp(-age_days / (half * 2))
+    return 0.55 + 0.45 * math.exp(-age_days / half)
 
 
 def _observed_in(lat: "HermesInsight", pattern_id: str, environment_id: str) -> bool:
@@ -163,9 +172,11 @@ def _spread_activation(
     *,
     environment_id: str = "",
     now: float,
+    knobs: Optional[RecallKnobs] = None,
 ) -> Dict[str, float]:
+    knobs = knobs or RecallKnobs()
     activation = {pid: float(score) for pid, score in seeds.items() if score > 0}
-    for _ in range(_SPREAD_STEPS):
+    for _ in range(knobs.spread_steps):
         incoming: Dict[str, float] = defaultdict(float)
         for pid, act in list(activation.items()):
             if act < 0.01:
@@ -175,7 +186,9 @@ def _spread_activation(
             for link in links:
                 other = link.target_id if link.source_id == pid else link.source_id
                 kind_w = _LINK_WEIGHTS.get(link.kind, 0.25)
-                incoming[other] += _SPREAD_FACTOR * kind_w * float(link.weight) * act / fan
+                if link.kind in {LinkKind.ANALOGY, LinkKind.RHYMES}:
+                    kind_w *= knobs.analogy_boost
+                incoming[other] += knobs.spread_factor * kind_w * float(link.weight) * act / fan
         for oid, add in incoming.items():
             activation[oid] = activation.get(oid, 0.0) + add
 
@@ -184,14 +197,19 @@ def _spread_activation(
         pattern = lat.store.get_pattern(pid)
         if not pattern:
             continue
-        value = act * _recency_factor(pattern, now=now)
+        value = act * _recency_factor(pattern, now=now, knobs=knobs)
         if _observed_in(lat, pid, environment_id):
-            value *= _ENV_BOOST
+            value *= knobs.env_boost
         boosted[pid] = value
     return boosted
 
 
-def _lateral_inhibition(lat: "HermesInsight", activation: Dict[str, float]) -> Dict[str, float]:
+def _lateral_inhibition(
+    lat: "HermesInsight",
+    activation: Dict[str, float],
+    knobs: Optional[RecallKnobs] = None,
+) -> Dict[str, float]:
+    k = knobs or RecallKnobs()
     by_kind: Dict[str, List[tuple[str, float]]] = defaultdict(list)
     for pid, act in activation.items():
         pattern = lat.store.get_pattern(pid)
@@ -202,13 +220,29 @@ def _lateral_inhibition(lat: "HermesInsight", activation: Dict[str, float]) -> D
     inhibited = dict(activation)
     for rows in by_kind.values():
         rows.sort(key=lambda item: item[1], reverse=True)
-        leaders = rows[:_INHIBIT_TOP_M]
+        leaders = rows[: k.inhibit_top_m]
         if not leaders:
             continue
-        for pid, act in rows[_INHIBIT_TOP_M:]:
-            penalty = _INHIBIT_BETA * sum(max(0.0, lead - act) for _, lead in leaders)
+        for pid, act in rows[k.inhibit_top_m :]:
+            penalty = k.inhibit_beta * sum(max(0.0, lead - act) for _, lead in leaders)
             inhibited[pid] = max(0.0, act - penalty)
     return inhibited
+
+
+def _lane_weight(pattern: Pattern, knobs: RecallKnobs) -> float:
+    if _is_fact(pattern):
+        return knobs.fact_weight
+    if pattern.kind == PatternKind.SEQUENCE:
+        return knobs.sequence_weight
+    if _is_experience(pattern):
+        return knobs.echo_weight
+    if pattern.kind == PatternKind.RULE:
+        return knobs.rule_weight
+    return 1.0
+
+
+def _mindset_block(plate: CognitivePlate) -> Dict[str, Any]:
+    return plate.to_dict()
 
 
 def _contradictions(
@@ -248,8 +282,8 @@ def _contradictions(
     return out
 
 
-def _empty_failure(error: str) -> Dict[str, Any]:
-    return {
+def _empty_failure(error: str, plate: Optional[CognitivePlate] = None) -> Dict[str, Any]:
+    pack: Dict[str, Any] = {
         "success": False,
         "error": error,
         "usable": False,
@@ -273,9 +307,17 @@ def _empty_failure(error: str) -> Dict[str, Any]:
         "lever": "",
         "confidence": 0.0,
     }
+    if plate is not None:
+        pack["mindset"] = _mindset_block(plate)
+    return pack
 
 
-def _thin_pack(query: str, write_meta: bool, lat: "HermesInsight") -> Dict[str, Any]:
+def _thin_pack(
+    query: str,
+    write_meta: bool,
+    lat: "HermesInsight",
+    plate: CognitivePlate,
+) -> Dict[str, Any]:
     brief = "\n".join(
         [
             "## Insight recall",
@@ -311,6 +353,7 @@ def _thin_pack(query: str, write_meta: bool, lat: "HermesInsight") -> Dict[str, 
         "brief": brief,
         "active_task_id": lat.store.get_meta("active_task_id", ""),
         "query": query,
+        "mindset": _mindset_block(plate),
     }
 
 
@@ -325,13 +368,21 @@ def recall(
     observations: Optional[Sequence[str]] = None,
     environment_id: Optional[str] = None,
     task_id: Optional[str] = None,
+    mindset: MindsetArg = None,
 ) -> Dict[str, Any]:
-    """Associative pre-action recall: dual-process working set + usable flag."""
+    """Associative pre-action recall: dual-process working set + usable flag.
+
+    ``mindset`` is a named plate, a custom axis dict, or omitted (the
+    persisted ``active_mindset`` / balanced default).
+    """
     from hermes_insight.experience import seed_agent_starters
+
+    plate = resolve_plate(lat, mindset)
+    knobs = apply_to_recall(plate)
 
     query = scrub_text(query or "").strip()
     if not query:
-        return _empty_failure("query required")
+        return _empty_failure("query required", plate)
 
     seed_agent_starters(lat)
     env_id = scrub_text(environment_id or "").strip() or lat.store.get_meta(
@@ -345,10 +396,10 @@ def recall(
         task_id=task_id,
     )
     feats = expand_query_features(extract_features(cue))
-    if _is_thin(query, extract_features(query)):
-        return _thin_pack(query, write_meta, lat)
+    if _is_thin(query, extract_features(query), knobs):
+        return _thin_pack(query, write_meta, lat, plate)
 
-    lane_limit = max(1, int(limit))
+    lane_limit = max(1, int(limit * knobs.lane_limit_scale))
     pool = lat.store.candidate_pool(
         cue,
         domain=domain,
@@ -371,7 +422,8 @@ def recall(
     now = time.time()
     activation = _lateral_inhibition(
         lat,
-        _spread_activation(lat, seeds, environment_id=env_id, now=now),
+        _spread_activation(lat, seeds, environment_id=env_id, now=now, knobs=knobs),
+        knobs,
     )
 
     want_session = any(w in query.lower() for w in ("session", "turn completed", "telegram session"))
@@ -392,6 +444,7 @@ def recall(
         score = (0.65 * match_score + 0.35 * act) if hit else act
         if env_id and _observed_in(lat, pid, env_id):
             score *= 1.18
+        score *= _lane_weight(pattern, knobs)
         method = hit.method if hit else "spread"
         shared = hit.shared_features[:10] if hit else []
         row = _row(pattern, score, method, shared)
@@ -435,7 +488,8 @@ def recall(
     matches = matches[:lane_limit]
     experiences = experiences[:lane_limit]
     facts = facts[:lane_limit]
-    hops = hops[:lane_limit]
+    hop_cap = max(1, int(round(lane_limit * knobs.hop_weight)))
+    hops = hops[:hop_cap]
     contradictions = _contradictions(lat, ranked_ids[:24], limit=lane_limit)
 
     working_ids = [r["id"] for r in matches + experiences + facts]
@@ -464,7 +518,7 @@ def recall(
     top_score = float(matches[0]["score"]) if matches else peak
     usable = (
         bool(matches or experiences or facts)
-        and peak >= _USABLE_ACTIVATION
+        and peak >= knobs.usable_activation
         and lever not in {"insufficient_signal", "unknown", ""}
         and top_score >= 0.08
     )
@@ -556,6 +610,7 @@ def recall(
         "process": process,
         "brief": brief,
         "active_task_id": lat.store.get_meta("active_task_id", ""),
+        "mindset": _mindset_block(plate),
     }
 
 
