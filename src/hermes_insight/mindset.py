@@ -299,7 +299,7 @@ def attune(
         "knobs": apply_to_recall(plate).to_dict(),
         "summary": plate.summary(),
         "note": (
-            "Trait plate for this seat only. Not a diagnosis. "
+            "Trait plate for this seat only. Not a clinical label. "
             "Not a claim of lived neurodivergent identity. The plate can change."
         ),
     }
