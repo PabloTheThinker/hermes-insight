@@ -100,6 +100,7 @@ print(card["action_hint"], "usable=", card["usable"])
 hermes-insight bootstrap              # seed agent-field starter rules
 hermes-insight perceive "situation" -o "fact" --log
 hermes-insight recall "query"
+hermes-insight remember "durable fact" --pointer "user.md#heading"
 hermes-insight hygiene                # decay fabric noise + densify links
 hermes-insight stats
 hermes-insight forge                  # maps / playbooks from the lattice
@@ -109,9 +110,9 @@ hinsight perceive "…"                 # short alias
 ### Default agent loop
 
 ```text
-observe env → perceive → plan? → task open → typed events → task close → learn
-    │           │          │         │             │              │         │
- current     lever/rule   route   boundary      evidence       credit   recurrence
+observe env → recall → perceive → plan? → task open → typed events → task close → learn
+    │            │         │         │         │             │              │         │
+ current      memory    lever/rule  route   boundary      evidence       credit   recurrence
 ```
 
 | Tool | Role |
@@ -122,7 +123,8 @@ observe env → perceive → plan? → task open → typed events → task close
 | **`insight_learn`** | Recurring workflow induction across distinct tasks, with counterexamples |
 | `insight_task` | Open/close multi-step episodes (`task_id`) |
 | `insight_experience` | Log events; auto-link to patterns |
-| `insight_recall` | Fast priors only |
+| **`insight_recall`** | Associative retrieve — working set + `usable` |
+| `insight_remember` | Compact durable fact / engram |
 | `insight_cycle` | Deep multi-lens cycle |
 | `insight_forge` | Lattice → maps / playbooks / invention seeds |
 | `insight_hygiene` | Decay unused fabric; densify structural links |
@@ -161,7 +163,8 @@ encode → match → link → distill → perceive → reinforce
 2. **Hybrid match** — template · prototype · feature · IDF, with structural kind priors (rules up, bare filenames down)  
 3. **Candidate pool** — FTS + structural shortlist so large fabric dumps stay fast  
 4. **Distill** — controlling variable (*lever*), refined from strong top matches  
-5. **Experience layer** — events / episodes / tasks with `instance_of`, `experienced_as`, `next` links  
+5. **Experience layer** — events / episodes / tasks with `instance_of`, `experienced_as`, `next` links
+5b. **Recall layer** — spreading activation + dual-process working set + compact `fact` engrams  
 6. **Starters** — bootstrap agent-field priors (credentials, cache, isolation, retry storms, skill routing, mesh/DNS, …)  
 7. **Hygiene** — decay unused fabric; densify links; weaken session-auto noise  
 8. **Experience-grounded planning** — rank workflows from relevance + explicitly attributed task outcomes
@@ -230,6 +233,7 @@ Env overrides: `HERMES_INSIGHT_DB`, `HERMES_INSIGHT_AGENT_ID`, `HERMES_INSIGHT_A
 | **[Experience-grounded intuition](docs/INTUITION.md)** | Research, AgentDrive comparison, planner design, and roadmap |
 | [Ability](docs/ABILITY.md) | Short ability card |
 | [Experience](docs/EXPERIENCE.md) | Tasks, events, recall loop |
+| [Recall](docs/RECALL.md) | Science-grounded retrieve organ + remember |
 | [Security](SECURITY.md) | Privacy, compartments, isolation |
 | [Contributing](CONTRIBUTING.md) | Dev setup and PR hygiene |
 | [Changelog](CHANGELOG.md) | Version history |
@@ -264,9 +268,11 @@ Requires **Python 3.10+**. Core runtime dependencies: none beyond the standard l
 
 ## Status
 
-**0.8.x** — production-shaped alpha for companion use:
+**0.9.x** — production-shaped alpha for companion use:
 
 - `perceive` ability and experience layer  
+- **associative `recall`** — dual-process working set, spreading activation, `usable`
+- `remember` compact engrams (not a MemoryProvider)
 - `plan` ability with explicit applied-pattern outcome attribution
 - typed events and environment snapshots that ground plans in current workspace state
 - recurring workflow induction with distinct-task support, Wilson confidence, retained failures, and no automatic skill writes

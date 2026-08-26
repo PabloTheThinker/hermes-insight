@@ -1,13 +1,13 @@
 ---
 name: hermes-insight
 description: Recognize recurring structures and learn from outcomes.
-version: 0.8.0
+version: 0.9.0
 author: Pablo Navarro (PabloTheThinker), Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
   hermes:
-    tags: [cognition, pattern-recognition, experience, planning, learning]
+    tags: [cognition, pattern-recognition, experience, planning, learning, memory]
     category: cognition
     related_skills: []
     requires_toolsets: [hermes_insight]
@@ -16,9 +16,10 @@ metadata:
 # Hermes Insight Skill
 
 Hermes Insight gives an agent durable structural recognition across sessions. It matches
-current situations to rules and lived outcomes, names the controlling lever, grounds
-plans in the current digital environment, and learns recurring workflows. It does not
-replace reasoning, prove causality from similarity, or import AgentDrive.
+current situations to rules and lived outcomes, recalls a budgeted working set, names
+the controlling lever, grounds plans in the current digital environment, and learns
+recurring workflows. It does not replace reasoning, prove causality from similarity,
+dump MEMORY.md, or import AgentDrive.
 
 ## When to Use
 
@@ -51,13 +52,13 @@ consequential multi-step work, and keep all subsequent events under one `task_id
 ## How It Works
 
 ```text
-observe environment → perceive → plan → task/events → attributed outcome → learn
-        state           shape      route      evidence          credit        recurrence
+observe → recall → perceive → plan → task/events → attributed outcome → learn
+  state    memory    shape     route     evidence          credit        recurrence
 ```
 
 The lattice contains typed patterns and links in local SQLite:
 
-- rules, skills, tools, agents, events, tasks, environments, and induced sequences;
+- rules, skills, tools, agents, events, tasks, environments, facts, and induced sequences;
 - `instance_of`, `next`, `applied`, `observed_in`, and other explicit relations;
 - hybrid template/prototype/feature matching with structural priors;
 - conservative reliability from patterns explicitly applied to completed tasks;
@@ -74,6 +75,8 @@ For ontology, scoring, privacy, and advanced examples, load
 | Tool | Use |
 |---|---|
 | `insight_perceive` | Situation → lever, matching structures, echoes, `usable` |
+| `insight_recall` | Working set: rules, facts, echoes, hops, `usable` |
+| `insight_remember` | One compact durable fact / engram |
 | `insight_plan` | Ranked route with reliability and environment state |
 | `insight_observe` | Typed event or scrubbed workspace snapshot/delta |
 | `insight_task` | Open/close a task and attribute its outcome |
@@ -89,9 +92,11 @@ For ontology, scoring, privacy, and advanced examples, load
    `insight_observe(mode="environment", root="<workspace>")` after changing repository,
    branch, dependency state, or available tools. Continue when the returned snapshot and
    delta describe the intended workspace.
-2. **Perceive the concrete situation.** Call `insight_perceive` with component names,
-   symptoms, exact errors, observations, and an optional domain. Continue only after
-   checking `usable`, `lever`, top score, and the top rule.
+2. **Recall, then perceive.** Call `insight_recall` when you need prior facts, echoes,
+   or rules. If `usable=false`, gather observations. Then call `insight_perceive` with
+   component names, symptoms, exact errors, observations, and an optional domain.
+   Continue only after checking `usable`, `lever`, top score, and the top rule.
+   Use `insight_remember` for one durable claim — never chat logs.
 3. **Refuse weak structure.** If `usable=false`, gather two or three new observations and
    perceive again. Do not turn a weak match into a root-cause claim.
 4. **Plan consequential work.** Call `insight_plan` and inspect the primary route,
@@ -147,8 +152,9 @@ profile compartment.
 ## Verification
 
 - `insight_stats` reports the expected profile and a writable local database.
-- A concrete `insight_perceive` returns a meaningful lever; a vague query returns
-  `usable=false`.
+- A concrete `insight_perceive` or `insight_recall` returns a meaningful lever; a
+  vague query returns `usable=false`.
+- `insight_remember` stores one compact fact; `insight_recall` can retrieve it.
 - `insight_plan` displays the current environment snapshot and separates relevance from
   reliability.
 - Closing a task with actual `used_pattern_ids` changes explicit outcome evidence.

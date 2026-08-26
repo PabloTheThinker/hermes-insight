@@ -2,6 +2,8 @@
 
 How any Hermes agent turns **tasks and events** into durable pattern memory — and recalls it faster next time.
 
+> Recall science and the retrieve organ: [RECALL.md](RECALL.md).
+
 > Full agent manual (including experience in context): [AGENT-GUIDE.md](AGENT-GUIDE.md).
 
 ## Why
@@ -37,6 +39,7 @@ recall → plan? → open_task → typed events / experience* → close(used pat
 ## Tools (plugin)
 
 - `insight_recall`
+- `insight_remember`
 - `insight_experience`
 - `insight_task` (`open`|`close`)
 - `insight_plan`

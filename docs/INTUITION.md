@@ -166,6 +166,19 @@ It never writes, installs, publishes, or executes a Hermes skill. Promotion rema
 reviewed Hermes `skill_manage` operation with applicability, verification, rollback, and
 counterexamples.
 
+## Implemented slice: associative recall
+
+`insight_recall` is the retrieve organ. It is no longer “perceive, but faster.”
+
+- dual-process lanes: rules (familiarity), facts/echoes (recollection), contradictions
+- encoding-specificity cues: observations, environment snapshot, task id
+- bounded spreading activation with fan effect and lateral inhibition
+- feeling-of-knowing: thin queries return `usable=false`
+- `insight_remember` writes compact `fact` engrams with optional artifact pointers
+- retrieval practice touches the working set; it never creates `applied` credit
+
+See [RECALL.md](RECALL.md) for the science → operator map.
+
 ## What to build next
 
 ### 1. Skill execution hooks

@@ -42,7 +42,8 @@ After `./scripts/install_for_hermes.sh` (and a Hermes reload), you typically get
 | **`insight_plan`** | **Decision route** | Consequential/multi-step work → ranked patterns, skills, tools |
 | **`insight_observe`** | **Grounding** | Typed event or workspace snapshot/delta |
 | **`insight_learn`** | **Induction** | Recurring ordered workflows across distinct tasks |
-| `insight_recall` | Fast priors only | Need speed, no log, no deep |
+| **`insight_recall`** | Associative retrieve | Need to remember what the lattice already knows |
+| `insight_remember` | Compact engram | Durable fact / preference pointer |
 | `insight_task` | Open/close episodes | Multi-step jobs; keep `task_id` |
 | `insight_experience` | Log event/episode | After fix, failure, decision |
 | `insight_connect` | Explicit link | “Same shape as X” |
@@ -335,7 +336,7 @@ Trust strong scores (≥ ~0.35–0.5 with a clear rule). Verify weak ones.
 
 ### 5.7 Stance (non-negotiable)
 
-1. Recall before rediscovery  
+1. Recall before rediscovery (`insight_recall`; refuse when `usable` is false)  
 2. Name the actual variable  
 3. Prefer structural rules over scenic detail  
 4. Observation ≠ inference — label confidence  
@@ -479,9 +480,10 @@ insight_perceive "two workers share one bot token; long-poll 409"
 | Skills | How to do work | Write skills after hard fixes; Insight stores *that the shape recurs* |
 | Session DB | Chat history | Insight is structural, not transcript search |
 | Fabric index | Code/skills/tools inventory | Fuel for match; rules still win |
-| Insight lattice | Structures + lived links | This document |
+| Insight lattice | Structures + lived links + compact facts | This document; [RECALL.md](RECALL.md) |
 
-**Rule of three:** preference → memory · procedure → skill · recurring structure/event → Insight.
+**Rule of three:** preference → memory · procedure → skill · recurring structure/event/fact → Insight.
+Recall of any of them goes through `insight_recall`, not a file dump.
 
 ---
 
@@ -513,6 +515,22 @@ insight_perceive "two workers share one bot token; long-poll 409"
 ---
 
 ## 13. API quick reference
+
+### recall / remember
+
+```text
+recall(query, observations?=, environment_id?=, task_id?=, limit=8)
+  → {
+      usable, thin_query, process, lever, confidence,
+      matches[] / rules[], facts[], experiences[] / echoes[],
+      hops[], contradictions[], working_set, brief
+    }
+
+remember(claim, source?=, salience?=, pointer?=, task_id?=)
+  → { fact, connected, pointer }
+```
+
+See [RECALL.md](RECALL.md).
 
 ### perceive (conceptual)
 
@@ -574,6 +592,7 @@ experience(title, body, kind=event|episode, task_id?, outcome?, tags?)
 | Doc | Depth |
 |-----|--------|
 | [ABILITY.md](ABILITY.md) | Short ability card |
+| [RECALL.md](RECALL.md) | Associative retrieve + remember |
 | [EXPERIENCE.md](EXPERIENCE.md) | Experience layer summary |
 | [SECURITY.md](../SECURITY.md) | Privacy / isolation |
 | [COMMUNITY.md](COMMUNITY.md) | Positioning for humans |
@@ -584,9 +603,10 @@ experience(title, body, kind=event|episode, task_id?, outcome?, tags?)
 
 ## 15. Version note
 
-This guide targets the **0.8.x** line (perceive + plan, native observation, explicit
-applied-pattern outcomes, evidence-gated workflow induction, structural priors, and
-session-noise hygiene). APIs evolve; trust `insight_stats.version` on the live lattice.
+This guide targets the **0.9.x** line (associative recall + remember, perceive + plan,
+native observation, explicit applied-pattern outcomes, evidence-gated workflow induction,
+structural priors, and session-noise hygiene). APIs evolve; trust `insight_stats.version`
+on the live lattice.
 
 ---
 
