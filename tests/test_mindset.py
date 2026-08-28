@@ -151,5 +151,27 @@ def test_no_diagnostic_language_in_plate_or_brief(lat: HermesInsight):
     assert not contains_forbidden_language(note)
 
 
+def test_gist_brief_is_denser_than_distill(lat: HermesInsight):
+    lat.bootstrap()
+    query = "retry storm without jitter under load after deploy"
+    gist = lat.recall(
+        query,
+        mindset={"name": "custom", "processing": "gist"},
+        write_meta=False,
+    )
+    distill = lat.recall(
+        query,
+        mindset={"name": "custom", "processing": "distill"},
+        write_meta=False,
+    )
+    assert gist["thin_query"] is False
+    assert distill["thin_query"] is False
+    assert len(gist["brief"].splitlines()) <= len(distill["brief"].splitlines())
+    knobs_gist = apply_to_recall(plate_from_name("polytropic"))
+    knobs_distill = apply_to_recall(plate_from_name("catalogue"))
+    assert knobs_gist.brief_match_n < knobs_distill.brief_match_n
+    assert knobs_distill.refine_min_score < knobs_gist.refine_min_score
+
+
 def json_blob(data: dict) -> str:
     return " ".join(str(v) for v in data.values())

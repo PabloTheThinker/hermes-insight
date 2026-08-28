@@ -25,7 +25,7 @@ Only platters that already map onto the lattice:
 | **Memory** | semantic / balanced / episodic / procedural | Lane weights on rules, facts, echoes, sequences |
 | **Time** | linear / balanced / cyclical | Recency half-life vs repeating `sequence` boost |
 | **Sensory** | filter / balanced / sensitive | Thin-query bar and usable activation |
-| **Processing** | gist / balanced / distill | Analogy / brief density (light) |
+| **Processing** | gist / balanced / distill | Distill aggressiveness and brief density |
 
 `load=monotropic` on the Hermespace `perceive_card` still means **protect /
 skip**. That word on a plate means **attention style**, not load shedding.

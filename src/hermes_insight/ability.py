@@ -118,7 +118,7 @@ def perceive(
     deep_used = False
 
     # Align lever to strong top structure (dict form from recall)
-    if matches and top_score >= 0.45 and lever not in {"insufficient_signal", ""}:
+    if matches and top_score >= knobs.refine_min_score and lever not in {"insufficient_signal", ""}:
         from hermes_insight.distill import refine_lever_from_matches
         from hermes_insight.models import MatchResult, Pattern, PatternKind, Domain
         top = matches[0]
@@ -152,7 +152,7 @@ def perceive(
     need_deep = bool(deep) or (
         (not thin_query)
         and top_score < 0.18
-        and len(blob) >= 48
+        and len(blob) >= knobs.deep_min_len
     )
     if need_deep:
         report = lat.cycle(

@@ -51,6 +51,12 @@ class RecallKnobs:
     thin_min_features: int = 3
     thin_min_words: int = 8
     thin_require_both: bool = True
+    brief_match_n: int = 5
+    brief_fact_n: int = 4
+    brief_echo_n: int = 4
+    brief_hop_n: int = 5
+    refine_min_score: float = 0.45
+    deep_min_len: int = 48
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -192,10 +198,18 @@ def apply_to_recall(plate: CognitivePlate) -> RecallKnobs:
         usable = min(usable, 0.08)
 
     analogy = knobs.analogy_boost
+    brief_match_n, brief_fact_n, brief_echo_n, brief_hop_n = 5, 4, 4, 5
+    refine_min_score = 0.45
+    deep_min_len = 48
     if plate.processing == "distill":
         analogy *= 0.95
+        refine_min_score = 0.35
+        deep_min_len = 40
     elif plate.processing == "gist":
         analogy *= 1.05
+        brief_match_n, brief_fact_n, brief_echo_n, brief_hop_n = 3, 2, 2, 2
+        refine_min_score = 0.55
+        deep_min_len = 80
 
     return RecallKnobs(
         spread_steps=knobs.spread_steps,
@@ -215,6 +229,12 @@ def apply_to_recall(plate: CognitivePlate) -> RecallKnobs:
         thin_min_features=thin_feats,
         thin_min_words=thin_words,
         thin_require_both=both,
+        brief_match_n=brief_match_n,
+        brief_fact_n=brief_fact_n,
+        brief_echo_n=brief_echo_n,
+        brief_hop_n=brief_hop_n,
+        refine_min_score=refine_min_score,
+        deep_min_len=deep_min_len,
     )
 
 

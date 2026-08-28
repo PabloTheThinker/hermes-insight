@@ -557,23 +557,23 @@ def recall(
         brief_lines.append("- " + " · ".join(traj_bits))
     if matches:
         brief_lines.append("### Structural priors")
-        for item in matches[:5]:
+        for item in matches[: knobs.brief_match_n]:
             brief_lines.append(f"- `{item['score']:.2f}` **{item['title']}** — {item['body_preview'][:120]}")
     if facts:
         brief_lines.append("### Facts")
-        for item in facts[:4]:
+        for item in facts[: knobs.brief_fact_n]:
             brief_lines.append(f"- `{item['score']:.2f}` **{item['title']}**")
     if experiences:
         brief_lines.append("### Lived experiences")
-        for item in experiences[:4]:
+        for item in experiences[: knobs.brief_echo_n]:
             brief_lines.append(f"- `{item['score']:.2f}` **{item['title']}**")
     if hops:
         brief_lines.append("### Connected hops")
-        for item in hops[:5]:
+        for item in hops[: knobs.brief_hop_n]:
             brief_lines.append(f"- {item['title']} ({item['kind']}/{item['domain']})")
     if contradictions:
         brief_lines.append("### Contradictions")
-        for item in contradictions[:4]:
+        for item in contradictions[: max(2, knobs.brief_fact_n)]:
             brief_lines.append(f"- {item['title']} ← {item.get('via', '')}")
     brief = "\n".join(brief_lines)
 
