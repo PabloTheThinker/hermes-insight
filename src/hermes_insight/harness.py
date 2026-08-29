@@ -639,9 +639,12 @@ class HermesInsight:
         include_experiences: bool = True,
         domain: Optional[str] = None,
         write_meta: bool = True,
+        observations: Optional[Sequence[str]] = None,
+        environment_id: Optional[str] = None,
+        task_id: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Fast pre-action recall: priors + lived echoes + hops + brief."""
-        from hermes_insight.experience import recall as _recall
+        """Associative pre-action recall: dual-process working set + usable flag."""
+        from hermes_insight.recall import recall as _recall
 
         return _recall(
             self,
@@ -650,6 +653,30 @@ class HermesInsight:
             include_experiences=include_experiences,
             domain=domain,
             write_meta=write_meta,
+            observations=observations,
+            environment_id=environment_id,
+            task_id=task_id,
+        )
+
+    def remember(
+        self,
+        claim: str,
+        *,
+        source: str = "",
+        salience: float = 0.6,
+        pointer: str = "",
+        task_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Store one compact durable fact/engram. Pointers are refs, not contents."""
+        from hermes_insight.recall import remember as _remember
+
+        return _remember(
+            self,
+            claim,
+            source=source,
+            salience=salience,
+            pointer=pointer,
+            task_id=task_id,
         )
 
     def open_task(

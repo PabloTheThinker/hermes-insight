@@ -211,6 +211,8 @@ def hybrid_score(
         score = min(1.0, score + 0.08)
     elif kind == PatternKind.SKILL:
         score = min(1.0, score + 0.07)
+    elif kind == PatternKind.FACT:
+        score = min(1.0, score + 0.09)
     elif kind in (PatternKind.EVENT, PatternKind.EPISODE, PatternKind.TASK):
         # lived experience — recency-weighted
         import time as _time
@@ -302,6 +304,7 @@ def match_patterns(
             PatternKind.EVENT,
             PatternKind.EPISODE,
             PatternKind.TASK,
+            PatternKind.FACT,
         }:
             # allow second rule-like; skip extra file dumps with same name
             if kind_counts.get(base_title, 0) >= 1:

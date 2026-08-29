@@ -233,6 +233,7 @@ class PatternStore:
             "event",
             "episode",
             "task",
+            "fact",
             "agent",
             "model",
             "tool",

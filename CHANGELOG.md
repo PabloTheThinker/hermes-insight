@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 0.9.0 — 2026-08-26
+
+- **Associative recall layer** — `insight_recall` returns a budgeted working set
+  with dual-process lanes (rules / facts / echoes / contradictions), spreading
+  activation, encoding-specificity cues, and a feeling-of-knowing `usable` flag
+- **Compact engrams** — `insight_remember` stores one scrubbed `kind=fact` claim
+  with an optional artifact pointer; never file contents or chat dumps
+- Retrieval practice touches recalled nodes; recall still never creates `applied`
+  outcome credit
+- Docs: [RECALL.md](docs/RECALL.md) maps human and neural-network memory research
+  onto the lattice
+
+## 0.8.x — unreleased follow-ups
+
 - Drop invalid Hermes hook `session_end`; keep `on_session_end` only
 - `plugin.yaml` declares `provides_hooks`, advisory `python_dependencies`, and
   `config_schema` for `agent_id` / `db_path` / `agent_tier`

@@ -240,11 +240,22 @@ def build_parser() -> argparse.ArgumentParser:
     )
     s.set_defaults(func=cmd_learn)
 
-    s = sub.add_parser("recall", help="Fast pre-action recall (priors + experiences + hops)")
+    s = sub.add_parser("recall", help="Associative recall (working set + usable flag)")
     s.add_argument("query")
     s.add_argument("-n", "--limit", type=int, default=8)
     s.add_argument("--domain", default=None)
+    s.add_argument("-o", "--observation", action="append", default=[])
+    s.add_argument("--environment-id", default=None)
+    s.add_argument("--task-id", default=None)
     s.set_defaults(func=cmd_recall)
+
+    s = sub.add_parser("remember", help="Store a compact durable fact/engram")
+    s.add_argument("claim")
+    s.add_argument("--source", default="")
+    s.add_argument("--salience", type=float, default=0.6)
+    s.add_argument("--pointer", default="", help="Artifact pointer, not file contents")
+    s.add_argument("--task-id", default=None)
+    s.set_defaults(func=cmd_remember)
 
     s = sub.add_parser("experience", help="Log lived event/episode and auto-connect")
     s.add_argument("title")
@@ -551,11 +562,33 @@ def cmd_learn(args: argparse.Namespace) -> int:
 
 def cmd_recall(args: argparse.Namespace) -> int:
     lat = _lattice(args)
-    pack = lat.recall(args.query, limit=args.limit, domain=args.domain)
+    pack = lat.recall(
+        args.query,
+        limit=args.limit,
+        domain=args.domain,
+        observations=args.observation or None,
+        environment_id=args.environment_id,
+        task_id=args.task_id,
+    )
     if args.json:
         _print(pack, as_json=True)
     else:
         print(pack.get("brief") or json.dumps(pack, indent=2))
+    return 0
+
+
+def cmd_remember(args: argparse.Namespace) -> int:
+    lat = _lattice(args)
+    _print(
+        lat.remember(
+            args.claim,
+            source=args.source,
+            salience=args.salience,
+            pointer=args.pointer,
+            task_id=args.task_id,
+        ),
+        as_json=True,
+    )
     return 0
 
 

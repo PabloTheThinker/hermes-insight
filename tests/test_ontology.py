@@ -16,7 +16,7 @@ def test_agent_link_kinds():
 
 
 def test_agent_pattern_kinds():
-    for k in ("agent", "model", "tool", "skill", "prompt"):
+    for k in ("agent", "model", "tool", "skill", "prompt", "fact"):
         assert PatternKind(k).value == k
 
 

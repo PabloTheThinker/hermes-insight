@@ -21,12 +21,10 @@ import uuid
 from typing import Any, Dict, List, Optional, Sequence, TYPE_CHECKING
 
 from hermes_insight.cross_domain import auto_link
-from hermes_insight.distill import distill
 from hermes_insight.features import extract_features
 from hermes_insight.match import build_idf, expand_query_features, match_patterns
 from hermes_insight.models import (
     Domain,
-    Evidence,
     Link,
     LinkKind,
     Pattern,
@@ -298,7 +296,7 @@ def seed_agent_starters(lat: "HermesInsight", *, force: bool = False) -> Dict[st
         )
         ids.append(pat.id)
     dens = densify_structural_links(lat, min_score=0.10, limit_per=12)
-    lat.store.set_meta("bootstrap_version", "0.8.0")
+    lat.store.set_meta("bootstrap_version", "0.9.0")
     lat.store.set_meta("last_densify_at", str(_time.time()))
     return {
         "seeded": len(ids),
@@ -607,129 +605,24 @@ def recall(
     include_experiences: bool = True,
     write_meta: bool = True,
     domain: Optional[str] = None,
+    observations: Optional[Sequence[str]] = None,
+    environment_id: Optional[str] = None,
+    task_id: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Fast pre-action recall: matches + related experiences + one brief."""
-    query = scrub_text(query or "").strip()
-    if not query:
-        return {"success": False, "error": "query required", "matches": [], "experiences": [], "brief": ""}
+    """Associative pre-action recall — delegates to the recall engine."""
+    from hermes_insight.recall import recall as _recall
 
-    seed_agent_starters(lat)
-
-    feats = expand_query_features(extract_features(query))
-    pool = lat.store.candidate_pool(
+    return _recall(
+        lat,
         query,
-        domain=domain,
-        fts_limit=48,
-        structural_limit=140,
-        fill_limit=50,
-    )
-    idf = build_idf(pool)
-    hits = match_patterns(
-        query,
-        feats,
-        pool,
         limit=limit,
-        min_score=0.04,
-        domain_hint=domain,
-        idf=idf,
+        include_experiences=include_experiences,
+        write_meta=write_meta,
+        domain=domain,
+        observations=observations,
+        environment_id=environment_id,
+        task_id=task_id,
     )
-    matches: List[Dict[str, Any]] = []
-    experiences: List[Dict[str, Any]] = []
-    qlow = query.lower()
-    want_session_noise = any(w in qlow for w in ("session", "turn completed", "telegram session"))
-    for i, h in enumerate(hits):
-        if i < 3:
-            h.pattern.touch(0.01)
-            lat.store.upsert_pattern(h.pattern)
-        row = {
-            "id": h.pattern.id,
-            "title": h.pattern.title,
-            "score": round(h.score, 4),
-            "method": h.method,
-            "kind": h.pattern.kind.value,
-            "domain": h.pattern.domain.value,
-            "shared": h.shared_features[:10],
-            "body_preview": h.pattern.body[:220],
-        }
-        tags = set(h.pattern.tags or [])
-        is_exp = h.pattern.kind in {PatternKind.EVENT, PatternKind.EPISODE, PatternKind.TASK} or "experience" in tags
-        # Drop bulk session-auto noise unless the query is about sessions
-        if is_exp and "session" in tags and "auto" in tags and "material" not in tags:
-            if not want_session_noise and str(h.pattern.title).startswith("session turn"):
-                continue
-        if is_exp:
-            if include_experiences:
-                experiences.append(row)
-        else:
-            matches.append(row)
-
-    # pull neighbors of top match for faster connect-the-dots
-    hops: List[Dict[str, Any]] = []
-    if hits:
-        via_title = hits[0].pattern.title
-        for nb in lat.store.neighbors(hits[0].pattern.id, limit=6):
-            hops.append(
-                {
-                    "id": nb.id,
-                    "title": nb.title,
-                    "kind": nb.kind.value,
-                    "domain": nb.domain.value,
-                    "via": via_title,
-                }
-            )
-
-    distillation = distill(query, matches=hits, domain_hint=domain)
-    traj_bits = []
-    if hits:
-        traj_bits.append(f"strongest prior: **{hits[0].pattern.title}** ({hits[0].score:.2f})")
-    if experiences:
-        traj_bits.append(f"lived echo: **{experiences[0]['title']}**")
-    if hops:
-        traj_bits.append("hop: " + ", ".join(h["title"] for h in hops[:3]))
-
-    brief_lines = [
-        "## Insight recall",
-        f"**Lever:** {distillation.actual_variable}",
-        f"**Confidence:** {distillation.confidence:.2f}",
-    ]
-    if traj_bits:
-        brief_lines.append("- " + " · ".join(traj_bits))
-    if matches:
-        brief_lines.append("### Structural priors")
-        for m in matches[:5]:
-            brief_lines.append(f"- `{m['score']:.2f}` **{m['title']}** — {m['body_preview'][:120]}")
-    if experiences:
-        brief_lines.append("### Lived experiences")
-        for e in experiences[:4]:
-            brief_lines.append(f"- `{e['score']:.2f}` **{e['title']}**")
-    if hops:
-        brief_lines.append("### Connected hops")
-        for h in hops[:5]:
-            brief_lines.append(f"- {h['title']} ({h['kind']}/{h['domain']})")
-    brief = "\n".join(brief_lines)
-
-    if write_meta:
-        top_t = matches[0]["title"] if matches else "none"
-        lat.store.set_meta(
-            "last_recall_line",
-            f"{distillation.actual_variable}: {top_t}",
-        )
-        lat.store.set_meta(
-            "last_brief_line",
-            f"lever=`{distillation.actual_variable}` · match=`{top_t}`"
-            + (f"@{matches[0]['score']:.2f}" if matches else ""),
-        )
-
-    return {
-        "success": True,
-        "lever": distillation.actual_variable,
-        "confidence": distillation.confidence,
-        "matches": matches,
-        "experiences": experiences,
-        "hops": hops,
-        "brief": brief,
-        "active_task_id": lat.store.get_meta("active_task_id", ""),
-    }
 
 
 def connect(

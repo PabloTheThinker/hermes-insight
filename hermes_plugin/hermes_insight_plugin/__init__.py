@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 __plugin_name__ = "hermes-insight"
-__plugin_version__ = "0.8.0"
+__plugin_version__ = "0.9.0"
 
 
 def _cfg() -> dict:
@@ -282,19 +282,43 @@ def handle_insight_forge(args: dict, **kwargs) -> str:
 
 
 def handle_insight_recall(args: dict, **kwargs) -> str:
-    """Fast pre-action pattern + experience recall."""
+    """Associative pre-action recall: working set + usable flag."""
     try:
         lat = _lattice()
+        observations = args.get("observations") or args.get("observation") or []
+        if isinstance(observations, str):
+            observations = [observations]
         return _ok(
             lat.recall(
                 str(args.get("query") or ""),
                 limit=int(args.get("limit") or 8),
                 include_experiences=bool(args.get("include_experiences", True)),
                 domain=args.get("domain"),
+                observations=list(observations) or None,
+                environment_id=args.get("environment_id") or None,
+                task_id=args.get("task_id") or None,
             )
         )
     except Exception as exc:  # noqa: BLE001
         logger.exception("insight_recall failed")
+        return _err(str(exc))
+
+
+def handle_insight_remember(args: dict, **kwargs) -> str:
+    """Store one compact durable fact/engram."""
+    try:
+        lat = _lattice()
+        return _ok(
+            lat.remember(
+                str(args.get("claim") or args.get("fact") or ""),
+                source=str(args.get("source") or ""),
+                salience=float(args.get("salience") or 0.6),
+                pointer=str(args.get("pointer") or ""),
+                task_id=args.get("task_id") or None,
+            )
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("insight_remember failed")
         return _err(str(exc))
 
 
@@ -691,10 +715,11 @@ _FORGE_SCHEMA = {
 _RECALL_SCHEMA = {
     "name": "insight_recall",
     "description": (
-        "FAST pre-action pattern recall. Call BEFORE hard debugging, architecture choices, "
-        "or recurring ops. Returns structural priors, lived experience echoes, graph hops, "
-        "and a short brief with the actual lever. Prefer this over full insight_cycle when "
-        "you need speed mid-task."
+        "Default memory retrieve. Call when you need to remember what the lattice already "
+        "knows before acting. Returns a budgeted working set: rules (familiarity), facts, "
+        "lived echoes (recollection), hops from spreading activation, contradictions, and "
+        "usable/feeling-of-knowing. Not a transcript dump. Prefer this over reading MEMORY.md "
+        "or dumping chat. Thin queries return usable=false — gather observations instead."
     ),
     "parameters": {
         "type": "object",
@@ -703,8 +728,41 @@ _RECALL_SCHEMA = {
             "limit": {"type": "integer", "default": 8},
             "domain": {"type": "string"},
             "include_experiences": {"type": "boolean", "default": True},
+            "observations": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Encoding-specificity cues that join the retrieval query",
+            },
+            "environment_id": {
+                "type": "string",
+                "description": "Current environment snapshot id to boost matching echoes",
+            },
+            "task_id": {"type": "string"},
         },
         "required": ["query"],
+    },
+}
+
+_REMEMBER_SCHEMA = {
+    "name": "insight_remember",
+    "description": (
+        "Store ONE compact durable fact/engram for later recall. Use for a preference, "
+        "constraint, or durable claim — not chat logs, not file dumps. Optional pointer "
+        "is an artifact ref (user.md#heading), never file contents. Never store credentials."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "claim": {"type": "string", "description": "The compact fact to remember"},
+            "source": {"type": "string"},
+            "salience": {"type": "number", "default": 0.6},
+            "pointer": {
+                "type": "string",
+                "description": "Optional artifact pointer, e.g. user.md#deploy-pref",
+            },
+            "task_id": {"type": "string"},
+        },
+        "required": ["claim"],
     },
 }
 
@@ -1012,6 +1070,7 @@ def register(ctx) -> None:
     _reg(_OBSERVE_SCHEMA, handle_insight_observe, emoji="◉")
     _reg(_LEARN_SCHEMA, handle_insight_learn, emoji="⌁")
     _reg(_RECALL_SCHEMA, handle_insight_recall, emoji="◎")
+    _reg(_REMEMBER_SCHEMA, handle_insight_remember, emoji="✦")
     _reg(_EXPERIENCE_SCHEMA, handle_insight_experience, emoji="◉")
     _reg(_TASK_SCHEMA, handle_insight_task, emoji="▣")
     _reg(_CONNECT_SCHEMA, handle_insight_connect, emoji="⟷")
@@ -1092,6 +1151,8 @@ def register(ctx) -> None:
                 return json.dumps(lat.bootstrap(), indent=2)
             if sub == "recall" and len(parts) > 1:
                 return lat.recall(parts[1]).get("brief", "")
+            if sub == "remember" and len(parts) > 1:
+                return json.dumps(lat.remember(parts[1]), indent=2)
             if sub == "cycle" and len(parts) > 1:
                 r = lat.cycle(parts[1])
                 return r.brief
@@ -1101,7 +1162,7 @@ def register(ctx) -> None:
                 return lat.plan(parts[1]).get("card", "")
             if sub == "hygiene":
                 return json.dumps(lat.hygiene(), indent=2)
-            return "Usage: /insight stats|bootstrap|perceive <q>|plan <q>|recall <q>|cycle <q>|hygiene"
+            return "Usage: /insight stats|bootstrap|perceive <q>|plan <q>|recall <q>|remember <q>|cycle <q>|hygiene"
 
         try:
             ctx.register_command(

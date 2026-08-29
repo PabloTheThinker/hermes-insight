@@ -68,7 +68,8 @@ hermes-insight forge
 
 ## Honest non-goals
 
-- Not a full conversational memory provider (use Honcho/Mem0/etc. beside it).  
+- Not a full conversational memory provider (use Honcho/Mem0/etc. beside it).
+  Insight **recalls** a working set; it does not replace MEMORY.md or ingest chat.  
 - Not a replacement for Hermes skills hub discovery UI.  
 - Not automatic fine-tuning — it *structures* what you’d train or route on.
 

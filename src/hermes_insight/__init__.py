@@ -1,7 +1,7 @@
 """Hermes Insight — superior pattern-processing harness for AI agents.
 
 Neurodivergent-inspired connecting-the-dots cognition as software:
-encode → match → link → distill → extrapolate → generate → reinforce.
+encode → match → link → distill → recall → extrapolate → generate → reinforce.
 
 Standalone. Zero host coupling. Optional Hermes Agent plugin/skill.
 Optional bounded perceive-card organ for Hermespace (soft-import;
@@ -21,7 +21,7 @@ from hermes_insight.models import (
     Trajectory,
 )
 
-__version__ = "0.8.0"
+__version__ = "0.9.0"
 __all__ = [
     "HermesInsight",
     "Pattern",

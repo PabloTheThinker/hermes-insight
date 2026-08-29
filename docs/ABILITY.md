@@ -73,7 +73,8 @@ After at least three comparable tasks, inspect `insight_learn` without auto-prom
 | insight_plan | Outcome-aware route grounded in the current environment |
 | insight_observe | Typed event or environment snapshot |
 | insight_learn | Evidence-gated recurring workflow induction |
-| insight_recall | Fast-only (no deep, no log) |
+| **insight_recall** | Associative retrieve — working set + `usable` |
+| insight_remember | Compact durable fact / engram |
 | insight_cycle | Explicit deep analysis |
 | insight_experience / task | Bind time |
 | insight_forge | Turn lattice into products |

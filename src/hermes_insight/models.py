@@ -38,6 +38,7 @@ class PatternKind(str, Enum):
     EVENT = "event"  # discrete occurrence / observation in time
     EPISODE = "episode"  # multi-step task or session arc
     TASK = "task"  # open/closed work unit an agent is running
+    FACT = "fact"  # compact durable engram / memory claim
 
 
 class Domain(str, Enum):

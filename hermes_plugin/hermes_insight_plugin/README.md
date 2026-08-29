@@ -38,13 +38,14 @@ Restart Hermes / gateway after enabling.
 | **`insight_learn`** | Evidence-gated recurring workflow induction |
 | `insight_task` | Open/close task episodes |
 | `insight_experience` | Log event; auto-connect |
-| `insight_recall` | Fast recall only |
+| `insight_recall` | Associative retrieve (working set + usable) |
+| `insight_remember` | Compact durable fact / engram |
 | `insight_cycle` | Deep multi-lens cycle |
 | `insight_forge` | Maps / playbooks / seeds |
 | `insight_bootstrap` | Seed starter patterns |
 
 Slash (when supported): `/insight stats` · `/insight perceive <q>` ·
-`/insight plan <q>` · `/insight recall <q>` · `/insight cycle <q>`
+`/insight plan <q>` · `/insight recall <q>` · `/insight remember <q>` · `/insight cycle <q>`
 
 ## Notes
 

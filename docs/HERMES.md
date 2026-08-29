@@ -100,3 +100,5 @@ calls `insight_plan`.
 - No raw credentials or unrestricted transcript ingestion.
 - No cross-profile evidence sharing without a future explicit policy surface.
 - Not a Hermes `MemoryProvider`. Hermespace must soft-import, not vendor.
+  `insight_recall` is a working-set retrieve organ; it does not dump MEMORY.md
+  or the lattice. See [RECALL.md](RECALL.md).
