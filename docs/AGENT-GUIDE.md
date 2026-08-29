@@ -526,7 +526,8 @@ recall(query, observations?=, environment_id?=, task_id?=, limit=8, mindset?=)
   → {
       usable, thin_query, process, lever, confidence,
       matches[] / rules[], facts[], experiences[] / echoes[],
-      hops[], contradictions[], dots[], working_set, brief, mindset
+      hops[], contradictions[], dots[], pathways[], pathway_growth,
+      working_set, brief, mindset
     }
 
 attune(name|plate, attention?=, memory?=, time?=, sensory?=, processing?=)
@@ -547,7 +548,7 @@ perceive(situation, observations?=, domain?=, log?=false, deep?=false)
   → {
       usable, lever, confidence, top_score,
       action_hint, card,
-      matches[], experiences[], hops[],
+      matches[], experiences[], hops[], dots[], pathways[],
       brief, deep_used, thin_query,
       logged_experience?, pattern_ids[]
     }
@@ -556,7 +557,7 @@ perceive(situation, observations?=, domain?=, log?=false, deep?=false)
 ### task
 
 ```text
-open  name, goal?  → task_id, priors, brief
+open  name, goal?  → task_id, priors, echoes, dots, pathways, brief
 close task_id?, outcome?, summary?, used_pattern_ids?  → applied_patterns[], reinforced?
 ```
 

@@ -17,7 +17,8 @@ insight_perceive(situation, observations?, log?, deep?)
         ├─ lived experience echoes + graph hops
         ├─ recognition-cued recall of events/tasks bound to those patterns
         ├─ connect dots (experienced_as / instance_of, never applied credit)
-        ├─ action hint (mentions a lived echo when one exists)
+        ├─ grow Hebbian pathways (potentiate binds, sibling echoes, local sequences)
+        ├─ action hint (mentions a lived echo or grown pathway when one exists)
         └─ optional: log experience for next time
 ```
 
@@ -51,6 +52,7 @@ hermes-insight perceive "retries stampede origin after cache expiry" --log
 | Structural preference | rules/prototypes boosted; bare filenames demoted |
 | Lived time | experience events auto-link; recency boost |
 | Recognition-cued recall | recognized rules harvest bound events/tasks (`dots`) |
+| Pathway growth | repeated dots potentiate binds and grow local `sequence` candidates |
 | Lever focus | distill actual variable with prior vocabulary |
 | Transfer | analogy / hops via graph neighbors |
 | Reinforcement | task close + feedback strengthens useful nodes |

@@ -509,6 +509,7 @@ def _open_task_impl(
         "priors": recall_pack.get("matches", [])[:6],
         "echoes": recall_pack.get("experiences", [])[:6],
         "dots": recall_pack.get("dots", [])[:6],
+        "pathways": recall_pack.get("pathways", [])[:6],
         "brief": recall_pack.get("brief", ""),
         "connected": res.get("connected", []),
     }

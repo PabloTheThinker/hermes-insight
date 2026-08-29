@@ -20,6 +20,7 @@ def _action_hint(
     matches: Sequence[Dict[str, Any]],
     conf: float,
     experiences: Optional[Sequence[Dict[str, Any]]] = None,
+    pathways: Optional[Sequence[Dict[str, Any]]] = None,
 ) -> str:
     if lever in {"insufficient_signal", "unknown", ""}:
         return (
@@ -39,20 +40,28 @@ def _action_hint(
     echo_bit = ""
     if echo:
         echo_bit = f" Lived echo: **{echo.get('title')}**."
+    path = (pathways or [None])[0] if pathways else None
+    path_bit = ""
+    if path:
+        path_bit = (
+            f" Grown pathway: **{path.get('title')}** "
+            f"(support {path.get('support')})."
+        )
     if score >= 0.35 and conf >= 0.45:
         return (
             f"Treat as instance of **{title}** (score {score:.2f}). "
-            f"Apply that rule first: {preview}{echo_bit}"
+            f"Apply that rule first: {preview}{echo_bit}{path_bit}"
         )
     if score >= 0.18:
         return (
             f"Possible rhyme with **{title}** ({score:.2f}). "
-            f"Verify the lever `{lever}` against: {preview}{echo_bit}"
+            f"Verify the lever `{lever}` against: {preview}{echo_bit}{path_bit}"
         )
     return (
         f"Weak prior **{title}** ({score:.2f}). "
         f"Hold lever `{lever}` lightly; gather one more observation before committing."
         + echo_bit
+        + path_bit
     )
 
 
@@ -128,6 +137,8 @@ def perceive(
     experiences: List[Dict[str, Any]] = list(pack.get("experiences") or [])
     hops: List[Dict[str, Any]] = list(pack.get("hops") or [])
     dots: List[Dict[str, Any]] = list(pack.get("dots") or [])
+    pathways: List[Dict[str, Any]] = list(pack.get("pathways") or [])
+    pathway_growth: Dict[str, Any] = dict(pack.get("pathway_growth") or {})
     lever = str(pack.get("lever") or "")
     conf = float(pack.get("confidence") or 0.0)
     brief = str(pack.get("brief") or "")
@@ -215,11 +226,13 @@ def perceive(
         experiences = []
         hops = []
         dots = []
+        pathways = []
+        pathway_growth = {"strengthened": 0, "sibling_links": 0}
         top_score = 0.0
         lever = "insufficient_signal"
         conf = 0.12
         usable = False
-        hint = _action_hint(lever, matches, conf, experiences)
+        hint = _action_hint(lever, matches, conf, experiences, pathways)
         card_lines = [
             "## Pattern recognition",
             f"**Lever:** `{lever}` · **confidence:** {conf:.2f} · **needs more signal**",
@@ -243,6 +256,8 @@ def perceive(
             "experiences": [],
             "hops": [],
             "dots": [],
+            "pathways": [],
+            "pathway_growth": {"strengthened": 0, "sibling_links": 0},
             "brief": brief,
             "card": "\n".join(card_lines),
             "deep_used": deep_used,
@@ -255,8 +270,6 @@ def perceive(
 
     if not hops:
         hops = _collect_hops(lat, matches)
-
-    hint = _action_hint(lever, matches, conf, experiences)
 
     logged = None
     if log_experience and situation and lever != "insufficient_signal":
@@ -272,6 +285,7 @@ def perceive(
         exp = (logged or {}).get("experience") or {}
         echo_id = str(exp.get("id") or "")
         seen_pairs = {(d.get("echo_id"), d.get("pattern_id")) for d in dots}
+        new_dots = False
         for conn in (logged or {}).get("connected") or []:
             key = (echo_id, conn.get("pattern_id"))
             if not echo_id or key in seen_pairs:
@@ -290,9 +304,20 @@ def perceive(
                 }
             )
             seen_pairs.add(key)
+            new_dots = True
+        if new_dots:
+            from hermes_insight.pathway import grow_pathways
+
+            growth = grow_pathways(lat, dots, matches)
+            pathways = list(growth.get("pathways") or [])
+            pathway_growth = {
+                "strengthened": int(growth.get("strengthened") or 0),
+                "sibling_links": int(growth.get("sibling_links") or 0),
+            }
 
     usable_bar = 0.18 * (knobs.usable_activation / 0.12)
     usable = bool(matches) and top_score >= usable_bar and lever not in {"insufficient_signal", "unknown", ""}
+    hint = _action_hint(lever, matches, conf, experiences, pathways)
 
     card_lines = [
         "## Pattern recognition",
@@ -318,6 +343,12 @@ def perceive(
             card_lines.append(
                 f"- **{d.get('echo_title')}** ← **{d.get('pattern_title')}** "
                 f"({d.get('link_kind')})"
+            )
+    if pathways:
+        card_lines.append("### Grown pathways")
+        for p in pathways[:3]:
+            card_lines.append(
+                f"- **{p.get('title')}** (support {p.get('support')}, {p.get('lifecycle')})"
             )
     if hops:
         card_lines.append("### Hops")
@@ -354,6 +385,8 @@ def perceive(
         "experiences": experiences,
         "hops": hops,
         "dots": dots,
+        "pathways": pathways,
+        "pathway_growth": pathway_growth,
         "brief": brief,
         "card": card,
         "deep_used": deep_used,

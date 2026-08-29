@@ -17,7 +17,7 @@ def lat(tmp_path: Path) -> HermesInsight:
 
 
 def test_version():
-    assert __version__ == "0.9.2"
+    assert __version__ == "0.9.3"
 
 
 def test_bootstrap_and_recall(lat: HermesInsight):
@@ -49,6 +49,7 @@ def test_task_arc_connects_experience(lat: HermesInsight):
     assert opened.get("priors") is not None
     assert isinstance(opened.get("echoes"), list)
     assert isinstance(opened.get("dots"), list)
+    assert isinstance(opened.get("pathways"), list)
 
     mid = lat.experience(
         "saw 409 conflict",
@@ -82,7 +83,7 @@ def test_task_arc_connects_experience(lat: HermesInsight):
     st = lat.stats()
     assert st["patterns"] >= 10
     assert st["links"] >= 1
-    assert st["version"] == "0.9.2"
+    assert st["version"] == "0.9.3"
     assert st.get("active_task_id") in {"", None}
 
 

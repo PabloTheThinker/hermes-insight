@@ -289,6 +289,7 @@ _ECHO_LINK_KINDS = {
     LinkKind.RESOLVED_BY,
     LinkKind.APPLIED,
     LinkKind.OBSERVED_IN,
+    LinkKind.PART_OF,
 }
 
 
@@ -432,6 +433,8 @@ def _empty_failure(error: str, plate: Optional[CognitivePlate] = None) -> Dict[s
         "hops": [],
         "contradictions": [],
         "dots": [],
+        "pathways": [],
+        "pathway_growth": {"strengthened": 0, "sibling_links": 0},
         "working_set": {
             "rules": [],
             "facts": [],
@@ -480,6 +483,8 @@ def _thin_pack(
         "hops": [],
         "contradictions": [],
         "dots": [],
+        "pathways": [],
+        "pathway_growth": {"strengthened": 0, "sibling_links": 0},
         "working_set": {
             "rules": [],
             "facts": [],
@@ -516,7 +521,7 @@ def recall(
 
     When ``connect_dots`` or ``write_meta`` is true, recognized structures
     bind to recalled events/tasks via ``experienced_as`` / ``instance_of``
-    (never ``applied`` credit).
+    (never ``applied`` credit) and those binds grow Hebbian pathways.
     """
     from hermes_insight.experience import seed_agent_starters
 
@@ -650,12 +655,22 @@ def recall(
                 existing_echo_ids.add(echo["id"])
         experiences.sort(key=lambda r: float(r.get("score") or 0), reverse=True)
         experiences = experiences[:lane_limit]
+    pathways: List[Dict[str, Any]] = []
+    pathway_growth = {"strengthened": 0, "sibling_links": 0}
     if connect_dots or write_meta:
         for extra in connect_recognition_dots(lat, matches, experiences):
             if extra["echo_id"] not in {d.get("echo_id") for d in dots}:
                 dots.append(extra)
         dots.sort(key=lambda r: float(r.get("score") or 0), reverse=True)
         dots = dots[:lane_limit]
+        from hermes_insight.pathway import grow_pathways
+
+        growth = grow_pathways(lat, dots, matches)
+        pathways = list(growth.get("pathways") or [])
+        pathway_growth = {
+            "strengthened": int(growth.get("strengthened") or 0),
+            "sibling_links": int(growth.get("sibling_links") or 0),
+        }
 
     working_ids = [r["id"] for r in matches + experiences + facts]
     if write_meta:
@@ -716,6 +731,11 @@ def recall(
             "dot: "
             + ", ".join(f"{d['echo_title']}←{d['pattern_title']}" for d in dots[:3])
         )
+    if pathways:
+        traj_bits.append(
+            "pathway: "
+            + ", ".join(f"{p['title']} ({p['support']})" for p in pathways[:2])
+        )
 
     brief_lines = [
         "## Insight recall",
@@ -752,6 +772,12 @@ def recall(
                 f"- **{item['echo_title']}** ({item['echo_kind']}) ← "
                 f"**{item['pattern_title']}** ({item['link_kind']})"
             )
+    if pathways:
+        brief_lines.append("### Grown pathways")
+        for item in pathways[: knobs.brief_echo_n]:
+            brief_lines.append(
+                f"- **{item['title']}** (support {item['support']}, {item['lifecycle']})"
+            )
     brief = "\n".join(brief_lines)
 
     if write_meta:
@@ -784,6 +810,8 @@ def recall(
         "hops": hops,
         "contradictions": contradictions,
         "dots": dots,
+        "pathways": pathways,
+        "pathway_growth": pathway_growth,
         "working_set": working_set,
         "process": process,
         "brief": brief,

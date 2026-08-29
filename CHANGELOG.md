@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.9.3 — 2026-08-29
+
+- **Hebbian pathways** — recognition-cued `dots` potentiate existing binds,
+  grow `shares_context` sibling links between lived echoes, and consolidate a
+  local `sequence` when three or more distinct-task (or unbound) echoes support
+  the same rule
+- Pathway nodes are tagged `pathway` / `grown` / `candidate` with
+  `automatic_skill_write=false`. They never become `PatternKind.SKILL` and never
+  write `applied` credit
+- Recall, perceive, and task-open surface `pathways` plus `pathway_growth`
+
 ## 0.9.2 — 2026-08-28
 
 - **Recognition-cued recall** — after perceive/recall names a structure, the

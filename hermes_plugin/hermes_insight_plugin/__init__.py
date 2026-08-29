@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 __plugin_name__ = "hermes-insight"
-__plugin_version__ = "0.9.2"
+__plugin_version__ = "0.9.3"
 
 
 def _cfg() -> dict:
@@ -736,8 +736,9 @@ _RECALL_SCHEMA = {
     "description": (
         "Default memory retrieve. Call when you need to remember what the lattice already "
         "knows before acting. Returns a budgeted working set: rules (familiarity), facts, "
-        "lived echoes (recollection), hops from spreading activation, contradictions, and "
-        "usable/feeling-of-knowing. Not a transcript dump. Prefer this over reading MEMORY.md "
+        "lived echoes (recollection), hops from spreading activation, contradictions, "
+        "recognition-cued dots, grown pathways, and usable/feeling-of-knowing. Not a "
+        "transcript dump. Prefer this over reading MEMORY.md "
         "or dumping chat. Thin queries return usable=false — gather observations instead."
     ),
     "parameters": {
