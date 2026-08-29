@@ -60,8 +60,11 @@ After `./scripts/install_for_hermes.sh` (and a Hermes reload), you typically get
 
 ### 2.2 Skill file
 
-`skills/hermes-insight/SKILL.md` (or your Hermes skills path) is the **short doctrine**.  
-**This file** (`docs/AGENT-GUIDE.md`) is the **deep manual**. Load the skill on hard work; read this guide when teaching a new agent or redesigning loops.
+`skills/hermes-insight/SKILL.md` is the **hot-path doctrine** Hermes loads with
+`skill_view(name="hermes-insight")`.
+`references/HOW-IT-WORKS.md` is the **mental model** (packs, credit, pathways).
+**This file** is the **deep manual**. Load the skill on hard work; load HOW-IT-WORKS
+when a pack key is unclear; read this guide when teaching a new agent or redesigning loops.
 
 ### 2.3 Python + CLI (same brain)
 
@@ -512,7 +515,7 @@ Recall of any of them goes through `insight_recall`, not a file dump.
 4. Paste SOUL fragment (§6.3)  
 5. Run three perceives: credential, isolation, vague (must refuse)  
 6. Open a task, log one experience, close with outcome  
-7. Point agent at **this guide** + short `SKILL.md`  
+7. Point the agent at `SKILL.md` + `references/HOW-IT-WORKS.md`  
 8. Separate DB if the agent is client-facing  
 
 ---
@@ -606,7 +609,7 @@ experience(title, body, kind=event|episode, task_id?, outcome?, tags?)
 | [EXPERIENCE.md](EXPERIENCE.md) | Experience layer summary |
 | [SECURITY.md](../SECURITY.md) | Privacy / isolation |
 | [COMMUNITY.md](COMMUNITY.md) | Positioning for humans |
-| Skill `hermes-insight` | Hot path for agents |
+| Skill `hermes-insight` | Hot path + `HOW-IT-WORKS.md` for agents |
 | Repo README | Install + status |
 
 ---
@@ -614,8 +617,9 @@ experience(title, body, kind=event|episode, task_id?, outcome?, tags?)
 ## 15. Version note
 
 This guide targets the **0.9.x** line (associative recall + remember, cognitive plates,
-perceive + plan, native observation, explicit applied-pattern outcomes, evidence-gated
-workflow induction, structural priors, and session-noise hygiene). APIs evolve; trust
+recognition-cued dots, Hebbian pathways, perceive + plan, native observation,
+explicit applied-pattern outcomes, evidence-gated workflow induction, structural
+priors, and session-noise hygiene). APIs evolve; trust
 `insight_stats.version` on the live lattice.
 
 ---

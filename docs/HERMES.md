@@ -34,18 +34,22 @@ the full procedure with:
 skill_view(name="hermes-insight")
 ```
 
-The deep reference remains unloaded until needed:
+Progressive disclosure — load only what you need:
 
 ```text
+skill_view(name="hermes-insight", file_path="references/HOW-IT-WORKS.md")
 skill_view(name="hermes-insight", file_path="references/AGENT-GUIDE.md")
 ```
 
-The skill follows current Hermes Agent conventions: concise routing description,
-cross-platform declaration, `When to Use`, prerequisites, procedure, pitfalls, and
-verification. It teaches:
+`HOW-IT-WORKS.md` is the agent mental model (packs, credit, pathways).
+`AGENT-GUIDE.md` is the deep ontology / install manual.
+
+The skill follows current Hermes Agent conventions: a `Use when…` routing
+description, cross-platform declaration, `When to Use`, prerequisites,
+procedure, pitfalls, and verification. It teaches:
 
 ```text
-observe → perceive → plan → task/events → attributed outcome → learn
+observe → recall → perceive → plan → task/events → attributed outcome → learn
 ```
 
 ## Profile isolation

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Hermes skill** — `skills/hermes-insight/SKILL.md` rewritten as an agent-facing
+  teaching surface (`Use when…` routing, concrete `insight_*` calls, pack keys,
+  credit rules). New `references/HOW-IT-WORKS.md` explains how Insight works for
+  a Hermes agent without dumping the lattice
+
 ## 0.9.3 — 2026-08-29
 
 - **Hebbian pathways** — recognition-cued `dots` potentiate existing binds,
