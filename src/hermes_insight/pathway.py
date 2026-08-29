@@ -22,7 +22,6 @@ if TYPE_CHECKING:
 MIN_SUPPORT = 3
 POTENTIATE_DELTA = 0.08
 TOUCH_ECHO = 0.03
-TOUCH_STRUCT = 0.015
 TOUCH_PATHWAY = 0.04
 SIBLING_WEIGHT = 0.45
 SIBLING_CAP = 4
@@ -326,10 +325,6 @@ def grow_pathways(
         if echo is not None:
             echo.touch(TOUCH_ECHO)
             lat.store.upsert_pattern(echo)
-        source = lat.store.get_pattern(pattern_id)
-        if source is not None and not _is_pathway(source):
-            source.touch(TOUCH_STRUCT)
-            lat.store.upsert_pattern(source)
         by_pattern.setdefault(pattern_id, []).append(echo_id)
 
     for echo_ids in by_pattern.values():

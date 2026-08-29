@@ -217,6 +217,9 @@ def plan_task(
         # Bare fabric files are inventory, not a workflow recommendation.
         if (pattern.metadata or {}).get("fabric") == "file":
             continue
+        # Grown pathways are local experience, not an executable route.
+        if (pattern.metadata or {}).get("pathway") or "pathway" in set(pattern.tags or []):
+            continue
 
         evidence = _outcome_evidence(lat, pattern)
         relevance = float(hit.score)
