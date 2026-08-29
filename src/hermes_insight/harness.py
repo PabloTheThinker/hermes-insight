@@ -655,6 +655,7 @@ class HermesInsight:
         environment_id: Optional[str] = None,
         task_id: Optional[str] = None,
         mindset: Any = None,
+        connect_dots: bool = False,
     ) -> Dict[str, Any]:
         """Associative pre-action recall: dual-process working set + usable flag."""
         from hermes_insight.recall import recall as _recall
@@ -670,6 +671,7 @@ class HermesInsight:
             environment_id=environment_id,
             task_id=task_id,
             mindset=mindset,
+            connect_dots=connect_dots,
         )
 
     def remember(

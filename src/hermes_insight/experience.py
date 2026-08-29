@@ -487,7 +487,7 @@ def _open_task_impl(
     task_id: str,
 ) -> Dict[str, Any]:
     body = goal or f"Task opened: {name}"
-    recall_pack = recall(lat, f"{name}\n{body}", limit=6, write_meta=False)
+    recall_pack = recall(lat, f"{name}\n{body}", limit=6, write_meta=False, connect_dots=True)
     res = log_experience(
         lat,
         title=f"task open: {name}"[:100],
@@ -507,6 +507,8 @@ def _open_task_impl(
         "status": "open",
         "experience": res.get("experience"),
         "priors": recall_pack.get("matches", [])[:6],
+        "echoes": recall_pack.get("experiences", [])[:6],
+        "dots": recall_pack.get("dots", [])[:6],
         "brief": recall_pack.get("brief", ""),
         "connected": res.get("connected", []),
     }
@@ -609,6 +611,7 @@ def recall(
     environment_id: Optional[str] = None,
     task_id: Optional[str] = None,
     mindset: Any = None,
+    connect_dots: bool = False,
 ) -> Dict[str, Any]:
     """Associative pre-action recall — delegates to the recall engine."""
     from hermes_insight.recall import recall as _recall
@@ -624,6 +627,7 @@ def recall(
         environment_id=environment_id,
         task_id=task_id,
         mindset=mindset,
+        connect_dots=connect_dots,
     )
 
 

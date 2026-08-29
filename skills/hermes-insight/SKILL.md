@@ -1,7 +1,7 @@
 ---
 name: hermes-insight
 description: Recognize recurring structures and learn from outcomes.
-version: 0.9.1
+version: 0.9.2
 author: Pablo Navarro (PabloTheThinker), Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
@@ -94,8 +94,9 @@ For ontology, scoring, privacy, and advanced examples, load
    branch, dependency state, or available tools. Continue when the returned snapshot and
    delta describe the intended workspace.
 2. **Recall, then perceive.** Call `insight_recall` when you need prior facts, echoes,
-   or rules. Optional `insight_attune` sets a trait plate for this seat (see
-   `docs/MINDSET.md`); a per-call `mindset=` overrides it. If `usable=false`, gather
+   or rules. Recognized structures harvest bound events/tasks as `dots`. Optional
+   `insight_attune` sets a trait plate for this seat (see `docs/MINDSET.md`); a
+   per-call `mindset=` overrides it. If `usable=false`, gather
    observations. Then call `insight_perceive` with
    component names, symptoms, exact errors, observations, and an optional domain.
    Continue only after checking `usable`, `lever`, top score, and the top rule.

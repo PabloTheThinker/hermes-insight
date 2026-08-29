@@ -15,7 +15,9 @@ insight_perceive(situation, observations?, log?, deep?)
         ├─ structural priors (rules > random source files)
         ├─ distill controlling lever
         ├─ lived experience echoes + graph hops
-        ├─ action hint
+        ├─ recognition-cued recall of events/tasks bound to those patterns
+        ├─ connect dots (experienced_as / instance_of, never applied credit)
+        ├─ action hint (mentions a lived echo when one exists)
         └─ optional: log experience for next time
 ```
 
@@ -48,6 +50,7 @@ hermes-insight perceive "retries stampede origin after cache expiry" --log
 | Multi-lens match | template + prototype + feature + hybrid |
 | Structural preference | rules/prototypes boosted; bare filenames demoted |
 | Lived time | experience events auto-link; recency boost |
+| Recognition-cued recall | recognized rules harvest bound events/tasks (`dots`) |
 | Lever focus | distill actual variable with prior vocabulary |
 | Transfer | analogy / hops via graph neighbors |
 | Reinforcement | task close + feedback strengthens useful nodes |

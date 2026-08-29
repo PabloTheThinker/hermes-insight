@@ -75,6 +75,8 @@ hermes-insight remember "prefer jitter on retries" --pointer "user.md#retry-pref
 7. **`contradictions`** — `contradicts` neighbors of activated nodes.
 8. **`working_set`** — the same lanes, already budgeted by `limit`.
 9. **`mindset`** — name + axes of the plate that produced this set.
+10. **`dots`** — explicit bindings from a recognized rule/skill to a lived
+    event or task (`experienced_as` / `instance_of`). Recognition cues recall.
 
 Backward-compatible keys (`matches`, `experiences`, `hops`, `brief`, `lever`)
 remain so `insight_plan` and older tests keep working.

@@ -15,7 +15,12 @@ if TYPE_CHECKING:
     from hermes_insight.harness import HermesInsight
 
 
-def _action_hint(lever: str, matches: Sequence[Dict[str, Any]], conf: float) -> str:
+def _action_hint(
+    lever: str,
+    matches: Sequence[Dict[str, Any]],
+    conf: float,
+    experiences: Optional[Sequence[Dict[str, Any]]] = None,
+) -> str:
     if lever in {"insufficient_signal", "unknown", ""}:
         return (
             "Not enough structure yet — add 2–3 concrete observations "
@@ -30,19 +35,24 @@ def _action_hint(lever: str, matches: Sequence[Dict[str, Any]], conf: float) -> 
     title = top.get("title") or "prior"
     preview = (top.get("body_preview") or "").strip().split("\n")[0][:160]
     score = float(top.get("score") or 0)
+    echo = (experiences or [None])[0] if experiences else None
+    echo_bit = ""
+    if echo:
+        echo_bit = f" Lived echo: **{echo.get('title')}**."
     if score >= 0.35 and conf >= 0.45:
         return (
             f"Treat as instance of **{title}** (score {score:.2f}). "
-            f"Apply that rule first: {preview}"
+            f"Apply that rule first: {preview}{echo_bit}"
         )
     if score >= 0.18:
         return (
             f"Possible rhyme with **{title}** ({score:.2f}). "
-            f"Verify the lever `{lever}` against: {preview}"
+            f"Verify the lever `{lever}` against: {preview}{echo_bit}"
         )
     return (
         f"Weak prior **{title}** ({score:.2f}). "
         f"Hold lever `{lever}` lightly; gather one more observation before committing."
+        + echo_bit
     )
 
 
@@ -98,7 +108,14 @@ def perceive(
     feats = extract_features(blob)
     thin_query = is_thin_query(blob, knobs, feats)
 
-    pack = lat.recall(blob, limit=limit, domain=domain, write_meta=False, mindset=mindset)
+    pack = lat.recall(
+        blob,
+        limit=limit,
+        domain=domain,
+        write_meta=False,
+        mindset=mindset,
+        connect_dots=True,
+    )
     matches: List[Dict[str, Any]] = list(pack.get("matches") or [])
     # Prefer structural rules over bulk-indexed skill inventory rows
     rules = [m for m in matches if m.get("kind") == "rule" or not str(m.get("title") or "").startswith("skill:")]
@@ -110,6 +127,7 @@ def perceive(
         matches = matches[:limit]
     experiences: List[Dict[str, Any]] = list(pack.get("experiences") or [])
     hops: List[Dict[str, Any]] = list(pack.get("hops") or [])
+    dots: List[Dict[str, Any]] = list(pack.get("dots") or [])
     lever = str(pack.get("lever") or "")
     conf = float(pack.get("confidence") or 0.0)
     brief = str(pack.get("brief") or "")
@@ -196,11 +214,12 @@ def perceive(
         matches = []
         experiences = []
         hops = []
+        dots = []
         top_score = 0.0
         lever = "insufficient_signal"
         conf = 0.12
         usable = False
-        hint = _action_hint(lever, matches, conf)
+        hint = _action_hint(lever, matches, conf, experiences)
         card_lines = [
             "## Pattern recognition",
             f"**Lever:** `{lever}` · **confidence:** {conf:.2f} · **needs more signal**",
@@ -223,6 +242,7 @@ def perceive(
             "matches": [],
             "experiences": [],
             "hops": [],
+            "dots": [],
             "brief": brief,
             "card": "\n".join(card_lines),
             "deep_used": deep_used,
@@ -236,7 +256,7 @@ def perceive(
     if not hops:
         hops = _collect_hops(lat, matches)
 
-    hint = _action_hint(lever, matches, conf)
+    hint = _action_hint(lever, matches, conf, experiences)
 
     logged = None
     if log_experience and situation and lever != "insufficient_signal":
@@ -249,6 +269,27 @@ def perceive(
             confidence=max(0.4, conf),
             auto_connect=True,
         )
+        exp = (logged or {}).get("experience") or {}
+        echo_id = str(exp.get("id") or "")
+        seen_pairs = {(d.get("echo_id"), d.get("pattern_id")) for d in dots}
+        for conn in (logged or {}).get("connected") or []:
+            key = (echo_id, conn.get("pattern_id"))
+            if not echo_id or key in seen_pairs:
+                continue
+            dots.append(
+                {
+                    "pattern_id": conn.get("pattern_id"),
+                    "pattern_title": conn.get("title"),
+                    "pattern_kind": "rule",
+                    "echo_id": echo_id,
+                    "echo_title": str(exp.get("title") or ""),
+                    "echo_kind": str(exp.get("kind") or "event"),
+                    "link_kind": conn.get("link_kind") or "instance_of",
+                    "score": float(conn.get("score") or 0),
+                    "task_id": str(logged.get("task_id") or ""),
+                }
+            )
+            seen_pairs.add(key)
 
     usable_bar = 0.18 * (knobs.usable_activation / 0.12)
     usable = bool(matches) and top_score >= usable_bar and lever not in {"insufficient_signal", "unknown", ""}
@@ -271,6 +312,13 @@ def perceive(
         for e in experiences[:3]:
             sc = float(e.get("score") or 0)
             card_lines.append(f"- `{sc:.2f}` **{e.get('title')}**")
+    if dots:
+        card_lines.append("### Connected dots")
+        for d in dots[:4]:
+            card_lines.append(
+                f"- **{d.get('echo_title')}** ← **{d.get('pattern_title')}** "
+                f"({d.get('link_kind')})"
+            )
     if hops:
         card_lines.append("### Hops")
         card_lines.append(
@@ -305,6 +353,7 @@ def perceive(
         "matches": matches,
         "experiences": experiences,
         "hops": hops,
+        "dots": dots,
         "brief": brief,
         "card": card,
         "deep_used": deep_used,

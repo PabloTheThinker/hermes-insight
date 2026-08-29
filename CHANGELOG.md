@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.9.2 — 2026-08-28
+
+- **Recognition-cued recall** — after perceive/recall names a structure, the
+  engine harvests events and tasks already bound to that pattern and surfaces
+  them as lived echoes plus an explicit `dots` list
+- Perceive and task-open bind recalled episodes to rules via `experienced_as`
+  / `instance_of` (never `applied` credit) so the next turn connects the same
+  shape faster
+- Cards, briefs, and action hints mention the lived echo when one exists
+
 ## 0.9.1 — 2026-08-26
 
 - **Cognitive plates** — swappable, non-diagnostic mindsets (`balanced`,

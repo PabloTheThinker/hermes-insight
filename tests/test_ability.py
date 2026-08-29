@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from hermes_insight import HermesInsight, __version__
+from hermes_insight.models import Link, LinkKind
 
 
 @pytest.fixture()
@@ -15,7 +16,7 @@ def lat(tmp_path: Path) -> HermesInsight:
 
 
 def test_version():
-    assert __version__ == "0.9.1"
+    assert __version__ == "0.9.2"
 
 
 def test_perceive_prefers_structural_rule(lat: HermesInsight):
@@ -228,3 +229,78 @@ def test_hygiene_weakens_session_auto(lat: HermesInsight):
     lat.store.upsert_pattern(hits[0])
     out = lat.hygiene(decay=False, densify=False, prune_session_auto=True)
     assert out.get("session_auto_weakened", 0) >= 1
+
+
+def test_perceive_recalls_linked_event_for_recognized_pattern(lat: HermesInsight):
+    lat.bootstrap()
+    rules = [
+        p
+        for p in lat.store.list_patterns(kind="rule", limit=40)
+        if "retry" in p.title.lower()
+    ]
+    assert rules
+    rule = rules[0]
+    event = lat.experience(
+        "calendar double-booked Tuesday",
+        "Standup and vendor call overlap with no slack buffer.",
+        kind="event",
+        auto_connect=False,
+    )
+    lat.store.upsert_link(
+        Link.create(
+            event["experience"]["id"],
+            rule.id,
+            LinkKind.INSTANCE_OF,
+            weight=0.9,
+            note="fixture bind",
+        )
+    )
+    out = lat.perceive(
+        "retries without jitter stampede origin after deploy",
+        observations=["alert fatigue", "no backoff"],
+        domain="system",
+    )
+    assert out["usable"] is True
+    echo_blob = " ".join(e.get("title") or "" for e in out.get("experiences") or []).lower()
+    dot_blob = " ".join(d.get("echo_title") or "" for d in out.get("dots") or []).lower()
+    assert "calendar" in echo_blob or "calendar" in dot_blob
+    assert any(d.get("pattern_id") == rule.id for d in out.get("dots") or [])
+    assert "Connected dots" in (out.get("card") or "")
+
+
+def test_perceive_binds_event_to_pattern_without_applied_credit(lat: HermesInsight):
+    lat.bootstrap()
+    before = [
+        link
+        for pattern in lat.store.list_patterns(kind="rule", limit=40)
+        for link in lat.store.links_for(pattern.id, limit=40)
+        if link.kind == LinkKind.APPLIED
+    ]
+    logged = lat.experience(
+        "pager drowned after the morning standup",
+        "Retries without jitter under load after deploy caused a stampede.",
+        kind="event",
+        auto_connect=False,
+    )
+    out = lat.perceive(
+        "retries without jitter stampede origin after deploy",
+        observations=["no jitter", "alert fatigue"],
+        domain="system",
+    )
+    assert out["success"] is True
+    after = [
+        link
+        for pattern in lat.store.list_patterns(kind="rule", limit=40)
+        for link in lat.store.links_for(pattern.id, limit=40)
+        if link.kind == LinkKind.APPLIED
+    ]
+    assert after == before
+    event = lat.store.get_pattern(logged["experience"]["id"])
+    assert event
+    binds = [
+        link
+        for link in lat.store.links_for(event.id, limit=40)
+        if link.kind in {LinkKind.INSTANCE_OF, LinkKind.EXPERIENCED_AS}
+    ]
+    assert binds
+    assert all(link.kind != LinkKind.APPLIED for link in lat.store.links_for(event.id, limit=40))

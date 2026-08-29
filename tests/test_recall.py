@@ -200,6 +200,41 @@ def test_recall_does_not_create_applied_credit(lat: HermesInsight):
     assert after == before
 
 
+def test_recall_harvests_linked_event_as_dot(lat: HermesInsight):
+    lat.bootstrap()
+    rules = [
+        p
+        for p in lat.store.list_patterns(kind="rule", limit=40)
+        if "retry" in p.title.lower()
+    ]
+    assert rules
+    event = lat.experience(
+        "calendar double-booked Tuesday",
+        "Standup and vendor call overlap with no slack buffer.",
+        kind="event",
+        auto_connect=False,
+    )
+    lat.store.upsert_link(
+        Link.create(
+            event["experience"]["id"],
+            rules[0].id,
+            LinkKind.INSTANCE_OF,
+            weight=0.85,
+        )
+    )
+    pack = lat.recall(
+        "retries without jitter stampede origin after deploy",
+        write_meta=False,
+    )
+    assert pack["success"] is True
+    titles = " ".join(
+        [e.get("title") or "" for e in pack.get("experiences") or []]
+        + [d.get("echo_title") or "" for d in pack.get("dots") or []]
+    ).lower()
+    assert "calendar" in titles
+    assert any(d.get("pattern_id") == rules[0].id for d in pack.get("dots") or [])
+
+
 def test_remember_rejects_empty_claim(lat: HermesInsight):
     assert lat.remember("   ")["success"] is False
 

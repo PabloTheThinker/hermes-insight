@@ -524,7 +524,7 @@ recall(query, observations?=, environment_id?=, task_id?=, limit=8, mindset?=)
   → {
       usable, thin_query, process, lever, confidence,
       matches[] / rules[], facts[], experiences[] / echoes[],
-      hops[], contradictions[], working_set, brief, mindset
+      hops[], contradictions[], dots[], working_set, brief, mindset
     }
 
 attune(name|plate, attention?=, memory?=, time?=, sensory?=, processing?=)

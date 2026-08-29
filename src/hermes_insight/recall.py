@@ -282,6 +282,142 @@ def _contradictions(
     return out
 
 
+_ECHO_LINK_KINDS = {
+    LinkKind.EXPERIENCED_AS,
+    LinkKind.INSTANCE_OF,
+    LinkKind.TRIGGERED_BY,
+    LinkKind.RESOLVED_BY,
+    LinkKind.APPLIED,
+    LinkKind.OBSERVED_IN,
+}
+
+
+def _dot(
+    pattern: Pattern,
+    echo: Pattern,
+    *,
+    link_kind: str,
+    score: float,
+) -> Dict[str, Any]:
+    task_id = str((echo.metadata or {}).get("task_id") or "")
+    return {
+        "pattern_id": pattern.id,
+        "pattern_title": pattern.title,
+        "pattern_kind": pattern.kind.value,
+        "echo_id": echo.id,
+        "echo_title": echo.title,
+        "echo_kind": echo.kind.value,
+        "link_kind": link_kind,
+        "score": round(float(score), 4),
+        "task_id": task_id,
+    }
+
+
+def harvest_linked_echoes(
+    lat: "HermesInsight",
+    matches: Sequence[Dict[str, Any]],
+    *,
+    limit: int,
+    knobs: Optional[RecallKnobs] = None,
+    exclude_ids: Optional[Set[str]] = None,
+) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Recall events/tasks already bound to recognized structural patterns."""
+    k = knobs or RecallKnobs()
+    skip = set(exclude_ids or ())
+    echoes: List[Dict[str, Any]] = []
+    dots: List[Dict[str, Any]] = []
+    seen: Set[str] = set()
+    for row in matches[:8]:
+        pid = str(row.get("id") or "")
+        pattern = lat.store.get_pattern(pid) if pid else None
+        if not pattern:
+            continue
+        seed = float(row.get("score") or 0.0)
+        for link in lat.store.links_for(pid, limit=40):
+            if link.kind not in _ECHO_LINK_KINDS:
+                continue
+            other_id = link.target_id if link.source_id == pid else link.source_id
+            if other_id in skip or other_id in seen or other_id == pid:
+                continue
+            other = lat.store.get_pattern(other_id)
+            if not other or not _is_experience(other):
+                continue
+            if _session_noise(other, want_session=False):
+                continue
+            seen.add(other_id)
+            score = max(0.04, seed * float(link.weight) * k.echo_weight)
+            echo = _row(other, score, "linked", [])
+            echo["via"] = pattern.title
+            echo["link_kind"] = link.kind.value
+            echoes.append(echo)
+            dots.append(_dot(pattern, other, link_kind=link.kind.value, score=score))
+            if len(echoes) >= limit:
+                echoes.sort(key=lambda r: float(r.get("score") or 0), reverse=True)
+                dots.sort(key=lambda r: float(r.get("score") or 0), reverse=True)
+                return echoes[:limit], dots[:limit]
+    echoes.sort(key=lambda r: float(r.get("score") or 0), reverse=True)
+    dots.sort(key=lambda r: float(r.get("score") or 0), reverse=True)
+    return echoes[:limit], dots[:limit]
+
+
+def connect_recognition_dots(
+    lat: "HermesInsight",
+    matches: Sequence[Dict[str, Any]],
+    experiences: Sequence[Dict[str, Any]],
+    *,
+    limit: int = 6,
+) -> List[Dict[str, Any]]:
+    """Bind recalled events/tasks to recognized structure. Never writes applied credit."""
+    dots: List[Dict[str, Any]] = []
+    written = 0
+    for echo_row in experiences[:6]:
+        echo = lat.store.get_pattern(str(echo_row.get("id") or ""))
+        if not echo or not _is_experience(echo):
+            continue
+        echo_score = float(echo_row.get("score") or 0.0)
+        if echo_score < 0.06:
+            continue
+        for match_row in matches[:4]:
+            pattern = lat.store.get_pattern(str(match_row.get("id") or ""))
+            if not pattern or _is_experience(pattern) or _is_fact(pattern):
+                continue
+            match_score = float(match_row.get("score") or 0.0)
+            if match_score < 0.10:
+                continue
+            if _already_bound(lat, echo.id, pattern.id):
+                continue
+            kind = (
+                LinkKind.INSTANCE_OF
+                if pattern.kind in {PatternKind.RULE, PatternKind.PROTOTYPE, PatternKind.TEMPLATE}
+                else LinkKind.EXPERIENCED_AS
+            )
+            weight = min(1.0, max(0.2, 0.45 * match_score + 0.35 * echo_score))
+            lat.store.upsert_link(
+                Link.create(
+                    echo.id,
+                    pattern.id,
+                    kind,
+                    weight=weight,
+                    note="recognition-cued recall bind",
+                )
+            )
+            dots.append(_dot(pattern, echo, link_kind=kind.value, score=weight))
+            written += 1
+            if written >= limit:
+                return dots
+    return dots
+
+
+def _already_bound(lat: "HermesInsight", left_id: str, right_id: str) -> bool:
+    pair = {left_id, right_id}
+    for link in lat.store.links_for(left_id, limit=40):
+        if link.kind not in {LinkKind.EXPERIENCED_AS, LinkKind.INSTANCE_OF}:
+            continue
+        if {link.source_id, link.target_id} == pair:
+            return True
+    return False
+
+
 def _empty_failure(error: str, plate: Optional[CognitivePlate] = None) -> Dict[str, Any]:
     pack: Dict[str, Any] = {
         "success": False,
@@ -295,6 +431,7 @@ def _empty_failure(error: str, plate: Optional[CognitivePlate] = None) -> Dict[s
         "facts": [],
         "hops": [],
         "contradictions": [],
+        "dots": [],
         "working_set": {
             "rules": [],
             "facts": [],
@@ -342,6 +479,7 @@ def _thin_pack(
         "facts": [],
         "hops": [],
         "contradictions": [],
+        "dots": [],
         "working_set": {
             "rules": [],
             "facts": [],
@@ -369,11 +507,16 @@ def recall(
     environment_id: Optional[str] = None,
     task_id: Optional[str] = None,
     mindset: MindsetArg = None,
+    connect_dots: bool = False,
 ) -> Dict[str, Any]:
     """Associative pre-action recall: dual-process working set + usable flag.
 
     ``mindset`` is a named plate, a custom axis dict, or omitted (the
     persisted ``active_mindset`` / balanced default).
+
+    When ``connect_dots`` or ``write_meta`` is true, recognized structures
+    bind to recalled events/tasks via ``experienced_as`` / ``instance_of``
+    (never ``applied`` credit).
     """
     from hermes_insight.experience import seed_agent_starters
 
@@ -492,6 +635,28 @@ def recall(
     hops = hops[:hop_cap]
     contradictions = _contradictions(lat, ranked_ids[:24], limit=lane_limit)
 
+    existing_echo_ids = {str(r.get("id") or "") for r in experiences}
+    linked_echoes, dots = harvest_linked_echoes(
+        lat,
+        matches,
+        limit=lane_limit,
+        knobs=knobs,
+        exclude_ids=None,
+    )
+    if include_experiences:
+        for echo in linked_echoes:
+            if echo["id"] not in existing_echo_ids:
+                experiences.append(echo)
+                existing_echo_ids.add(echo["id"])
+        experiences.sort(key=lambda r: float(r.get("score") or 0), reverse=True)
+        experiences = experiences[:lane_limit]
+    if connect_dots or write_meta:
+        for extra in connect_recognition_dots(lat, matches, experiences):
+            if extra["echo_id"] not in {d.get("echo_id") for d in dots}:
+                dots.append(extra)
+        dots.sort(key=lambda r: float(r.get("score") or 0), reverse=True)
+        dots = dots[:lane_limit]
+
     working_ids = [r["id"] for r in matches + experiences + facts]
     if write_meta:
         for pid in working_ids[: max(3, min(6, lane_limit))]:
@@ -546,6 +711,11 @@ def recall(
         traj_bits.append(f"fact: **{facts[0]['title']}**")
     if hops:
         traj_bits.append("hop: " + ", ".join(h["title"] for h in hops[:3]))
+    if dots:
+        traj_bits.append(
+            "dot: "
+            + ", ".join(f"{d['echo_title']}←{d['pattern_title']}" for d in dots[:3])
+        )
 
     brief_lines = [
         "## Insight recall",
@@ -575,6 +745,13 @@ def recall(
         brief_lines.append("### Contradictions")
         for item in contradictions[: max(2, knobs.brief_fact_n)]:
             brief_lines.append(f"- {item['title']} ← {item.get('via', '')}")
+    if dots:
+        brief_lines.append("### Connected dots")
+        for item in dots[: knobs.brief_echo_n]:
+            brief_lines.append(
+                f"- **{item['echo_title']}** ({item['echo_kind']}) ← "
+                f"**{item['pattern_title']}** ({item['link_kind']})"
+            )
     brief = "\n".join(brief_lines)
 
     if write_meta:
@@ -606,6 +783,7 @@ def recall(
         "facts": facts,
         "hops": hops,
         "contradictions": contradictions,
+        "dots": dots,
         "working_set": working_set,
         "process": process,
         "brief": brief,
