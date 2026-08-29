@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional, Sequence, TYPE_CHECKING
 
 from hermes_insight.features import extract_features
 from hermes_insight.match import build_idf, expand_query_features, match_patterns
+from hermes_insight.mindset import MindsetArg, apply_to_recall, is_thin_query, resolve_plate
 from hermes_insight.models import LinkKind, Pattern, PatternKind
 from hermes_insight.scrub import scrub_text
 
@@ -154,30 +155,35 @@ def plan_task(
     observations: Optional[Sequence[str]] = None,
     domain: Optional[str] = None,
     limit: int = 5,
+    mindset: MindsetArg = None,
 ) -> Dict[str, Any]:
     """Build a ranked, experience-grounded plan without executing it."""
     situation = scrub_text(situation or "").strip()
     obs = [scrub_text(str(x)).strip() for x in (observations or []) if str(x).strip()]
     blob = "\n".join([situation, *obs]).strip()
+    plate = resolve_plate(lat, mindset)
+    knobs = apply_to_recall(plate)
     if not blob:
         return {
             "success": False,
             "error": "situation required",
             "usable": False,
             "recommendations": [],
+            "mindset": plate.to_dict(),
         }
 
     from hermes_insight.experience import seed_agent_starters
 
     seed_agent_starters(lat)
     features = expand_query_features(extract_features(blob))
-    thin_query = len(features) < 3 and len(blob.split()) < 8
+    thin_query = is_thin_query(blob, knobs, features)
     recall_pack = lat.recall(
         blob,
         limit=max(10, limit * 2),
         include_experiences=True,
         domain=domain,
         write_meta=False,
+        mindset=mindset,
     )
 
     pool = lat.store.candidate_pool(
@@ -211,6 +217,9 @@ def plan_task(
         # Bare fabric files are inventory, not a workflow recommendation.
         if (pattern.metadata or {}).get("fabric") == "file":
             continue
+        # Grown pathways are local experience, not an executable route.
+        if (pattern.metadata or {}).get("pathway") or "pathway" in set(pattern.tags or []):
+            continue
 
         evidence = _outcome_evidence(lat, pattern)
         relevance = float(hit.score)
@@ -235,6 +244,11 @@ def plan_task(
             score *= 0.90
         elif (pattern.metadata or {}).get("induced"):
             score *= 0.80
+        if pattern.kind == PatternKind.RULE:
+            score *= knobs.rule_weight
+        elif pattern.kind == PatternKind.SEQUENCE:
+            score *= knobs.sequence_weight
+        score = min(1.0, score)
         recommendations.append(
             {
                 "pattern_id": pattern.id,
@@ -380,6 +394,7 @@ def plan_task(
         "workflow": workflow,
         "card": "\n".join(card_lines),
         "thin_query": thin_query,
+        "mindset": plate.to_dict(),
         "scoring": {
             "formula": "0.68 relevance + 0.17 reliability + 0.10 strength + 0.05 confidence + structural bonus",
             "reliability": "Beta(1,1) posterior, shrunk by explicit applied-outcome sample size",

@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 __plugin_name__ = "hermes-insight"
-__plugin_version__ = "0.9.0"
+__plugin_version__ = "0.9.3"
 
 
 def _cfg() -> dict:
@@ -297,6 +297,7 @@ def handle_insight_recall(args: dict, **kwargs) -> str:
                 observations=list(observations) or None,
                 environment_id=args.get("environment_id") or None,
                 task_id=args.get("task_id") or None,
+                mindset=args.get("mindset"),
             )
         )
     except Exception as exc:  # noqa: BLE001
@@ -428,6 +429,7 @@ def handle_insight_perceive(args: dict, **kwargs) -> str:
                 experience_title=args.get("title"),
                 task_id=args.get("task_id"),
                 deep=bool(args.get("deep", False)),
+                mindset=args.get("mindset"),
             )
         )
     except Exception as exc:  # noqa: BLE001
@@ -447,6 +449,7 @@ def handle_insight_plan(args: dict, **kwargs) -> str:
                 observations=list(obs),
                 domain=args.get("domain"),
                 limit=int(args.get("limit") or 5),
+                mindset=args.get("mindset"),
             )
         )
     except Exception as exc:  # noqa: BLE001
@@ -513,6 +516,22 @@ def handle_insight_learn(args: dict, **kwargs) -> str:
         )
     except Exception as exc:  # noqa: BLE001
         logger.exception("insight_learn failed")
+        return _err(str(exc))
+
+
+def handle_insight_attune(args: dict, **kwargs) -> str:
+    """Set the active cognitive plate. Trait mindset, not a diagnosis."""
+    try:
+        lat = _lattice()
+        mindset = args.get("mindset") or args.get("name") or "balanced"
+        axes = {
+            key: args.get(key)
+            for key in ("attention", "memory", "time", "sensory", "processing")
+            if args.get(key) is not None
+        }
+        return _ok(lat.attune(mindset, **axes))
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("insight_attune failed")
         return _err(str(exc))
 
 
@@ -717,8 +736,9 @@ _RECALL_SCHEMA = {
     "description": (
         "Default memory retrieve. Call when you need to remember what the lattice already "
         "knows before acting. Returns a budgeted working set: rules (familiarity), facts, "
-        "lived echoes (recollection), hops from spreading activation, contradictions, and "
-        "usable/feeling-of-knowing. Not a transcript dump. Prefer this over reading MEMORY.md "
+        "lived echoes (recollection), hops from spreading activation, contradictions, "
+        "recognition-cued dots, grown pathways, and usable/feeling-of-knowing. Not a "
+        "transcript dump. Prefer this over reading MEMORY.md "
         "or dumping chat. Thin queries return usable=false — gather observations instead."
     ),
     "parameters": {
@@ -738,6 +758,10 @@ _RECALL_SCHEMA = {
                 "description": "Current environment snapshot id to boost matching echoes",
             },
             "task_id": {"type": "string"},
+            "mindset": {
+                "type": "string",
+                "description": "Plate override: balanced|monotropic|polytropic|catalogue",
+            },
         },
         "required": ["query"],
     },
@@ -911,6 +935,10 @@ _PERCEIVE_SCHEMA = {
             },
             "task_id": {"type": "string"},
             "title": {"type": "string", "description": "Optional experience title when log=true"},
+            "mindset": {
+                "type": "string",
+                "description": "Plate override: balanced|monotropic|polytropic|catalogue",
+            },
         },
         "required": ["situation"],
     },
@@ -931,6 +959,10 @@ _PLAN_SCHEMA = {
             "observations": {"type": "array", "items": {"type": "string"}},
             "domain": {"type": "string"},
             "limit": {"type": "integer", "default": 5},
+            "mindset": {
+                "type": "string",
+                "description": "Plate override: balanced|monotropic|polytropic|catalogue",
+            },
         },
         "required": ["situation"],
     },
@@ -1010,6 +1042,31 @@ _LEARN_SCHEMA = {
     },
 }
 
+_ATTUNE_SCHEMA = {
+    "name": "insight_attune",
+    "description": (
+        "Set the active cognitive plate for this seat. Named plates: balanced, "
+        "monotropic, polytropic, catalogue. Optional axis overrides produce a custom "
+        "plate. Trait configuration only — not a diagnosis, not a claim of lived "
+        "neurodivergent identity. The plate can change at any time."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "mindset": {
+                "type": "string",
+                "description": "balanced | monotropic | polytropic | catalogue",
+                "default": "balanced",
+            },
+            "attention": {"type": "string", "description": "monotropic | balanced | polytropic"},
+            "memory": {"type": "string", "description": "semantic | balanced | episodic | procedural"},
+            "time": {"type": "string", "description": "linear | balanced | cyclical"},
+            "sensory": {"type": "string", "description": "filter | balanced | sensitive"},
+            "processing": {"type": "string", "description": "gist | balanced | distill"},
+        },
+    },
+}
+
 _INGEST_MSG_SCHEMA = {
     "name": "insight_ingest_messages",
     "description": (
@@ -1070,6 +1127,7 @@ def register(ctx) -> None:
     _reg(_OBSERVE_SCHEMA, handle_insight_observe, emoji="◉")
     _reg(_LEARN_SCHEMA, handle_insight_learn, emoji="⌁")
     _reg(_RECALL_SCHEMA, handle_insight_recall, emoji="◎")
+    _reg(_ATTUNE_SCHEMA, handle_insight_attune, emoji="◈")
     _reg(_REMEMBER_SCHEMA, handle_insight_remember, emoji="✦")
     _reg(_EXPERIENCE_SCHEMA, handle_insight_experience, emoji="◉")
     _reg(_TASK_SCHEMA, handle_insight_task, emoji="▣")
@@ -1160,9 +1218,12 @@ def register(ctx) -> None:
                 return lat.perceive(parts[1]).get("card", "")
             if sub == "plan" and len(parts) > 1:
                 return lat.plan(parts[1]).get("card", "")
+            if sub == "attune":
+                name = parts[1].strip() if len(parts) > 1 else "balanced"
+                return json.dumps(lat.attune(name), indent=2)
             if sub == "hygiene":
                 return json.dumps(lat.hygiene(), indent=2)
-            return "Usage: /insight stats|bootstrap|perceive <q>|plan <q>|recall <q>|remember <q>|cycle <q>|hygiene"
+            return "Usage: /insight stats|bootstrap|perceive <q>|plan <q>|recall <q>|remember <q>|attune <plate>|cycle <q>|hygiene"
 
         try:
             ctx.register_command(

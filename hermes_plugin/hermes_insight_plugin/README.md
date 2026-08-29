@@ -39,13 +39,15 @@ Restart Hermes / gateway after enabling.
 | `insight_task` | Open/close task episodes |
 | `insight_experience` | Log event; auto-connect |
 | `insight_recall` | Associative retrieve (working set + usable) |
+| `insight_attune` | Set the cognitive plate (trait mindset, not a diagnosis) |
 | `insight_remember` | Compact durable fact / engram |
 | `insight_cycle` | Deep multi-lens cycle |
 | `insight_forge` | Maps / playbooks / seeds |
 | `insight_bootstrap` | Seed starter patterns |
 
 Slash (when supported): `/insight stats` · `/insight perceive <q>` ·
-`/insight plan <q>` · `/insight recall <q>` · `/insight remember <q>` · `/insight cycle <q>`
+`/insight plan <q>` · `/insight recall <q>` · `/insight attune <plate>` ·
+`/insight remember <q>` · `/insight cycle <q>`
 
 ## Notes
 

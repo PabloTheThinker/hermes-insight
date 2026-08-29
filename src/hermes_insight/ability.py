@@ -8,13 +8,20 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Sequence, TYPE_CHECKING
 
 from hermes_insight.features import extract_features
+from hermes_insight.mindset import MindsetArg, apply_to_recall, is_thin_query, resolve_plate
 from hermes_insight.scrub import scrub_text
 
 if TYPE_CHECKING:
     from hermes_insight.harness import HermesInsight
 
 
-def _action_hint(lever: str, matches: Sequence[Dict[str, Any]], conf: float) -> str:
+def _action_hint(
+    lever: str,
+    matches: Sequence[Dict[str, Any]],
+    conf: float,
+    experiences: Optional[Sequence[Dict[str, Any]]] = None,
+    pathways: Optional[Sequence[Dict[str, Any]]] = None,
+) -> str:
     if lever in {"insufficient_signal", "unknown", ""}:
         return (
             "Not enough structure yet — add 2–3 concrete observations "
@@ -29,19 +36,32 @@ def _action_hint(lever: str, matches: Sequence[Dict[str, Any]], conf: float) -> 
     title = top.get("title") or "prior"
     preview = (top.get("body_preview") or "").strip().split("\n")[0][:160]
     score = float(top.get("score") or 0)
+    echo = (experiences or [None])[0] if experiences else None
+    echo_bit = ""
+    if echo:
+        echo_bit = f" Lived echo: **{echo.get('title')}**."
+    path = (pathways or [None])[0] if pathways else None
+    path_bit = ""
+    if path:
+        path_bit = (
+            f" Grown pathway: **{path.get('title')}** "
+            f"(support {path.get('support')})."
+        )
     if score >= 0.35 and conf >= 0.45:
         return (
             f"Treat as instance of **{title}** (score {score:.2f}). "
-            f"Apply that rule first: {preview}"
+            f"Apply that rule first: {preview}{echo_bit}{path_bit}"
         )
     if score >= 0.18:
         return (
             f"Possible rhyme with **{title}** ({score:.2f}). "
-            f"Verify the lever `{lever}` against: {preview}"
+            f"Verify the lever `{lever}` against: {preview}{echo_bit}{path_bit}"
         )
     return (
         f"Weak prior **{title}** ({score:.2f}). "
         f"Hold lever `{lever}` lightly; gather one more observation before committing."
+        + echo_bit
+        + path_bit
     )
 
 
@@ -81,20 +101,30 @@ def perceive(
     experience_title: Optional[str] = None,
     task_id: Optional[str] = None,
     deep: bool = False,
+    mindset: MindsetArg = None,
 ) -> Dict[str, Any]:
     """Run pattern recognition on a live situation."""
     situation = scrub_text(situation or "").strip()
     obs = [scrub_text(o).strip() for o in (observations or []) if o and str(o).strip()]
     blob = situation if not obs else situation + "\n" + "\n".join(obs)
 
-    from hermes_insight.experience import densify_structural_links, seed_agent_starters
+    from hermes_insight.experience import seed_agent_starters
 
     seed_agent_starters(lat)
 
+    plate = resolve_plate(lat, mindset)
+    knobs = apply_to_recall(plate)
     feats = extract_features(blob)
-    thin_query = len(feats) < 3 and len(blob.split()) < 8
+    thin_query = is_thin_query(blob, knobs, feats)
 
-    pack = lat.recall(blob, limit=limit, domain=domain, write_meta=False)
+    pack = lat.recall(
+        blob,
+        limit=limit,
+        domain=domain,
+        write_meta=False,
+        mindset=mindset,
+        connect_dots=True,
+    )
     matches: List[Dict[str, Any]] = list(pack.get("matches") or [])
     # Prefer structural rules over bulk-indexed skill inventory rows
     rules = [m for m in matches if m.get("kind") == "rule" or not str(m.get("title") or "").startswith("skill:")]
@@ -106,6 +136,9 @@ def perceive(
         matches = matches[:limit]
     experiences: List[Dict[str, Any]] = list(pack.get("experiences") or [])
     hops: List[Dict[str, Any]] = list(pack.get("hops") or [])
+    dots: List[Dict[str, Any]] = list(pack.get("dots") or [])
+    pathways: List[Dict[str, Any]] = list(pack.get("pathways") or [])
+    pathway_growth: Dict[str, Any] = dict(pack.get("pathway_growth") or {})
     lever = str(pack.get("lever") or "")
     conf = float(pack.get("confidence") or 0.0)
     brief = str(pack.get("brief") or "")
@@ -114,7 +147,7 @@ def perceive(
     deep_used = False
 
     # Align lever to strong top structure (dict form from recall)
-    if matches and top_score >= 0.45 and lever not in {"insufficient_signal", ""}:
+    if matches and top_score >= knobs.refine_min_score and lever not in {"insufficient_signal", ""}:
         from hermes_insight.distill import refine_lever_from_matches
         from hermes_insight.models import MatchResult, Pattern, PatternKind, Domain
         top = matches[0]
@@ -148,7 +181,7 @@ def perceive(
     need_deep = bool(deep) or (
         (not thin_query)
         and top_score < 0.18
-        and len(blob) >= 48
+        and len(blob) >= knobs.deep_min_len
     )
     if need_deep:
         report = lat.cycle(
@@ -192,11 +225,14 @@ def perceive(
         matches = []
         experiences = []
         hops = []
+        dots = []
+        pathways = []
+        pathway_growth = {"strengthened": 0, "sibling_links": 0}
         top_score = 0.0
         lever = "insufficient_signal"
         conf = 0.12
         usable = False
-        hint = _action_hint(lever, matches, conf)
+        hint = _action_hint(lever, matches, conf, experiences, pathways)
         card_lines = [
             "## Pattern recognition",
             f"**Lever:** `{lever}` · **confidence:** {conf:.2f} · **needs more signal**",
@@ -219,6 +255,9 @@ def perceive(
             "matches": [],
             "experiences": [],
             "hops": [],
+            "dots": [],
+            "pathways": [],
+            "pathway_growth": {"strengthened": 0, "sibling_links": 0},
             "brief": brief,
             "card": "\n".join(card_lines),
             "deep_used": deep_used,
@@ -226,12 +265,11 @@ def perceive(
             "logged_experience": None,
             "active_task_id": lat.store.get_meta("active_task_id", ""),
             "pattern_ids": [],
+            "mindset": plate.to_dict(),
         }
 
     if not hops:
         hops = _collect_hops(lat, matches)
-
-    hint = _action_hint(lever, matches, conf)
 
     logged = None
     if log_experience and situation and lever != "insufficient_signal":
@@ -244,8 +282,42 @@ def perceive(
             confidence=max(0.4, conf),
             auto_connect=True,
         )
+        exp = (logged or {}).get("experience") or {}
+        echo_id = str(exp.get("id") or "")
+        seen_pairs = {(d.get("echo_id"), d.get("pattern_id")) for d in dots}
+        new_dots = False
+        for conn in (logged or {}).get("connected") or []:
+            key = (echo_id, conn.get("pattern_id"))
+            if not echo_id or key in seen_pairs:
+                continue
+            dots.append(
+                {
+                    "pattern_id": conn.get("pattern_id"),
+                    "pattern_title": conn.get("title"),
+                    "pattern_kind": "rule",
+                    "echo_id": echo_id,
+                    "echo_title": str(exp.get("title") or ""),
+                    "echo_kind": str(exp.get("kind") or "event"),
+                    "link_kind": conn.get("link_kind") or "instance_of",
+                    "score": float(conn.get("score") or 0),
+                    "task_id": str(logged.get("task_id") or ""),
+                }
+            )
+            seen_pairs.add(key)
+            new_dots = True
+        if new_dots:
+            from hermes_insight.pathway import grow_pathways
 
-    usable = bool(matches) and top_score >= 0.18 and lever not in {"insufficient_signal", "unknown", ""}
+            growth = grow_pathways(lat, dots, matches)
+            pathways = list(growth.get("pathways") or [])
+            pathway_growth = {
+                "strengthened": int(growth.get("strengthened") or 0),
+                "sibling_links": int(growth.get("sibling_links") or 0),
+            }
+
+    usable_bar = 0.18 * (knobs.usable_activation / 0.12)
+    usable = bool(matches) and top_score >= usable_bar and lever not in {"insufficient_signal", "unknown", ""}
+    hint = _action_hint(lever, matches, conf, experiences, pathways)
 
     card_lines = [
         "## Pattern recognition",
@@ -265,6 +337,19 @@ def perceive(
         for e in experiences[:3]:
             sc = float(e.get("score") or 0)
             card_lines.append(f"- `{sc:.2f}` **{e.get('title')}**")
+    if dots:
+        card_lines.append("### Connected dots")
+        for d in dots[:4]:
+            card_lines.append(
+                f"- **{d.get('echo_title')}** ← **{d.get('pattern_title')}** "
+                f"({d.get('link_kind')})"
+            )
+    if pathways:
+        card_lines.append("### Grown pathways")
+        for p in pathways[:3]:
+            card_lines.append(
+                f"- **{p.get('title')}** (support {p.get('support')}, {p.get('lifecycle')})"
+            )
     if hops:
         card_lines.append("### Hops")
         card_lines.append(
@@ -299,6 +384,9 @@ def perceive(
         "matches": matches,
         "experiences": experiences,
         "hops": hops,
+        "dots": dots,
+        "pathways": pathways,
+        "pathway_growth": pathway_growth,
         "brief": brief,
         "card": card,
         "deep_used": deep_used,
@@ -306,4 +394,5 @@ def perceive(
         "logged_experience": logged,
         "active_task_id": lat.store.get_meta("active_task_id", ""),
         "pattern_ids": [m.get("id") for m in matches if m.get("id")],
+        "mindset": plate.to_dict(),
     }

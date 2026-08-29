@@ -191,6 +191,11 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("-n", "--limit", type=int, default=8)
     s.add_argument("--log", action="store_true", help="Also catalogue as experience")
     s.add_argument("--deep", action="store_true", help="Force deep cycle if thin")
+    s.add_argument(
+        "--mindset",
+        default=None,
+        help="Cognitive plate: balanced|monotropic|polytropic|catalogue or JSON axes",
+    )
     s.set_defaults(func=cmd_perceive)
 
     s = sub.add_parser(
@@ -201,6 +206,11 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("-o", "--observation", action="append", default=[])
     s.add_argument("--domain", default=None)
     s.add_argument("-n", "--limit", type=int, default=5)
+    s.add_argument(
+        "--mindset",
+        default=None,
+        help="Cognitive plate: balanced|monotropic|polytropic|catalogue or JSON axes",
+    )
     s.set_defaults(func=cmd_plan)
 
     s = sub.add_parser(
@@ -247,7 +257,29 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("-o", "--observation", action="append", default=[])
     s.add_argument("--environment-id", default=None)
     s.add_argument("--task-id", default=None)
+    s.add_argument(
+        "--mindset",
+        default=None,
+        help="Cognitive plate: balanced|monotropic|polytropic|catalogue or JSON axes",
+    )
     s.set_defaults(func=cmd_recall)
+
+    s = sub.add_parser(
+        "attune",
+        help="Set the active cognitive plate (trait mindset, not a diagnosis)",
+    )
+    s.add_argument(
+        "mindset",
+        nargs="?",
+        default="balanced",
+        help="balanced|monotropic|polytropic|catalogue or JSON axes",
+    )
+    s.add_argument("--attention", default=None, help="monotropic|balanced|polytropic")
+    s.add_argument("--memory", default=None, help="semantic|balanced|episodic|procedural")
+    s.add_argument("--time", default=None, help="linear|balanced|cyclical")
+    s.add_argument("--sensory", default=None, help="filter|balanced|sensitive")
+    s.add_argument("--processing", default=None, help="gist|balanced|distill")
+    s.set_defaults(func=cmd_attune)
 
     s = sub.add_parser("remember", help="Store a compact durable fact/engram")
     s.add_argument("claim")
@@ -485,6 +517,12 @@ def cmd_hygiene(args: argparse.Namespace) -> int:
     return 0
 
 
+def _mindset_arg(raw: Any) -> Any:
+    from hermes_insight.mindset import parse_mindset_arg
+
+    return parse_mindset_arg(raw)
+
+
 def cmd_perceive(args: argparse.Namespace) -> int:
     lat = _lattice(args)
     pack = lat.perceive(
@@ -494,6 +532,7 @@ def cmd_perceive(args: argparse.Namespace) -> int:
         limit=args.limit,
         log_experience=bool(args.log),
         deep=bool(args.deep),
+        mindset=_mindset_arg(getattr(args, "mindset", None)),
     )
     if args.json:
         _print(pack, as_json=True)
@@ -509,6 +548,7 @@ def cmd_plan(args: argparse.Namespace) -> int:
         observations=args.observation,
         domain=args.domain,
         limit=args.limit,
+        mindset=_mindset_arg(getattr(args, "mindset", None)),
     )
     if args.json:
         _print(pack, as_json=True)
@@ -569,7 +609,24 @@ def cmd_recall(args: argparse.Namespace) -> int:
         observations=args.observation or None,
         environment_id=args.environment_id,
         task_id=args.task_id,
+        mindset=_mindset_arg(getattr(args, "mindset", None)),
     )
+
+
+def cmd_attune(args: argparse.Namespace) -> int:
+    lat = _lattice(args)
+    axes = {
+        "attention": args.attention,
+        "memory": args.memory,
+        "time": args.time,
+        "sensory": args.sensory,
+        "processing": args.processing,
+    }
+    _print(
+        lat.attune(_mindset_arg(args.mindset), **{k: v for k, v in axes.items() if v}),
+        as_json=True,
+    )
+    return 0
     if args.json:
         _print(pack, as_json=True)
     else:

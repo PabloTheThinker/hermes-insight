@@ -2,6 +2,40 @@
 
 ## Unreleased
 
+## 0.9.3 — 2026-08-29
+
+- **Hebbian pathways** — recognition-cued `dots` potentiate existing binds,
+  grow `shares_context` sibling links between lived echoes, and consolidate a
+  local `sequence` when three or more distinct-task (or unbound) echoes support
+  the same rule
+- Pathway nodes are tagged `pathway` / `grown` / `candidate` with
+  `automatic_skill_write=false`. They never become `PatternKind.SKILL` and never
+  write `applied` credit
+- Recall, perceive, and task-open surface `pathways` plus `pathway_growth`
+
+## 0.9.2 — 2026-08-28
+
+- **Recognition-cued recall** — after perceive/recall names a structure, the
+  engine harvests events and tasks already bound to that pattern and surfaces
+  them as lived echoes plus an explicit `dots` list
+- Perceive and task-open bind recalled episodes to rules via `experienced_as`
+  / `instance_of` (never `applied` credit) so the next turn connects the same
+  shape faster
+- Cards, briefs, and action hints mention the lived echo when one exists
+
+## 0.9.1 — 2026-08-26
+
+- **Cognitive plates** — swappable, non-diagnostic mindsets (`balanced`,
+  `monotropic`, `polytropic`, `catalogue`, or custom axes) overlay recall
+  spread/inhibition, lane weights, recency, and the thin-query bar
+- `insight_attune` / `hermes-insight attune` persist the active plate;
+  per-call `mindset=` overrides it. `stats()` and every recall pack include
+  `mindset`
+- Light perceive usable-bar and plan ranking bias from the same plate;
+  `applied` credit is unchanged
+- Docs: [MINDSET.md](docs/MINDSET.md) credits Sonny Jane Wise’s Neurodiversity
+  Smorgasbord (2024) and forbids diagnostic language
+
 ## 0.9.0 — 2026-08-26
 
 - **Associative recall layer** — `insight_recall` returns a budgeted working set

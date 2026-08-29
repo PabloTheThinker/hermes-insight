@@ -100,6 +100,7 @@ print(card["action_hint"], "usable=", card["usable"])
 hermes-insight bootstrap              # seed agent-field starter rules
 hermes-insight perceive "situation" -o "fact" --log
 hermes-insight recall "query"
+hermes-insight attune monotropic     # trait plate; not a diagnosis
 hermes-insight remember "durable fact" --pointer "user.md#heading"
 hermes-insight hygiene                # decay fabric noise + densify links
 hermes-insight stats
@@ -124,6 +125,7 @@ observe env → recall → perceive → plan? → task open → typed events →
 | `insight_task` | Open/close multi-step episodes (`task_id`) |
 | `insight_experience` | Log events; auto-link to patterns |
 | **`insight_recall`** | Associative retrieve — working set + `usable` |
+| `insight_attune` | Cognitive plate — swappable recall/perceive/plan mindset |
 | `insight_remember` | Compact durable fact / engram |
 | `insight_cycle` | Deep multi-lens cycle |
 | `insight_forge` | Lattice → maps / playbooks / invention seeds |
@@ -234,6 +236,7 @@ Env overrides: `HERMES_INSIGHT_DB`, `HERMES_INSIGHT_AGENT_ID`, `HERMES_INSIGHT_A
 | [Ability](docs/ABILITY.md) | Short ability card |
 | [Experience](docs/EXPERIENCE.md) | Tasks, events, recall loop |
 | [Recall](docs/RECALL.md) | Science-grounded retrieve organ + remember |
+| [Mindset](docs/MINDSET.md) | Cognitive plates (swappable trait mindsets) |
 | [Security](SECURITY.md) | Privacy, compartments, isolation |
 | [Contributing](CONTRIBUTING.md) | Dev setup and PR hygiene |
 | [Changelog](CHANGELOG.md) | Version history |

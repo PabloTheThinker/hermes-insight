@@ -43,6 +43,7 @@ After `./scripts/install_for_hermes.sh` (and a Hermes reload), you typically get
 | **`insight_observe`** | **Grounding** | Typed event or workspace snapshot/delta |
 | **`insight_learn`** | **Induction** | Recurring ordered workflows across distinct tasks |
 | **`insight_recall`** | Associative retrieve | Need to remember what the lattice already knows |
+| `insight_attune` | Cognitive plate | Swap recall/perceive/plan mindset for this seat |
 | `insight_remember` | Compact engram | Durable fact / preference pointer |
 | `insight_task` | Open/close episodes | Multi-step jobs; keep `task_id` |
 | `insight_experience` | Log event/episode | After fix, failure, decision |
@@ -521,12 +522,18 @@ Recall of any of them goes through `insight_recall`, not a file dump.
 ### recall / remember
 
 ```text
-recall(query, observations?=, environment_id?=, task_id?=, limit=8)
+recall(query, observations?=, environment_id?=, task_id?=, limit=8, mindset?=)
   → {
       usable, thin_query, process, lever, confidence,
       matches[] / rules[], facts[], experiences[] / echoes[],
-      hops[], contradictions[], working_set, brief
+      hops[], contradictions[], dots[], pathways[], pathway_growth,
+      working_set, brief, mindset
     }
+
+attune(name|plate, attention?=, memory?=, time?=, sensory?=, processing?=)
+  → { mindset, knobs, summary, note }
+
+See [MINDSET.md](MINDSET.md). Trait plate only — not a diagnosis.
 
 remember(claim, source?=, salience?=, pointer?=, task_id?=)
   → { fact, connected, pointer }
@@ -541,7 +548,7 @@ perceive(situation, observations?=, domain?=, log?=false, deep?=false)
   → {
       usable, lever, confidence, top_score,
       action_hint, card,
-      matches[], experiences[], hops[],
+      matches[], experiences[], hops[], dots[], pathways[],
       brief, deep_used, thin_query,
       logged_experience?, pattern_ids[]
     }
@@ -550,7 +557,7 @@ perceive(situation, observations?=, domain?=, log?=false, deep?=false)
 ### task
 
 ```text
-open  name, goal?  → task_id, priors, brief
+open  name, goal?  → task_id, priors, echoes, dots, pathways, brief
 close task_id?, outcome?, summary?, used_pattern_ids?  → applied_patterns[], reinforced?
 ```
 
@@ -595,6 +602,7 @@ experience(title, body, kind=event|episode, task_id?, outcome?, tags?)
 |-----|--------|
 | [ABILITY.md](ABILITY.md) | Short ability card |
 | [RECALL.md](RECALL.md) | Associative retrieve + remember |
+| [MINDSET.md](MINDSET.md) | Cognitive plates (Wise 2024) |
 | [EXPERIENCE.md](EXPERIENCE.md) | Experience layer summary |
 | [SECURITY.md](../SECURITY.md) | Privacy / isolation |
 | [COMMUNITY.md](COMMUNITY.md) | Positioning for humans |
@@ -605,10 +613,10 @@ experience(title, body, kind=event|episode, task_id?, outcome?, tags?)
 
 ## 15. Version note
 
-This guide targets the **0.9.x** line (associative recall + remember, perceive + plan,
-native observation, explicit applied-pattern outcomes, evidence-gated workflow induction,
-structural priors, and session-noise hygiene). APIs evolve; trust `insight_stats.version`
-on the live lattice.
+This guide targets the **0.9.x** line (associative recall + remember, cognitive plates,
+perceive + plan, native observation, explicit applied-pattern outcomes, evidence-gated
+workflow induction, structural priors, and session-noise hygiene). APIs evolve; trust
+`insight_stats.version` on the live lattice.
 
 ---
 

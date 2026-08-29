@@ -15,7 +15,10 @@ insight_perceive(situation, observations?, log?, deep?)
         ├─ structural priors (rules > random source files)
         ├─ distill controlling lever
         ├─ lived experience echoes + graph hops
-        ├─ action hint
+        ├─ recognition-cued recall of events/tasks bound to those patterns
+        ├─ connect dots (experienced_as / instance_of, never applied credit)
+        ├─ grow Hebbian pathways (potentiate binds, sibling echoes, local sequences)
+        ├─ action hint (mentions a lived echo or grown pathway when one exists)
         └─ optional: log experience for next time
 ```
 
@@ -48,6 +51,8 @@ hermes-insight perceive "retries stampede origin after cache expiry" --log
 | Multi-lens match | template + prototype + feature + hybrid |
 | Structural preference | rules/prototypes boosted; bare filenames demoted |
 | Lived time | experience events auto-link; recency boost |
+| Recognition-cued recall | recognized rules harvest bound events/tasks (`dots`) |
+| Pathway growth | repeated dots potentiate binds and grow local `sequence` candidates |
 | Lever focus | distill actual variable with prior vocabulary |
 | Transfer | analogy / hops via graph neighbors |
 | Reinforcement | task close + feedback strengthens useful nodes |
@@ -74,6 +79,7 @@ After at least three comparable tasks, inspect `insight_learn` without auto-prom
 | insight_observe | Typed event or environment snapshot |
 | insight_learn | Evidence-gated recurring workflow induction |
 | **insight_recall** | Associative retrieve — working set + `usable` |
+| insight_attune | Set the active cognitive plate (trait mindset, not a diagnosis) |
 | insight_remember | Compact durable fact / engram |
 | insight_cycle | Explicit deep analysis |
 | insight_experience / task | Bind time |

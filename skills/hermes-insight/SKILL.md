@@ -1,7 +1,7 @@
 ---
 name: hermes-insight
 description: Recognize recurring structures and learn from outcomes.
-version: 0.9.0
+version: 0.9.3
 author: Pablo Navarro (PabloTheThinker), Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
@@ -76,6 +76,7 @@ For ontology, scoring, privacy, and advanced examples, load
 |---|---|
 | `insight_perceive` | Situation → lever, matching structures, echoes, `usable` |
 | `insight_recall` | Working set: rules, facts, echoes, hops, `usable` |
+| `insight_attune` | Set the cognitive plate (trait mindset, not a diagnosis) |
 | `insight_remember` | One compact durable fact / engram |
 | `insight_plan` | Ranked route with reliability and environment state |
 | `insight_observe` | Typed event or scrubbed workspace snapshot/delta |
@@ -93,7 +94,11 @@ For ontology, scoring, privacy, and advanced examples, load
    branch, dependency state, or available tools. Continue when the returned snapshot and
    delta describe the intended workspace.
 2. **Recall, then perceive.** Call `insight_recall` when you need prior facts, echoes,
-   or rules. If `usable=false`, gather observations. Then call `insight_perceive` with
+   or rules. Recognized structures harvest bound events/tasks as `dots` and may
+   grow local Hebbian `pathways` (never published skills). Optional
+   `insight_attune` sets a trait plate for this seat (see `docs/MINDSET.md`); a
+   per-call `mindset=` overrides it. If `usable=false`, gather
+   observations. Then call `insight_perceive` with
    component names, symptoms, exact errors, observations, and an optional domain.
    Continue only after checking `usable`, `lever`, top score, and the top rule.
    Use `insight_remember` for one durable claim — never chat logs.

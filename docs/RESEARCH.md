@@ -98,6 +98,7 @@ metaphors* for agent design.
 | Optional LLM copilot scaffolds | `prompts.py` |
 | Associative recall / feeling of knowing | `recall.py` |
 | Compact engrams (hippocampal index) | `recall.remember` / `PatternKind.FACT` |
+| Trait plates (swappable mindsets) | `mindset.py` — Wise 2024 smorgasbord, not DSM |
 
 ## 7. Selected references (starting points)
 
@@ -115,10 +116,12 @@ metaphors* for agent design.
 - Collins & Loftus (1975); Anderson (1983). Spreading activation / ACT-R.
 - Ramsauer et al. (2020). *Hopfield Networks is All You Need* — modern Hopfield = attention: https://arxiv.org/abs/2008.02217
 - Jiang et al. (2026). *SYNAPSE* — spreading activation for agent memory: https://aclanthology.org/2026.findings-acl.1108.pdf
+- Wise, S. J. (2024). *The Neurodiversity Smorgasbord* — trait plate, not a label: https://www.livedexperienceeducator.com/blog/theneurodiversitysmorgasbord
 
 The engineering deep dive, AgentDrive comparison, scoring design, and prioritized build
 roadmap are in **[INTUITION.md](INTUITION.md)**. The recall-layer mapping is in
-**[RECALL.md](RECALL.md)**.
+**[RECALL.md](RECALL.md)**. Swappable cognitive plates (credit: Sonny Jane Wise,
+Neurodiversity Smorgasbord, 2024) are in **[MINDSET.md](MINDSET.md)**.
 
 ## 8. Ethics
 

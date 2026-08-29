@@ -21,6 +21,7 @@ transcripts, or the lattice into context. It returns a **budgeted working set**.
 | Dual process | Familiarity (“know”) vs recollection (“remember”) (Yonelinas; Tulving) | Lanes: `rules` / `facts` / `echoes` / `contradictions` |
 | Selective episodic control | Indiscriminate recall is a retrieval dilemma (AEC, ACL 2026) | `usable` + thin-query refusal |
 | Testing effect + decay | Retrieval strengthens a trace; unused traces fade | Light `touch` on the working set; hygiene still decays; **no `applied` credit** |
+| Hebbian potentiation | Neurons that fire together wire together (Hebb 1949) | Recognition dots raise bind weight, grow sibling links, and consolidate a local pathway sequence |
 | Feeling of knowing | Humans can reject “I don’t have this” | `usable=false` — do not invent a memory |
 
 Hard boundaries: stdlib only, no embeddings, no transcript dumps, one DB per
@@ -34,11 +35,17 @@ cue (query + optional environment / task / observations)
   → hybrid match seeds
   → spreading activation over existing links
   → dual-process split + contradictions
+  → harvest bound echoes (`dots`)
+  → Hebbian pathway growth (when writing / connecting)
   → budgeted working set + usable + brief
 ```
 
 `insight_perceive` answers “what shape is this?”.
 `insight_recall` answers “what do we already know that matters here?”.
+
+Optional `mindset=` (or a persisted plate from `insight_attune`) changes
+spread, inhibition, lane weights, and the thin-query bar. Defaults reproduce
+these 0.9 constants. See [MINDSET.md](MINDSET.md).
 
 ## How to call
 
@@ -70,6 +77,13 @@ hermes-insight remember "prefer jitter on retries" --pointer "user.md#retry-pref
    SYNAPSE “bridge”: lexically distant but causally linked).
 7. **`contradictions`** — `contradicts` neighbors of activated nodes.
 8. **`working_set`** — the same lanes, already budgeted by `limit`.
+9. **`mindset`** — name + axes of the plate that produced this set.
+10. **`dots`** — explicit bindings from a recognized rule/skill to a lived
+    event or task (`experienced_as` / `instance_of`). Recognition cues recall.
+11. **`pathways`** — local `sequence` candidates grown from repeated
+    recognition. Experience compounds; skills stay unpublished until induction
+    or a human writes them. **`pathway_growth`** reports strengthened binds and
+    sibling links.
 
 Backward-compatible keys (`matches`, `experiences`, `hops`, `brief`, `lever`)
 remain so `insight_plan` and older tests keep working.
@@ -94,7 +108,8 @@ This is the hippocampal-index idea: store the binding, not the episode dump.
 - Preferences may still live in MEMORY.md; **recalling** them goes through Insight.
 - Procedures still become skills. Structures and facts stay in the lattice.
 - Closing a task with `used_pattern_ids` is the only way to give outcome credit.
-  Recall is retrieval practice, not success.
+  Recall is retrieval practice, not success. Grown pathways are skill-shaped
+  candidates, not published Hermes skills.
 
 ## Anti-patterns
 
@@ -109,6 +124,7 @@ This is the hippocampal-index idea: store the binding, not the episode dump.
 ## Related
 
 - [RESEARCH.md](RESEARCH.md) — cognitive and agent-memory sources
+- [MINDSET.md](MINDSET.md) — cognitive plates (Wise 2024)
 - [INTUITION.md](INTUITION.md) — planner, observation, induction
 - [EXPERIENCE.md](EXPERIENCE.md) — task/event write path
 - [ABILITY.md](ABILITY.md) — perceive card
