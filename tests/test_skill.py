@@ -29,6 +29,7 @@ def test_skill_matches_hermes_progressive_disclosure_conventions():
     description = _field(frontmatter, "description")
     assert len(description) <= 60
     assert description.endswith(".")
+    assert description.startswith("Use when")
     assert _field(frontmatter, "version")
     assert _field(frontmatter, "author")
     assert _field(frontmatter, "license") == "MIT"
@@ -56,13 +57,39 @@ def test_skill_matches_hermes_progressive_disclosure_conventions():
     assert "/home/" not in text
     assert "../" not in text
     assert "automatic_skill_write=false" in body
+    assert "MemoryProvider" in body
+    assert "MEMORY.md" in body
+    for token in (
+        "usable",
+        "lever",
+        "dots",
+        "pathways",
+        "used_pattern_ids",
+        "insight_perceive(",
+        "insight_recall(",
+        "insight_plan(",
+        "insight_task(",
+    ):
+        assert token in body, f"skill must teach `{token}` to a Hermes agent"
+    assert "you" in body.lower()
+    words = len(re.findall(r"\b\w+\b", body))
+    assert words <= 900, f"SKILL.md body is {words} words; keep the hot path scannable"
 
 
 def test_skill_reference_and_installer_bundle_are_complete():
     text = SKILL.read_text(encoding="utf-8")
     reference = SKILL_DIR / "references" / "AGENT-GUIDE.md"
+    how = SKILL_DIR / "references" / "HOW-IT-WORKS.md"
     assert reference.is_file()
+    assert how.is_file()
     assert "references/AGENT-GUIDE.md" in text
+    assert "references/HOW-IT-WORKS.md" in text
+    how_text = how.read_text(encoding="utf-8")
+    assert "working set" in how_text.lower()
+    assert "usable" in how_text
+    assert "pathways" in how_text
+    assert "applied" in how_text
+    assert "MemoryProvider" in how_text
 
     installer = (ROOT / "scripts" / "install_for_hermes.sh").read_text(encoding="utf-8")
     assert 'cp -a "$ROOT/skills/hermes-insight" "$SKILL_DST"' in installer

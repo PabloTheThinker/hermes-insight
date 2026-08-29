@@ -195,7 +195,7 @@ encode → match → link → distill → perceive → reinforce
 | Piece | Path / role |
 |-------|-------------|
 | Native plugin | `hermes_plugin/hermes_insight_plugin/` → `$HERMES_HOME/plugins/hermes-insight/` |
-| Skill | `skills/hermes-insight/` (+ `references/AGENT-GUIDE.md`) |
+| Skill | `skills/hermes-insight/` (`SKILL.md`, `HOW-IT-WORKS.md`, `AGENT-GUIDE.md`) |
 | Installer | `scripts/install_for_hermes.sh` |
 | Primary tool | `insight_perceive` |
 | Hermespace organ | `HermesInsight.perceive_card(goal, load="mid")` — soft-import, not a MemoryProvider |
@@ -259,7 +259,7 @@ python3 scripts/production_e2e.py
 |--------|---------|
 | `src/hermes_insight/` | Core library (store, match, distill, experience, ability, forge, CLI) |
 | `hermes_plugin/` | Native Hermes plugin |
-| `skills/hermes-insight/` | Agent skill + embedded Agent Guide |
+| `skills/hermes-insight/` | Agent skill + how-it-works + Agent Guide |
 | `scripts/` | Install, E2E, isolation gate |
 | `tests/` | Unit tests |
 | `docs/` | Human + agent documentation |
